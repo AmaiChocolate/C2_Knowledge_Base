@@ -99,7 +99,7 @@
         scope.tracks = scenario.tracks;
         scope.orientation = state.orientation;
         scope.selectedTrack = null;
-        anim.reset(scope.tracks);
+        anim.reset(scope.tracks, scenario.motionScript);
 
         state.answer = grader.buildAnswer(scope.tracks, state.meta, state.orientation);
 

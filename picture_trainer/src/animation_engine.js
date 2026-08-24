@@ -1,46 +1,59 @@
 /**
- * Smooth track animation — ingress, CAP racetrack, formation hold.
+ * Smooth track animation — BC3-style kinematics with deterministic sim time.
  */
 class AnimationEngine {
     constructor(scope) {
         this.scope = scope;
         this.animSpeed = 1;
         this.simTime = 0;
+        this.fixedStep = 1 / 60;
+        this.accumulator = 0;
         this.plotIntervalSec = 4;
         this.lastPlotTime = 0;
+        this.motionScript = null;
+        this.releasedWaveIds = new Set();
     }
 
     setSpeed(mult) {
         this.animSpeed = Math.max(0.25, Math.min(8, mult));
     }
 
-    reset(tracks) {
+    reset(tracks, motionScript) {
         this.simTime = 0;
+        this.accumulator = 0;
         this.lastPlotTime = 0;
+        this.motionScript = motionScript || null;
+        this.releasedWaveIds = new Set();
+
         (tracks || []).forEach(t => {
             t.history = [];
             t.radarPlots = [];
-            t._animState = t.capStation ? 'cap' : (t.hostile ? 'ingress' : 'cap');
-            t._capAlong = 0;
-            t._capLeg = t.capOrbitLeg || 'EAST';
+            t.currentSpeed = t.speed;
+            if (t.targetHeading == null) t.targetHeading = t.heading;
             if (t._spawnBearing == null) {
                 t._spawnBearing = t.bearing;
                 t._spawnRange = t.range;
                 t._spawnHeading = t.heading;
+            }
+            if (!t.isDormant && t.waveId) {
+                this.releasedWaveIds.add(t.waveId);
             }
         });
     }
 
     update(dt) {
         const scaled = dt * this.animSpeed;
-        this.simTime += scaled;
-        const tracks = this.scope.tracks || [];
-
-        tracks.forEach(t => this.updateTrack(t, scaled));
+        this.accumulator += scaled;
+        while (this.accumulator >= this.fixedStep) {
+            this.simTime += this.fixedStep;
+            this.fixedUpdate(this.fixedStep);
+            this.accumulator -= this.fixedStep;
+        }
 
         if (this.scope.showPlots && this.simTime - this.lastPlotTime >= this.plotIntervalSec) {
             this.lastPlotTime = this.simTime;
-            tracks.forEach(t => {
+            (this.scope.tracks || []).forEach(t => {
+                if (t.isDormant) return;
                 if (!t.radarPlots) t.radarPlots = [];
                 const pos = this.scope.bearingRangeToXY(t.bearing, t.range);
                 t.radarPlots.push({ x: pos.x, y: pos.y, age: this.simTime });
@@ -49,95 +62,123 @@ class AnimationEngine {
         }
     }
 
-    updateTrack(track, dt) {
+    fixedUpdate(dt) {
+        this.updateWaves();
+        const tracks = this.scope.tracks || [];
+
+        tracks.forEach(t => {
+            if (t.isDormant) return;
+            this.setTrackIntent(t);
+        });
+        tracks.forEach(t => {
+            if (t.isDormant) return;
+            TrackKinematics.integrate(t, dt, this.scope);
+            this.updateTrail(t);
+        });
+    }
+
+    updateWaves() {
+        const waves = this.motionScript && this.motionScript.waves;
+        if (!waves || !waves.length) return;
+
+        waves.forEach(w => {
+            if (this.releasedWaveIds.has(w.id)) return;
+            if (this.simTime < (w.releaseAtSec || 0)) return;
+
+            this.releasedWaveIds.add(w.id);
+            (this.scope.tracks || []).forEach(t => {
+                if (t.waveId !== w.id) return;
+                t.isDormant = false;
+                if (t.hostile && !t.isCapOrbit && !t.orbitAnchor) {
+                    t.ingress = true;
+                    t.targetHeading = t.ingressHeading != null ? t.ingressHeading : t.heading;
+                }
+            });
+        });
+    }
+
+    setTrackIntent(track) {
         if (track.formationAnchor) {
-            this.followFormationAnchor(track, dt);
-        } else if (track.capStation || track.capLegHalfNm != null) {
-            this.updateCapOrbit(track, dt);
-        } else if (track.hostile && track.ingress) {
-            this.updateIngress(track, dt);
-        } else if (track.isCapOrbit) {
-            this.updateHostileCap(track, dt);
-        }
-
-        if (this.scope.showTrail) {
-            const pos = this.scope.bearingRangeToXY(track.bearing, track.range);
-            if (!track.history) track.history = [];
-            const last = track.history[track.history.length - 1];
-            if (!last || Math.hypot(pos.x - last.x, pos.y - last.y) > 3) {
-                track.history.push({ x: pos.x, y: pos.y });
-                if (track.history.length > 20) track.history.shift();
+            const lead = (this.scope.tracks || []).find(t => t.id === track.formationAnchor);
+            if (lead && !lead.isDormant) {
+                TrackKinematics.steerFormationWing(track, lead, this.scope);
             }
+            return;
+        }
+
+        if (!track.hostile && (track.capStation || track.capLegHalfNm != null)) {
+            TrackKinematics.steerCap(track, this.scope);
+            return;
+        }
+
+        if (track.orbitAnchor || track.isCapOrbit) {
+            TrackKinematics.steerOrbit(track, this.scope);
+            return;
+        }
+
+        if (track.hostile && track.isThreat) {
+            this.steerThreatIngress(track);
+            return;
+        }
+
+        if (track.hostile && track.ingress) {
+            track.targetHeading = track.ingressHeading != null ? track.ingressHeading : track.heading;
+            track.speed = track.cruiseSpeed || track.speed || 480;
+
+            const stopNm = track.ingressStopNm != null ? track.ingressStopNm : 55;
+            if (track.range < stopNm) {
+                track.ingress = false;
+                track.motionState = 'HOLD';
+                if (!track.orbitAnchor) {
+                    track.orbitAnchor = {
+                        bearing: track._holdBearing != null ? track._holdBearing : track.bearing,
+                        range: track._holdRange != null ? track._holdRange : track.range,
+                        legLength: track.holdLegLength || 18,
+                        legHeading: track.ingressHeading != null ? track.ingressHeading : track.heading,
+                        laneCross: 4
+                    };
+                    track.orbitLeg = track.holdOrbitLeg || 'EAST';
+                }
+            }
+            return;
+        }
+
+        if (track.motionState === 'HOLD' && track.orbitAnchor) {
+            TrackKinematics.steerOrbit(track, this.scope);
         }
     }
 
-    followFormationAnchor(track, dt) {
-        const lead = (this.scope.tracks || []).find(t => t.id === track.formationAnchor);
-        if (!lead) return;
-        const scale = this.scope.scale;
-        const leadXY = this.scope.bearingRangeToXY(lead.bearing, lead.range);
-        const tx = leadXY.x + (track.offsetNmEast || 0) * scale;
-        const ty = leadXY.y - (track.offsetNmNorth || 0) * scale;
-        const slot = this.scope.xyToBearingRange(tx, ty);
-        track.bearing = slot.bearing;
-        track.range = slot.range;
-        track.heading = lead.heading;
-        track.speed = lead.speed;
-    }
-
-    updateIngress(track, dt) {
-        const nm = (track.speed || 480) / 3600 * dt;
-        const h = track.heading != null ? track.heading : 90;
-        const rad = (h - 90) * Math.PI / 180;
-        const c = this.scope.bearingRangeToXY(track.bearing, track.range);
-        const br = this.scope.xyToBearingRange(
-            c.x + nm * this.scope.scale * Math.cos(rad),
-            c.y + nm * this.scope.scale * Math.sin(rad)
-        );
-        track.bearing = br.bearing;
-        track.range = br.range;
-        if (track.range < 55) track.ingress = false;
-    }
-
-    updateCapOrbit(track, dt) {
-        const st = track.capStation || { bearing: track.bearing, range: track.range };
-        const half = track.capLegHalfNm != null ? track.capLegHalfNm : 8;
-        const center = this.scope.bearingRangeToXY(st.bearing, st.range);
-        const scale = this.scope.scale;
-        const nm = (track.speed || 420) / 3600 * dt;
-
-        if (track._capAlong == null) track._capAlong = 0;
-        if (!track._capLeg) track._capLeg = 'EAST';
-
-        track._capAlong += (track._capLeg === 'EAST' ? 1 : -1) * nm;
-        if (track._capAlong >= half) {
-            track._capAlong = half;
-            track._capLeg = 'WEST';
-        } else if (track._capAlong <= -half) {
-            track._capAlong = -half;
-            track._capLeg = 'EAST';
+    steerThreatIngress(track) {
+        const blues = (this.scope.tracks || []).filter(t => !t.hostile && !t.isDormant && t.capStation);
+        let target = blues[0];
+        if (blues.length > 1) {
+            let bestR = Infinity;
+            blues.forEach(b => {
+                const braa = this.scope.calculateBRAA(track.bearing, track.range, b.bearing, b.range);
+                if (braa.range < bestR) {
+                    bestR = braa.range;
+                    target = b;
+                }
+            });
         }
-
-        const lane = 1.5 * scale;
-        const tx = center.x + track._capAlong * scale;
-        const ty = center.y - lane;
-        const br = this.scope.xyToBearingRange(tx, ty);
-        track.bearing = br.bearing;
-        track.range = br.range;
-        track.heading = track._capLeg === 'EAST' ? 270 : 90;
+        if (target) {
+            const braa = this.scope.calculateBRAA(track.bearing, track.range, target.bearing, target.range);
+            track.targetHeading = braa.bearing;
+        } else {
+            track.targetHeading = track.ingressHeading != null ? track.ingressHeading : track.heading;
+        }
+        track.speed = track.cruiseSpeed || track.speed || 520;
     }
 
-    updateHostileCap(track, dt) {
-        track.heading = (track.heading + 30 * dt) % 360;
-        const nm = (track.speed || 400) / 3600 * dt;
-        const rad = (track.heading - 90) * Math.PI / 180;
-        const c = this.scope.bearingRangeToXY(track.bearing, track.range);
-        const br = this.scope.xyToBearingRange(
-            c.x + nm * this.scope.scale * Math.cos(rad),
-            c.y + nm * this.scope.scale * Math.sin(rad)
-        );
-        track.bearing = br.bearing;
-        track.range = br.range;
+    updateTrail(track) {
+        if (!this.scope.showTrail) return;
+        const pos = this.scope.bearingRangeToXY(track.bearing, track.range);
+        if (!track.history) track.history = [];
+        const last = track.history[track.history.length - 1];
+        if (!last || Math.hypot(pos.x - last.x, pos.y - last.y) > 3) {
+            track.history.push({ x: pos.x, y: pos.y });
+            if (track.history.length > 20) track.history.shift();
+        }
     }
 }
 

@@ -115,13 +115,28 @@ function generateScenario(params) {
     const hostileTracks = groupsToTracks(hostileGroups, orient, rng, true);
     const blueTracks = buildBluePackage(orient, rng);
     const tracks = [...blueTracks, ...hostileTracks];
+    const motionScript = buildMotionScript(hostileGroups, rng);
 
     return {
         tracks,
         meta,
+        motionScript,
         bulls: { bearing: bullsBearing, range: bullsRange },
         hostileGroupCount: hostileGroups.length
     };
+}
+
+/** Seeded wave release schedule — same seed always yields same timing. */
+function buildMotionScript(groups, rng) {
+    const waveIds = [...new Set(groups.map(g => g.waveId).filter(Boolean))].sort((a, b) => a - b);
+    if (!waveIds.length) return { waves: [] };
+
+    const waves = waveIds.map((id, idx) => {
+        if (idx === 0) return { id, releaseAtSec: 0 };
+        const base = 75 * idx;
+        return { id, releaseAtSec: base + randInt(rng, 0, 30) };
+    });
+    return { waves };
 }
 
 function generateRandom(rng, orient) {
@@ -332,7 +347,8 @@ function groupsToTracks(groups, orient, rng, hostile) {
             const offsetB = isLead ? 0 : randFloat(rng, -1.5, 1.5);
             const offsetR = isLead ? 0 : randFloat(rng, -1.5, 1.5);
             const id = isLead ? leadId : `H${gIdx}W${t}`;
-            tracks.push({
+            const speed = 480 + randInt(rng, -15, 15);
+            const track = {
                 id,
                 callsign: isLead ? `BANDIT${gIdx}` : `BANDIT${gIdx}-${t}`,
                 hostile: true,
@@ -342,16 +358,42 @@ function groupsToTracks(groups, orient, rng, hostile) {
                 range: grp.centroid.range + offsetR,
                 altitude: grp.centroid.altitude || 32000,
                 heading: orient.threatHeading,
-                speed: 480,
+                ingressHeading: orient.threatHeading,
+                speed,
+                cruiseSpeed: speed,
                 groupId: gIdx,
                 packageId: grp.packageId || null,
+                waveId: grp.waveId || null,
+                isDormant: !!(grp.waveId && grp.waveId > 1),
                 isCapOrbit: !!grp.isCapOrbit,
                 isThreat: !!grp.isThreat,
                 formationAnchor: isLead ? null : leadId,
-                offsetNmEast: 0,
-                offsetNmNorth: isLead ? 0 : 2,
-                ingress: true
-            });
+                offsetNmEast: isLead ? 0 : randFloat(rng, -1, 1),
+                offsetNmNorth: isLead ? 0 : randFloat(rng, 1.5, 2.5),
+                ingress: !grp.isCapOrbit && !(grp.waveId && grp.waveId > 1),
+                ingressStopNm: 55,
+                holdOrbitLeg: rng() > 0.5 ? 'EAST' : 'WEST',
+                holdLegLength: randInt(rng, 14, 20)
+            };
+
+            if (grp.isCapOrbit && isLead) {
+                track.orbitAnchor = {
+                    bearing: grp.centroid.bearing,
+                    range: grp.centroid.range,
+                    legLength: randInt(rng, 16, 22),
+                    legHeading: orient.threatHeading,
+                    laneCross: 4
+                };
+                track.orbitLeg = rng() > 0.5 ? 'EAST' : 'WEST';
+                track.ingress = false;
+            }
+
+            if (grp.isThreat && isLead) {
+                track.speed = 520 + randInt(rng, 0, 20);
+                track.cruiseSpeed = track.speed;
+            }
+
+            tracks.push(track);
         }
     });
     return tracks;
@@ -375,10 +417,12 @@ function buildBluePackage(orient, rng) {
             range: cap.r,
             altitude: 28000,
             heading: orient.threatHeading + 180,
+            targetHeading: orient.threatHeading + 180,
             speed: 420,
+            cruiseSpeed: 420,
             capStation: { bearing: cap.b, range: cap.r, name: cap.cs },
             capOrbitLeg: 'EAST',
-            capLegHalfNm: 8
+            capLegHalfNm: 10
         });
         tracks.push({
             id: `B${fi + 1}W`,
@@ -390,11 +434,14 @@ function buildBluePackage(orient, rng) {
             range: cap.r - 2,
             altitude: 28000,
             heading: orient.threatHeading + 180,
+            targetHeading: orient.threatHeading + 180,
             speed: 420,
+            cruiseSpeed: 420,
             formationAnchor: leadId,
             offsetNmEast: 2,
             offsetNmNorth: -2,
-            capStation: { bearing: cap.b, range: cap.r, name: cap.cs }
+            capStation: { bearing: cap.b, range: cap.r, name: cap.cs },
+            capLegHalfNm: 10
         });
     });
     return tracks;
