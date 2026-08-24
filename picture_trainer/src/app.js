@@ -145,7 +145,7 @@
         } else if (mode === 'leading_edge') {
             els.modeHint.textContent = 'Leading Edge — total groups shown; call only the nearest subset.';
         } else {
-            els.modeHint.textContent = 'Standard picture call — groups, label, dimensions, bulls BR, altitude.';
+            els.modeHint.textContent = 'ALSSA picture — word counts (THREE GROUPS), BULLSEYE location, TRACK fill-in, HOSTILE.';
         }
     }
 

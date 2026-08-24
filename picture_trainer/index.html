@@ -70,7 +70,7 @@
                             <label>Group count <input name="groupCount" type="number" min="1" max="12"></label>
                             <label>Waves (if any) <input name="waveCount" type="number" min="1" max="4"></label>
                             <label>Label <input name="label" placeholder="WALL, LADDER, AZIMUTH…"></label>
-                            <label>Dimensions <input name="dimensions" placeholder="25 WIDE / 20 DEEP"></label>
+                            <label>Dimensions <input name="dimensions" placeholder="THIRTY WIDE / TWENTY DEEP"></label>
                             <label>Bulls bearing <input name="bullsBearing" type="number" min="0" max="359"></label>
                             <label>Bulls range (nm) <input name="bullsRange" type="number" min="0"></label>
                             <label>Altitude block
@@ -81,7 +81,7 @@
                                     <option>LOW</option>
                                 </select>
                             </label>
-                            <label>Fill-ins <input name="fillIns" placeholder="HOSTILE, HEAVY NORTH…"></label>
+                            <label>Fill-ins <input name="fillIns" placeholder="TRACK EAST, HOSTILE"></label>
                         </div>
                         <div id="braaFields" style="display:none">
                             <label>BRAA bearing <input name="braaBearing" type="number" min="0" max="359"></label>
@@ -94,7 +94,7 @@
                                     <option>LOW</option>
                                 </select>
                             </label>
-                            <label>Fill-ins <input name="fillIns" placeholder="HOT, TRACK EAST, HOSTILE…"></label>
+                            <label>Fill-ins <input name="fillIns" placeholder="HOT"></label>
                         </div>
                         <div id="eaFields" style="display:none">
                             <label>EA type <input name="eaLabel" placeholder="MUSIC / STROBE"></label>
@@ -128,6 +128,7 @@
 
     <script src="src/orientation.js"></script>
     <script src="src/clustering.js"></script>
+    <script src="src/alssa_format.js"></script>
     <script src="src/picture_logic.js"></script>
     <script src="src/formation_generator.js"></script>
     <script src="src/scenario_bank.js"></script>
