@@ -8,6 +8,15 @@ Personal mastery vault and browser training platform for **C2BMO / ABM / WD / MS
 |------|---------|
 | [`kb/`](kb/) | Obsidian knowledge vault (doctrine, checklists, systems, scenarios) |
 | [`simulator/`](simulator/) | Browser BC3 tactical scope trainer (TPS-75 modeled as radar track feed) |
+| [`picture_trainer/`](picture_trainer/) | ALSSA picture call drill (Parrot Sour-style animated formations) |
+
+## Live demo (Picture Trainer)
+
+After GitHub Pages is enabled, open:
+
+**https://\<your-github-username\>.github.io/C2_Knowledge_Base/**
+
+(Pushes to `main` that touch `picture_trainer/` auto-deploy via `.github/workflows/pages.yml`.)
 
 Prior work archived at `C:\Users\Renla\ABM_Knowledge_System` — do not delete until you confirm this merge.
 
