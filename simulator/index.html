@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BC3 Scope Trainer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>BC3 Scope Trainer</h1>
+                <nav class="nav-tabs">
+                    <button class="tab-btn active" data-tab="simulator">Tactical Scope</button>
+                    <button class="tab-btn" data-tab="trainer">Brevity Trainer</button>
+                </nav>
+            </div>
+            <div class="status-bar">
+                <span id="bullseye-ref">BULLSEYE: N38°00' W115°00' (NTTR E–W)</span>
+                <span id="radar-status">TPS-75 FEED: NORMAL</span>
+                <span id="clock">TIME: 0600Z</span>
+            </div>
+        </header>
+
+        <div id="simulatorTab" class="tab-content active scope-layout">
+            <div class="scope-container">
+                <canvas id="tacScope" width="800" height="800"></canvas>
+                <p class="nav-hint">Drag scope = pan &nbsp;·&nbsp; Wheel / <kbd>+</kbd><kbd>-</kbd> = zoom &nbsp;·&nbsp; Arrows = pan &nbsp;·&nbsp; Click = select</p>
+                <div class="scope-controls zoom-row">
+                    <button type="button" id="zoomOutBtn" title="Zoom out">Zoom −</button>
+                    <button type="button" id="zoomInBtn" title="Zoom in">Zoom +</button>
+                    <button type="button" id="resetViewBtn">Reset View</button>
+                    <span id="zoomReadout" class="zoom-readout">1.00x</span>
+                    <span class="zoom-readout" style="margin-left:12px;">Sim</span>
+                    <button type="button" class="speedBtn" data-speed="1">1x</button>
+                    <button type="button" class="speedBtn" data-speed="2">2x</button>
+                    <button type="button" class="speedBtn" data-speed="4">4x</button>
+                    <button type="button" class="speedBtn" data-speed="8">8x</button>
+                    <button type="button" class="speedBtn" data-speed="16">16x</button>
+                    <span id="speedReadout" class="zoom-readout">1x</span>
+                </div>
+                <div class="scope-controls">
+                    <button type="button" id="panBtn" title="Optional: lock cursor to grab">Pan lock</button>
+                    <button type="button" id="addTrackBtn">Add Track</button>
+                    <button type="button" id="measureBtn">Measure</button>
+                    <button type="button" id="clearBtn">Clear All</button>
+                    <button type="button" id="gridBtn">Toggle Grid</button>
+                    <button type="button" id="logPictureBtn">Log Picture</button>
+                    <button type="button" id="commitBtn">Log Commit</button>
+                    <button type="button" id="exportTimelineBtn">Export Timeline</button>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <div class="section">
+                    <h3>Scenario</h3>
+                    <select id="scenarioSelect">
+                        <option value="">— select —</option>
+                        <option value="sc-01-single-commit">sc-01 NTTR E–W Single Commit</option>
+                        <option value="sc-02-wall-ladder">sc-02 NTTR E–W WALL/LADDER</option>
+                        <option value="sc-03-degraded-radar">sc-03 NTTR E–W Degraded Radar</option>
+                    </select>
+                    <button id="loadScenarioBtn" style="width:100%; margin-top:8px;">Load Scenario</button>
+                </div>
+
+                <div class="section">
+                    <h3>Radar Feed (TPS-75)</h3>
+                    <select id="radarModeSelect">
+                        <option value="normal">Normal</option>
+                        <option value="emcon">EMCON (range limited)</option>
+                        <option value="degraded">Degraded</option>
+                        <option value="offline">Offline</option>
+                    </select>
+                    <p style="font-size:11px; color:#888; margin-top:6px;">No radar console — feed only affects what the scope paints.</p>
+                </div>
+
+                <div class="section">
+                    <h3>Selected Track</h3>
+                    <div id="trackInfo" class="data-block">
+                        <p>Click a track to view details</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Picture Call</h3>
+                    <div id="pictureSuggestion" class="suggestion-box">
+                        <p><em>Add tracks to generate picture</em></p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Timeline</h3>
+                    <div id="timelineSummary" class="data-block">
+                        <p>No events yet</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Active Tracks (on scope)</h3>
+                    <ul id="trackList"></ul>
+                </div>
+
+                <div class="section">
+                    <h3>Overlays</h3>
+                    <label><input type="checkbox" id="showBMA"> BMA</label><br>
+                    <label><input type="checkbox" id="showCAP" checked> CAP Points</label><br>
+                    <label><input type="checkbox" id="showDAL" checked> DAL</label><br>
+                    <label><input type="checkbox" id="showMLL" checked> MLL</label><br>
+                    <label><input type="checkbox" id="showHvaaCircles" checked> HVAA Slide/Scram</label><br>
+                    <label><input type="checkbox" id="showEmcon"> EMCON line</label><br>
+                    <label><input type="checkbox" id="showSafePassage"> Safe Passages</label><br>
+                    <label><input type="checkbox" id="showTacticalLines"> Meld/Commit/Retro (debug)</label><br>
+                    <label><input type="checkbox" id="showSweep"> Radar sweep</label><br>
+                    <label><input type="checkbox" id="showSectors"> Sector labels</label><br>
+                    <label><input type="checkbox" id="showGeography" checked> Geography</label><br>
+                    <label><input type="checkbox" id="showAirspace" checked> NTTR Airspace</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="trainerTab" class="tab-content">
+            <div class="main-layout">
+                <div class="section" style="grid-column: span 1;">
+                    <h3>Brevity / Systems Quiz</h3>
+                    <div id="quizContainer" class="data-block">
+                        <p>Select a category:</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                            <button onclick="trainer.startQuiz('brevity')">Brevity</button>
+                            <button onclick="trainer.startQuiz('systems')">BC3 / TPS-75</button>
+                            <button onclick="trainer.startQuiz('tactics')">DCA / Picture</button>
+                            <button onclick="trainer.startQuiz('mixed')">Mixed</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-panel">
+                    <div class="section">
+                        <h3>Training Stats</h3>
+                        <div id="trainerStats" class="data-block">
+                            <p>Correct: 0</p>
+                            <p>Attempts: 0</p>
+                            <p>Accuracy: 0%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/milsymbol@2.0.0/dist/milsymbol.js"></script>
+    <script src="src/symbology.js?v=51"></script>
+    <script src="src/clustering.js?v=51"></script>
+    <script src="src/picture_logic.js?v=51"></script>
+    <script src="src/aspect_calculator.js?v=51"></script>
+    <script src="src/radar_model.js?v=51"></script>
+    <script src="src/timeline.js?v=51"></script>
+    <script src="src/scenarios_data.js?v=51"></script>
+    <script src="src/geo_projection.js?v=51"></script>
+    <script src="src/geo_layer.js?v=51"></script>
+    <script src="src/airspace_layer.js?v=51"></script>
+    <script src="src/defensive_profiles.js?v=51"></script>
+    <script src="src/missile_model.js?v=51"></script>
+    <script src="src/pilot_ai.js?v=51"></script>
+    <script src="src/wave_manager.js?v=51"></script>
+    <script src="src/scope_engine.js?v=51"></script>
+    <script src="src/trainer.js?v=51"></script>
+    <script src="src/app.js?v=51"></script>
+</body>
+
+</html>

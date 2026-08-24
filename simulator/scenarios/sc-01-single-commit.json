@@ -1,0 +1,135 @@
+{
+  "id": "sc-01-single-commit",
+  "name": "NTTR E–W — Single Group Commit",
+  "bullseyeLabel": "BULLSEYE: N38°00' W115°00' (NTTR E–W)",
+  "bullseyeGeo": {
+    "lat": 38,
+    "lon": -115
+  },
+  "radarMode": "normal",
+  "tacticalLines": {
+    "meld": 70,
+    "commit": 50,
+    "retrograde": 30
+  },
+  "fighterMeldNm": 70,
+  "fighterCommitNm": 50,
+  "mllNm": 130,
+  "emconLineNm": 90,
+  "bmaNm": 120,
+  "dal": {
+    "name": "DAL",
+    "bearing": 156,
+    "range": 70
+  },
+  "capPoints": [
+    {
+      "name": "CAP EAST-L",
+      "bearing": 133,
+      "range": 36,
+      "radius": 8
+    },
+    {
+      "name": "CAP EAST-R",
+      "bearing": 119,
+      "range": 30,
+      "radius": 8
+    }
+  ],
+  "hvaaAnchors": [
+    {
+      "name": "SHELL 1",
+      "type": "tanker",
+      "bearing": 152,
+      "range": 80,
+      "legLength": 25,
+      "legHeading": 90,
+      "slideNm": 25,
+      "scramNm": 15
+    }
+  ],
+  "safePassages": [
+    {
+      "start": {
+        "bearing": 170,
+        "range": 95
+      },
+      "end": {
+        "bearing": 150,
+        "range": 75
+      },
+      "width": 15
+    }
+  ],
+  "tracks": [
+    {
+      "bearing": 133,
+      "range": 36,
+      "altitude": 28000,
+      "callsign": "RAPTOR11",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35"
+    },
+    {
+      "bearing": 119,
+      "range": 30,
+      "altitude": 28000,
+      "callsign": "VIPER21",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35"
+    },
+    {
+      "bearing": 270,
+      "range": 125,
+      "altitude": 32000,
+      "callsign": "BANDIT1",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 500,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "PAIR",
+        "role": "LEAD",
+        "leadCallsign": "BANDIT1"
+      }
+    },
+    {
+      "bearing": 268,
+      "range": 128,
+      "altitude": 32000,
+      "callsign": "BANDIT2",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 500,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "PAIR",
+        "role": "WING",
+        "leadCallsign": "BANDIT1",
+        "offsetNmEast": 0,
+        "offsetNmNorth": 10
+      }
+    },
+    {
+      "bearing": 158,
+      "range": 75,
+      "altitude": 24000,
+      "callsign": "SHELL1",
+      "hostile": false,
+      "type": "tanker",
+      "heading": 90,
+      "speed": 320,
+      "orbit": "SHELL 1"
+    }
+  ]
+}

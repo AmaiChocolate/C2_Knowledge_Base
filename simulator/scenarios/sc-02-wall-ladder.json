@@ -1,0 +1,192 @@
+{
+  "id": "sc-02-wall-ladder",
+  "name": "NTTR E–W — WALL / LADDER Picture",
+  "bullseyeLabel": "BULLSEYE: N38°00' W115°00' (NTTR E–W)",
+  "bullseyeGeo": {
+    "lat": 38,
+    "lon": -115
+  },
+  "radarMode": "normal",
+  "tacticalLines": {
+    "meld": 70,
+    "commit": 50,
+    "retrograde": 30
+  },
+  "fighterMeldNm": 70,
+  "fighterCommitNm": 50,
+  "mllNm": 130,
+  "emconLineNm": 90,
+  "bmaNm": 120,
+  "dal": {
+    "name": "DAL",
+    "bearing": 156,
+    "range": 70
+  },
+  "capPoints": [
+    {
+      "name": "CAP EAST-L",
+      "bearing": 133,
+      "range": 36,
+      "radius": 8
+    },
+    {
+      "name": "CAP EAST-R",
+      "bearing": 119,
+      "range": 30,
+      "radius": 8
+    }
+  ],
+  "hvaaAnchors": [
+    {
+      "name": "SHELL 1",
+      "type": "tanker",
+      "bearing": 152,
+      "range": 80,
+      "legLength": 25,
+      "legHeading": 90,
+      "slideNm": 25,
+      "scramNm": 15
+    }
+  ],
+  "safePassages": [
+    {
+      "start": {
+        "bearing": 170,
+        "range": 95
+      },
+      "end": {
+        "bearing": 150,
+        "range": 75
+      },
+      "width": 15
+    }
+  ],
+  "tracks": [
+    {
+      "bearing": 133,
+      "range": 36,
+      "altitude": 28000,
+      "callsign": "RAPTOR11",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35"
+    },
+    {
+      "bearing": 119,
+      "range": 30,
+      "altitude": 28000,
+      "callsign": "VIPER21",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35"
+    },
+    {
+      "bearing": 265,
+      "range": 120,
+      "altitude": 30000,
+      "callsign": "H1",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 500,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "WALL",
+        "role": "WING",
+        "leadCallsign": "H2",
+        "offsetNmEast": 0,
+        "offsetNmNorth": 10
+      }
+    },
+    {
+      "bearing": 270,
+      "range": 122,
+      "altitude": 30000,
+      "callsign": "H2",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 500,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "WALL",
+        "role": "LEAD",
+        "leadCallsign": "H2"
+      }
+    },
+    {
+      "bearing": 275,
+      "range": 120,
+      "altitude": 31000,
+      "callsign": "H3",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 500,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "WALL",
+        "role": "WING",
+        "leadCallsign": "H2",
+        "offsetNmEast": 0,
+        "offsetNmNorth": -10
+      }
+    },
+    {
+      "bearing": 262,
+      "range": 140,
+      "altitude": 33000,
+      "callsign": "H4",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 95,
+      "speed": 500,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "LADDER",
+        "role": "WING",
+        "leadCallsign": "H2",
+        "offsetNmEast": -15,
+        "offsetNmNorth": 0
+      }
+    },
+    {
+      "bearing": 272,
+      "range": 142,
+      "altitude": 33000,
+      "callsign": "H5",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 85,
+      "speed": 500,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "LADDER",
+        "role": "WING",
+        "leadCallsign": "H2",
+        "offsetNmEast": -30,
+        "offsetNmNorth": 0
+      }
+    },
+    {
+      "bearing": 158,
+      "range": 75,
+      "altitude": 24000,
+      "callsign": "SHELL1",
+      "hostile": false,
+      "type": "tanker",
+      "heading": 90,
+      "speed": 320,
+      "orbit": "SHELL 1"
+    }
+  ]
+}

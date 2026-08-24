@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSSA Picture Call Trainer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ALSSA Picture Call Trainer</h1>
+            <p class="subtitle">Parrot Sour-style animated formations — WD / ABM drill (no BVR sim)</p>
+            <div class="status-bar">
+                <span id="statusBulls">BULLSEYE —</span>
+                <span id="statusScenario">—</span>
+                <span id="statusOrient">E/W</span>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <section class="scope-section">
+                <div class="scope-container">
+                    <canvas id="tacScope" width="800" height="800"></canvas>
+                    <div class="scope-controls">
+                        <button type="button" id="btnMeasure" title="Drag to measure BR/range">Measure</button>
+                        <button type="button" id="btnResetView">Reset View</button>
+                        <label class="toggle"><input type="checkbox" id="chkTrail"> Data trail</label>
+                        <label class="toggle"><input type="checkbox" id="chkPlots"> Radar plots</label>
+                    </div>
+                    <div class="speed-row">
+                        <span>Anim speed:</span>
+                        <button type="button" data-speed="0.5">0.5×</button>
+                        <button type="button" data-speed="1" class="active">1×</button>
+                        <button type="button" data-speed="2">2×</button>
+                        <button type="button" data-speed="4">4×</button>
+                    </div>
+                </div>
+
+                <div class="scenario-controls panel">
+                    <h2>Scenario</h2>
+                    <label>Category
+                        <select id="categorySelect"></select>
+                    </label>
+                    <label>Variation
+                        <select id="variationSelect"></select>
+                    </label>
+                    <fieldset class="orient-fieldset">
+                        <legend>Threat orientation</legend>
+                        <label><input type="radio" name="orientation" value="EW" checked> E/W (west ingress)</label>
+                        <label><input type="radio" name="orientation" value="NS"> N/S (north ingress)</label>
+                    </fieldset>
+                    <div class="btn-row">
+                        <button type="button" id="btnLoad" class="primary">Load</button>
+                        <button type="button" id="btnNewSeed">New seed</button>
+                    </div>
+                    <p class="legend">
+                        <span class="sym friendly">●</span> Blue CAP (always visible)
+                        <span class="sym hostile">◆</span> Hostile groups
+                    </p>
+                </div>
+            </section>
+
+            <aside class="sidebar">
+                <div class="panel">
+                    <h2>Student picture</h2>
+                    <p id="modeHint" class="mode-hint muted">Standard picture call.</p>
+                    <form id="studentForm">
+                        <div id="pictureFields">
+                            <label>Group count <input name="groupCount" type="number" min="1" max="12"></label>
+                            <label>Waves (if any) <input name="waveCount" type="number" min="1" max="4"></label>
+                            <label>Label <input name="label" placeholder="WALL, LADDER, AZIMUTH…"></label>
+                            <label>Dimensions <input name="dimensions" placeholder="25 WIDE / 20 DEEP"></label>
+                            <label>Bulls bearing <input name="bullsBearing" type="number" min="0" max="359"></label>
+                            <label>Bulls range (nm) <input name="bullsRange" type="number" min="0"></label>
+                            <label>Altitude block
+                                <select name="altitudeBlock">
+                                    <option value="">—</option>
+                                    <option>HIGH</option>
+                                    <option>MEDIUM</option>
+                                    <option>LOW</option>
+                                </select>
+                            </label>
+                            <label>Fill-ins <input name="fillIns" placeholder="HOSTILE, HEAVY NORTH…"></label>
+                        </div>
+                        <div id="braaFields" style="display:none">
+                            <label>BRAA bearing <input name="braaBearing" type="number" min="0" max="359"></label>
+                            <label>BRAA range (nm) <input name="braaRange" type="number" min="0"></label>
+                            <label>Altitude block
+                                <select name="altitudeBlock">
+                                    <option value="">—</option>
+                                    <option>HIGH</option>
+                                    <option>MEDIUM</option>
+                                    <option>LOW</option>
+                                </select>
+                            </label>
+                            <label>Fill-ins <input name="fillIns" placeholder="HOT, TRACK EAST, HOSTILE…"></label>
+                        </div>
+                        <div id="eaFields" style="display:none">
+                            <label>EA type <input name="eaLabel" placeholder="MUSIC / STROBE"></label>
+                            <label>Bulls bearing <input name="bullsBearing" type="number" min="0" max="359"></label>
+                            <label>Bulls range (nm) <input name="bullsRange" type="number" min="0"></label>
+                        </div>
+                        <div class="btn-row">
+                            <button type="submit" id="btnSubmit" class="primary">Submit &amp; grade</button>
+                            <button type="button" id="btnClearForm">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel">
+                    <h2>Reveal answer</h2>
+                    <button type="button" id="btnReveal" class="primary">Reveal Answer</button>
+                    <div id="revealPanel" class="reveal-box">
+                        <p class="muted">Click Reveal Answer when ready to check.</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Score</h2>
+                    <div id="scorePanel">
+                        <p class="muted">Submit your picture call to grade.</p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="src/orientation.js"></script>
+    <script src="src/clustering.js"></script>
+    <script src="src/picture_logic.js"></script>
+    <script src="src/formation_generator.js"></script>
+    <script src="src/scenario_bank.js"></script>
+    <script src="src/symbology.js"></script>
+    <script src="src/scope_renderer.js"></script>
+    <script src="src/animation_engine.js"></script>
+    <script src="src/grading.js"></script>
+    <script src="src/app.js"></script>
+</body>
+</html>

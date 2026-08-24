@@ -1,0 +1,10 @@
+# Large / local binaries
+*.pdf
+kb/05_Tools_And_CrossReferences/sources/*_text.txt
+kb/05_Tools_And_CrossReferences/sources/*_utf8.txt
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
