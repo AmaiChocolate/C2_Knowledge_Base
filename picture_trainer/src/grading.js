@@ -1,5 +1,5 @@
 /**
- * Grading — reveal answer + field compare.
+ * Grading — reveal answer + field compare (ALSSA-aware parsing).
  */
 class PictureGrader {
     constructor(pictureGen, clusterer) {
@@ -12,7 +12,11 @@ class PictureGrader {
         const blues = tracks.filter(t => !t.hostile && t.type === 'fighter');
         const groups = this.clusterer.cluster(hostiles);
 
-        const picMeta = Object.assign({}, meta || {});
+        const picMeta = Object.assign({}, meta || {}, {
+            orientation,
+            trackFillIn: getOrientation(orientation).trackFillIn
+        });
+
         if (meta && meta.mode === 'leading_edge') {
             picMeta.leadingEdgeCount = meta.leadingEdgeCount;
         }
@@ -34,7 +38,6 @@ class PictureGrader {
             picMeta.nearestBlue = nearestBlue;
             picMeta.targetGroup = targetGroup;
             picMeta.braa = this.pictureGen.calcBraa(nearestBlue, targetGroup.centroid);
-            picMeta.trackFillIn = getOrientation(orientation).trackFillIn;
         }
         if (meta && meta.mode === 'ea') {
             picMeta.eaType = meta.eaType || 'MUSIC';
@@ -74,17 +77,30 @@ class PictureGrader {
 
         const checkNum = (field, got, expected, tol) => {
             max += 1;
-            const g = parseInt(got, 10);
-            const e = parseInt(expected, 10);
+            const g = alssaParseNumber(got);
+            const e = alssaParseNumber(expected);
             const ok = !isNaN(g) && !isNaN(e) && Math.abs(g - e) <= tol;
             if (ok) pts += 1;
             details.push({ field, ok, expected: e, got: g });
         };
 
+        const checkAltitude = (got, answerKey) => {
+            max += 1;
+            const gotU = String(got || '').trim().toUpperCase();
+            const block = alssaFormatAltitude(answerKey.altitudeFt, true);
+            const thousands = alssaFormatAltitude(answerKey.altitudeFt, false);
+            const ok = gotU === String(answerKey.altitudeBlock || '').toUpperCase()
+                || gotU === block
+                || gotU === thousands
+                || (answerKey.altitudeFt && gotU.includes(String(Math.round(answerKey.altitudeFt / 1000))));
+            if (ok) pts += 1;
+            details.push({ field: 'altitudeBlock', ok, expected: answerKey.altitudeBlock, got });
+        };
+
         if (answerKey.mode === 'threat' || answerKey.mode === 'bogey_dope') {
             checkNum('braaBearing', student.braaBearing, answerKey.braaBearing, 5);
             checkNum('braaRange', student.braaRange, answerKey.braaRange, 3);
-            check('altitudeBlock', student.altitudeBlock, answerKey.altitudeBlock, true);
+            checkAltitude(student.altitudeBlock, answerKey);
             check('fillIns', student.fillIns, answerKey.fillIns, false);
         } else if (answerKey.mode === 'ea') {
             check('label', student.label, answerKey.label, true);
@@ -97,12 +113,16 @@ class PictureGrader {
             }
             check('label', student.label, answerKey.label, true);
             if (answerKey.dimensionNm != null) {
-                const gotDim = parseInt(String(student.dimensions || '').replace(/\D/g, ''), 10);
+                const gotDim = alssaParseDimensionNm(student.dimensions);
                 checkNum('dimensions', gotDim, answerKey.dimensionNm, 2);
             }
             checkNum('bullsBearing', student.bullsBearing, answerKey.bullsBearing, 5);
             checkNum('bullsRange', student.bullsRange, answerKey.bullsRange, 3);
-            check('altitudeBlock', student.altitudeBlock, answerKey.altitudeBlock, true);
+            checkAltitude(student.altitudeBlock, answerKey);
+            if (answerKey.fillIns) {
+                check('fillIns (track)', student.fillIns, answerKey.trackFillIn || 'TRACK', false);
+                check('fillIns (declaration)', student.fillIns, 'HOSTILE', false);
+            }
         }
 
         const pct = max ? Math.round((pts / max) * 100) : 0;

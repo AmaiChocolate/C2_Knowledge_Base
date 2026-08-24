@@ -1,5 +1,6 @@
 /**
  * ALSSA picture call engine — extended for Picture Trainer.
+ * Templates: kb/03_Notes_And_Insights/Picture_Call_Logic.md
  */
 class PictureGenerator {
     constructor(opts = {}) {
@@ -11,7 +12,6 @@ class PictureGenerator {
             CHAMPAGNE: 'CHAMPAGNE',
             BOX: 'BOX',
             AZIMUTH: 'AZIMUTH',
-            RANGE: 'RANGE',
             CAP: 'CAP',
             PACKAGE: 'PACKAGE',
             UNKNOWN: 'UNKNOWN'
@@ -31,86 +31,108 @@ class PictureGenerator {
 
         const capGroups = groups.filter(g => g.isCap || (g.tracks && g.tracks.some(t => t.isCapOrbit)));
         if (capGroups.length === groups.length && groups.length >= 1) {
-            return this.generateCapPicture(groups, bullseye);
+            return this.generateCapPicture(groups, bullseye, meta);
         }
 
         const waves = this.detectWaves(groups);
         if (waves && waves.length > 1) {
-            return this.generateWavePicture(waves, bullseye);
+            return this.generateWavePicture(waves, bullseye, meta);
         }
-        return this.generateSinglePicture(groups, bullseye);
+        return this.generateSinglePicture(groups, bullseye, meta);
     }
 
-    generateSinglePicture(groups, bullseye) {
+    trackFillIn(meta) {
+        return meta.trackFillIn
+            || (meta.orientation && getOrientation(meta.orientation).trackFillIn)
+            || 'TRACK EAST';
+    }
+
+    fillIns(meta, declaration) {
+        return alssaFormatFillIns(this.trackFillIn(meta), declaration || 'HOSTILE');
+    }
+
+    generateSinglePicture(groups, bullseye, meta = {}) {
         const leadingEdge = this.findLeadingEdge(groups);
-        const altitudeBlock = this.getAltitudeBlock(leadingEdge.centroid.altitude);
         const formation = this.analyzeFormation(groups);
+        const alt = alssaFormatAltitude(leadingEdge.centroid.altitude, false);
+        const fillIns = this.fillIns(meta);
 
-        let pictureCall = `"${this.callsign}, ${groups.length === 1 ? 'SINGLE GROUP' : groups.length + ' GROUPS'}`;
+        const parts = [this.callsign, alssaFormatGroupCount(groups.length, formation.type)];
 
-        if (groups.length === 2) {
-            if (formation.type !== this.formationTypes.UNKNOWN) {
-                pictureCall += ` ${formation.type}`;
-                if (formation.dimension) pictureCall += `, ${formation.dimension}`;
-            }
-        } else if (groups.length >= 3 && formation.type !== this.formationTypes.UNKNOWN) {
-            pictureCall += `, ${formation.type}`;
-            if (formation.dimension) pictureCall += `, ${formation.dimension}`;
-            if (formation.weight) pictureCall += `, ${formation.weight}`;
+        if (groups.length >= 3 && formation.type !== this.formationTypes.UNKNOWN) {
+            parts.push(formation.type);
+            if (formation.dimension) parts.push(alssaFormatDimension(formation.dimension));
+            if (formation.weight) parts.push(formation.weight);
+        } else if (groups.length === 2 && formation.type === this.formationTypes.UNKNOWN && formation.dimension) {
+            parts.push(alssaFormatDimension(formation.dimension));
+        } else if (groups.length === 2 && formation.dimension) {
+            parts.push(alssaFormatDimension(formation.dimension));
         }
 
-        pictureCall += `, LEADING EDGE BULLSEYE ${leadingEdge.centroid.bearing}/${leadingEdge.centroid.range}`;
-        pictureCall += `, ${altitudeBlock}, HOSTILE"`;
+        parts.push(alssaFormatLocation(formation.type, leadingEdge.centroid));
+        parts.push(alt, fillIns);
+
+        const pictureCall = `"${parts.join(', ')}"`;
 
         return {
             text: pictureCall,
             groups,
             formation,
-            answerKey: this.buildAnswerKey(groups, formation, leadingEdge, altitudeBlock)
+            answerKey: this.buildAnswerKey(groups, formation, leadingEdge, alt, null, null, meta)
         };
     }
 
-    generateWavePicture(waves, bullseye) {
+    generateWavePicture(waves, bullseye, meta = {}) {
         const totalGroups = waves.flat().length;
-        let pictureCall = `"${this.callsign}, ${totalGroups} GROUPS, ${waves.length} WAVES. `;
+        const waveCountPhrase = `${alssaNumberToWords(waves.length)} WAVES`;
+        let pictureCall = `"${this.callsign}, ${alssaFormatGroupCount(totalGroups)}, ${waveCountPhrase}. `;
 
         waves.forEach((wave, idx) => {
-            const waveNum = idx + 1;
-            const waveLabel = waveNum === 1 ? 'FIRST WAVE' : `WAVE ${waveNum}`;
             const formation = this.analyzeFormation(wave);
             const leadingEdge = this.findLeadingEdge(wave);
-            pictureCall += `${waveLabel}, ${wave.length} ${wave.length === 1 ? 'GROUP' : 'GROUPS'}`;
-            if (formation.type !== this.formationTypes.UNKNOWN) {
-                pictureCall += `, ${formation.type}`;
-                if (formation.dimension) pictureCall += `, ${formation.dimension}`;
+            const alt = alssaFormatAltitude(leadingEdge.centroid.altitude, true);
+            const fillIns = this.fillIns(meta);
+            const useLE = alssaUsesLeadingEdgeLocation(formation.type);
+
+            let clause = alssaWaveLabel(idx);
+            clause += `, ${alssaFormatGroupCount(wave.length, formation.type)}`;
+
+            if (wave.length >= 3 && formation.type !== this.formationTypes.UNKNOWN) {
+                clause += `, ${formation.type}`;
+                if (formation.dimension) clause += `, ${alssaFormatDimension(formation.dimension)}`;
+            } else if (wave.length === 2 && formation.dimension) {
+                clause += `, ${alssaFormatDimension(formation.dimension)}`;
             }
-            pictureCall += `, LEADING EDGE BULLSEYE ${leadingEdge.centroid.bearing}/${leadingEdge.centroid.range}`;
-            pictureCall += `, ${this.getAltitudeBlock(leadingEdge.centroid.altitude)}, HOSTILE`;
+
+            clause += `, ${alssaFormatLocation(formation.type, leadingEdge.centroid, { useLeadingEdge: useLE })}`;
+            clause += `, ${alt}, ${fillIns}`;
+            pictureCall += clause;
             if (idx < waves.length - 1) pictureCall += '. ';
         });
         pictureCall += '"';
 
         const leadingEdge = this.findLeadingEdge(waves.flat());
         const formation = this.analyzeFormation(waves[0]);
+        const alt = alssaFormatAltitude(leadingEdge.centroid.altitude, true);
         return {
             text: pictureCall,
             groups: waves.flat(),
             waves,
             formation: null,
-            answerKey: this.buildAnswerKey(waves.flat(), formation, leadingEdge,
-                this.getAltitudeBlock(leadingEdge.centroid.altitude), waves.length)
+            answerKey: this.buildAnswerKey(waves.flat(), formation, leadingEdge, alt, waves.length, null, meta)
         };
     }
 
-    generateCapPicture(groups, bullseye) {
+    generateCapPicture(groups, bullseye, meta = {}) {
         const g = groups[0];
-        const alt = this.getAltitudeBlock(g.centroid.altitude);
-        const text = `"${this.callsign}, ${groups.length === 1 ? 'SINGLE GROUP' : groups.length + ' GROUPS'}, CAP BULLSEYE ${g.centroid.bearing}/${g.centroid.range}, ${alt}, HOSTILE"`;
+        const alt = alssaFormatAltitude(g.centroid.altitude, true);
+        const fillIns = this.fillIns(meta);
+        const text = `"${this.callsign}, ${alssaFormatGroupCount(groups.length)}, CAP BULLSEYE ${g.centroid.bearing}/${g.centroid.range}, ${alt}, ${fillIns}"`;
         return {
             text,
             groups,
             formation: { type: this.formationTypes.CAP },
-            answerKey: this.buildAnswerKey(groups, { type: 'CAP' }, g, alt)
+            answerKey: this.buildAnswerKey(groups, { type: 'CAP' }, g, alt, null, null, meta)
         };
     }
 
@@ -120,19 +142,26 @@ class PictureGenerator {
         const leGroups = sorted.slice(0, leCount);
         const formation = this.analyzeFormation(leGroups);
         const leadingEdge = this.findLeadingEdge(leGroups);
-        const alt = this.getAltitudeBlock(leadingEdge.centroid.altitude);
+        const alt = alssaFormatAltitude(leadingEdge.centroid.altitude, true);
+        const fillIns = this.fillIns(meta);
 
-        let call = `"${this.callsign}, ${groups.length} GROUPS, LEADING EDGE ${leGroups.length} GROUP`;
+        const parts = [
+            this.callsign,
+            alssaFormatGroupCount(groups.length),
+            `LEADING EDGE ${alssaFormatGroupCount(leGroups.length)}`
+        ];
         if (formation.type !== this.formationTypes.UNKNOWN) {
-            call += ` ${formation.type}`;
-            if (formation.dimension) call += `, ${formation.dimension}`;
+            parts.push(formation.type);
+            if (formation.dimension) parts.push(alssaFormatDimension(formation.dimension));
         }
-        call += `, BULLSEYE ${leadingEdge.centroid.bearing}/${leadingEdge.centroid.range}, ${alt}, HOSTILE"`;
+        parts.push(alssaFormatLocation(formation.type, leadingEdge.centroid, { useLeadingEdge: true }));
+        parts.push(alt, fillIns);
+
         return {
-            text: call,
+            text: `"${parts.join(', ')}"`,
             groups,
             formation,
-            answerKey: this.buildAnswerKey(groups, formation, leadingEdge, alt, null, leGroups.length)
+            answerKey: this.buildAnswerKey(groups, formation, leadingEdge, alt, null, leGroups.length, meta)
         };
     }
 
@@ -141,12 +170,13 @@ class PictureGenerator {
         const south = groups.filter(g => g.packageId === 'SOUTH' || g.centroid.bearing >= 180);
         const nLe = north.length ? this.findLeadingEdge(north) : null;
         const sLe = south.length ? this.findLeadingEdge(south) : null;
-        let call = `"${this.callsign}, TWO PACKAGES AZIMUTH ${meta.packageWidth || 60}, `;
+        const width = meta.packageWidth || 60;
+        let call = `"${this.callsign}, TWO PACKAGES AZIMUTH ${alssaNumberToWords(width)}, `;
         if (nLe) {
-            call += `NORTH PACKAGE BULLSEYE ${nLe.centroid.bearing}/${nLe.centroid.range}, ${this.getAltitudeBlock(nLe.centroid.altitude)}, HOSTILE. `;
+            call += `NORTH PACKAGE BULLSEYE ${nLe.centroid.bearing}/${nLe.centroid.range}, ${alssaFormatAltitude(nLe.centroid.altitude, true)}, ${this.fillIns(meta)}. `;
         }
         if (sLe) {
-            call += `SOUTH PACKAGE BULLSEYE ${sLe.centroid.bearing}/${sLe.centroid.range}, ${this.getAltitudeBlock(sLe.centroid.altitude)}, HOSTILE"`;
+            call += `SOUTH PACKAGE BULLSEYE ${sLe.centroid.bearing}/${sLe.centroid.range}, ${alssaFormatAltitude(sLe.centroid.altitude, true)}, ${this.fillIns(meta)}"`;
         } else {
             call = call.trim() + '"';
         }
@@ -158,11 +188,12 @@ class PictureGenerator {
                 groupCount: groups.length,
                 waveCount: null,
                 label: 'PACKAGE',
-                dimensions: `${meta.packageWidth || 60} WIDE`,
+                dimensions: `${width} WIDE`,
+                dimensionNm: width,
                 bullsBearing: nLe ? nLe.centroid.bearing : null,
                 bullsRange: nLe ? nLe.centroid.range : null,
-                altitudeBlock: nLe ? this.getAltitudeBlock(nLe.centroid.altitude) : 'HIGH',
-                fillIns: 'HOSTILE',
+                altitudeBlock: nLe ? alssaFormatAltitude(nLe.centroid.altitude, true) : 'HIGH',
+                fillIns: this.fillIns(meta),
                 mode: 'packages'
             }
         };
@@ -171,12 +202,13 @@ class PictureGenerator {
     generateThreatPicture(groups, meta) {
         const threatGroup = groups.find(g => g.isThreat) || this.findLeadingEdge(groups);
         const blue = meta.nearestBlue;
+        const braa = meta.braa || (blue ? this.calcBraa(blue, threatGroup.centroid) : null);
+        const alt = alssaFormatAltitude(threatGroup.centroid.altitude, true);
         let call;
-        if (blue && threatGroup) {
-            const braa = meta.braa || this.calcBraa(blue, threatGroup.centroid);
-            call = `"${blue.callsign}, ${threatGroup.tracks[0].callsign || 'LEAD GROUP'}, THREAT BRAA ${braa.bearing}/${braa.range}, ${this.getAltitudeBlock(threatGroup.centroid.altitude)}, HOT, HOSTILE"`;
+        if (blue && braa) {
+            call = `"THREAT, ${blue.callsign}, BULLS ${braa.bearing}/${braa.range}, ${alt}, HOT"`;
         } else {
-            call = `"${this.callsign}, THREAT GROUP BULLSEYE ${threatGroup.centroid.bearing}/${threatGroup.centroid.range}, HOSTILE"`;
+            call = `"THREAT, ${this.callsign}, BULLSEYE ${threatGroup.centroid.bearing}/${threatGroup.centroid.range}, ${alt}, HOT"`;
         }
         return {
             text: call,
@@ -186,10 +218,11 @@ class PictureGenerator {
                 groupCount: groups.length,
                 label: 'THREAT',
                 mode: 'threat',
-                braaBearing: meta.braa ? meta.braa.bearing : null,
-                braaRange: meta.braa ? meta.braa.range : null,
-                altitudeBlock: this.getAltitudeBlock(threatGroup.centroid.altitude),
-                fillIns: 'HOT, HOSTILE'
+                braaBearing: braa ? braa.bearing : threatGroup.centroid.bearing,
+                braaRange: braa ? braa.range : threatGroup.centroid.range,
+                altitudeBlock: alt,
+                altitudeFt: threatGroup.centroid.altitude,
+                fillIns: 'HOT'
             }
         };
     }
@@ -198,12 +231,13 @@ class PictureGenerator {
         const target = meta.targetGroup || this.findLeadingEdge(groups);
         const blue = meta.nearestBlue;
         const braa = meta.braa || (blue ? this.calcBraa(blue, target.centroid) : null);
-        const orient = meta.trackFillIn || 'TRACK EAST';
-        let call = `"${blue ? blue.callsign : this.callsign}, BOGEY DOPE `;
+        const alt = alssaFormatAltitude(target.centroid.altitude, true);
+        const cs = blue ? blue.callsign : this.callsign;
+        let call;
         if (braa) {
-            call += `BRAA ${braa.bearing}/${braa.range}, ${this.getAltitudeBlock(target.centroid.altitude)}, ${orient}, HOSTILE"`;
+            call = `"${cs}, BULLS ${braa.bearing}/${braa.range}, ${alt}, HOT"`;
         } else {
-            call += `BULLSEYE ${target.centroid.bearing}/${target.centroid.range}, ${this.getAltitudeBlock(target.centroid.altitude)}, ${orient}, BOGEY"`;
+            call = `"${cs}, BULLSEYE ${target.centroid.bearing}/${target.centroid.range}, ${alt}, HOT"`;
         }
         return {
             text: call,
@@ -213,8 +247,9 @@ class PictureGenerator {
                 mode: 'bogey_dope',
                 braaBearing: braa ? braa.bearing : target.centroid.bearing,
                 braaRange: braa ? braa.range : target.centroid.range,
-                altitudeBlock: this.getAltitudeBlock(target.centroid.altitude),
-                fillIns: `${orient}, HOSTILE`
+                altitudeBlock: alt,
+                altitudeFt: target.centroid.altitude,
+                fillIns: 'HOT'
             }
         };
     }
@@ -222,7 +257,8 @@ class PictureGenerator {
     generateEaPicture(groups, meta) {
         const eaType = meta.eaType || 'MUSIC';
         const g = this.findLeadingEdge(groups);
-        const call = `"${this.callsign}, ${eaType} FROM GROUP BULLSEYE ${g.centroid.bearing}/${g.centroid.range}, ${this.getAltitudeBlock(g.centroid.altitude)}, HOSTILE"`;
+        const alt = alssaFormatAltitude(g.centroid.altitude, true);
+        const call = `"${this.callsign}, ${eaType} FROM GROUP BULLSEYE ${g.centroid.bearing}/${g.centroid.range}, ${alt}, ${this.fillIns(meta)}"`;
         return {
             text: call,
             groups,
@@ -232,13 +268,13 @@ class PictureGenerator {
                 label: eaType,
                 bullsBearing: g.centroid.bearing,
                 bullsRange: g.centroid.range,
-                altitudeBlock: this.getAltitudeBlock(g.centroid.altitude),
-                fillIns: 'HOSTILE'
+                altitudeBlock: alt,
+                fillIns: this.fillIns(meta)
             }
         };
     }
 
-    buildAnswerKey(groups, formation, leadingEdge, altBlock, waveCount = null, leCount = null) {
+    buildAnswerKey(groups, formation, leadingEdge, altBlock, waveCount = null, leCount = null, meta = {}) {
         const dimMatch = formation && formation.dimension
             ? formation.dimension.match(/(\d+)/) : null;
         return {
@@ -246,18 +282,26 @@ class PictureGenerator {
             waveCount: waveCount,
             leadingEdgeCount: leCount,
             label: formation ? formation.type : 'UNKNOWN',
-            dimensions: formation ? formation.dimension : '',
+            dimensions: formation && formation.dimension ? alssaFormatDimension(formation.dimension) : '',
             dimensionNm: dimMatch ? parseInt(dimMatch[1], 10) : null,
             bullsBearing: leadingEdge.centroid.bearing,
             bullsRange: leadingEdge.centroid.range,
             altitudeBlock: altBlock,
-            fillIns: 'HOSTILE',
+            altitudeFt: leadingEdge.centroid.altitude,
+            fillIns: this.fillIns(meta),
+            trackFillIn: this.trackFillIn(meta),
             weight: formation ? formation.weight : null
         };
     }
 
     analyzeFormation(groups) {
         if (groups.length < 2) return { type: this.formationTypes.UNKNOWN };
+
+        if (groups.length === 4) {
+            const box = this.detectBox(groups);
+            if (box) return box;
+        }
+
         const bearings = groups.map(g => g.centroid.bearing);
         const ranges = groups.map(g => g.centroid.range);
         const bearingSpread = Math.max(...bearings) - Math.min(...bearings);
@@ -292,12 +336,31 @@ class PictureGenerator {
 
         if (groups.length === 2 && rangeSpread > bearingSpread) {
             return {
-                type: this.formationTypes.RANGE,
+                type: this.formationTypes.UNKNOWN,
                 dimension: `${Math.round(rangeSpread)} DEEP`
             };
         }
 
         return { type: this.formationTypes.UNKNOWN };
+    }
+
+    detectBox(groups) {
+        if (groups.length !== 4) return null;
+        const sorted = [...groups].sort((a, b) => a.centroid.range - b.centroid.range);
+        const front = sorted.slice(0, 2);
+        const back = sorted.slice(2);
+        const frontSpread = Math.max(...front.map(g => g.centroid.bearing))
+            - Math.min(...front.map(g => g.centroid.bearing));
+        const backSpread = Math.max(...back.map(g => g.centroid.bearing))
+            - Math.min(...back.map(g => g.centroid.bearing));
+        const depthGap = back[0].centroid.range - front[1].centroid.range;
+        if (depthGap >= 10 && frontSpread >= 8 && backSpread >= 8) {
+            return {
+                type: this.formationTypes.BOX,
+                dimension: `${Math.round(Math.max(frontSpread, backSpread) * front[0].centroid.range * Math.PI / 180)} WIDE`
+            };
+        }
+        return null;
     }
 
     detectVicOrChampagne(groups) {
@@ -359,9 +422,7 @@ class PictureGenerator {
     }
 
     getAltitudeBlock(altitude) {
-        if (altitude >= 30000) return 'HIGH';
-        if (altitude >= 15000) return 'MEDIUM';
-        return 'LOW';
+        return alssaFormatAltitude(altitude, true);
     }
 
     calcBraa(fromTrack, toCentroid) {
