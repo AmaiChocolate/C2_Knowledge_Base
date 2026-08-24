@@ -112,10 +112,22 @@ class ScopeRenderer {
         return { bearing, range };
     }
 
+    calculateBRAA(fromBearing, fromRange, toBearing, toRange) {
+        const from = this.bearingRangeToXY(fromBearing, fromRange);
+        const to = this.bearingRangeToXY(toBearing, toRange);
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const range = Math.sqrt(dx * dx + dy * dy) / this.scale;
+        let bearing = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+        if (bearing < 0) bearing += 360;
+        return { bearing: Math.round(bearing), range: Math.round(range) };
+    }
+
     hitTest(wx, wy) {
         const slop = 18 / Math.max(this.viewScale, 0.5);
         for (let i = this.tracks.length - 1; i >= 0; i--) {
             const t = this.tracks[i];
+            if (t.isDormant) continue;
             const p = this.bearingRangeToXY(t.bearing, t.range);
             if (Math.hypot(p.x - wx, p.y - wy) <= slop) return t;
         }
@@ -258,6 +270,7 @@ class ScopeRenderer {
 
     drawTracks() {
         this.tracks.forEach(track => {
+            if (track.isDormant) return;
             const pos = this.bearingRangeToXY(track.bearing, track.range);
             if (this.showTrail) this.symbology.renderMotionTrail(this.ctx, track);
             if (this.showPlots) this.symbology.renderRadarPlots(this.ctx, track);
