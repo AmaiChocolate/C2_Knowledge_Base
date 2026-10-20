@@ -23,7 +23,7 @@ class GeoLayer {
             this.ready = true;
             this.loadError = null;
         } catch (err) {
-            this.geojson = GeoLayer.FALLBACK_GEO;
+            this.geojson = window.NELLIS_AOR_DATA || { features: [] };
             this.source = 'fallback';
             this.ready = true;
             this.loadError = String(err && err.message ? err.message : err);
@@ -48,11 +48,13 @@ class GeoLayer {
             const g = f.geometry;
             if (!g) continue;
 
-            if (kind === 'state' && g.type === 'Polygon') {
+            if (kind === 'graticule' && g.type === 'LineString') {
+                this._drawGraticuleLine(ctx, g.coordinates, f.properties, opts);
+            } else if (kind === 'state' && g.type === 'Polygon') {
                 this._drawPolygon(ctx, g.coordinates, {
                     stroke: `rgba(40, 180, 80, ${dim})`,
                     fill: `rgba(20, 80, 40, ${dim * 0.15})`,
-                    width: 1.2
+                    width: 1.2 / Math.max(opts.viewScale || 1, 0.5)
                 });
             } else if (kind === 'coast' && g.type === 'LineString') {
                 this._drawLine(ctx, g.coordinates, {
@@ -66,6 +68,20 @@ class GeoLayer {
         }
 
         ctx.restore();
+    }
+
+    /** Whole-degree parallels / meridians, labelled where they cross the bullseye axes. */
+    _drawGraticuleLine(ctx, coords, props, opts) {
+        const inv = 1 / Math.max(opts.viewScale || 1, 0.5);
+        this._drawLine(ctx, coords, { stroke: 'rgba(60, 170, 110, 0.28)', width: 0.8 * inv });
+        const at = props.labelAt;
+        if (!at) return;
+        const p = this.projection.latLonToXY(at[1], at[0]);
+        ctx.font = `${9 * inv}px "Courier New", monospace`;
+        ctx.fillStyle = 'rgba(90, 200, 140, 0.6)';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(props.label, p.x + 3 * inv, p.y - 2 * inv);
     }
 
     _drawPolygon(ctx, rings, style) {
@@ -128,87 +144,5 @@ class GeoLayer {
         }
     }
 }
-
-/** Minimal embedded copy of nellis_aor.json for file:// */
-GeoLayer.FALLBACK_GEO = {
-    type: 'FeatureCollection',
-    name: 'nellis_aor_fallback',
-    features: [
-        {
-            type: 'Feature',
-            properties: { name: 'Pacific Coast', kind: 'coast' },
-            geometry: {
-                type: 'LineString',
-                coordinates: [
-                    [-124.4, 42.0], [-124.2, 41.0], [-124.1, 40.0], [-123.8, 39.0],
-                    [-123.0, 38.0], [-122.5, 37.5], [-122.4, 37.0], [-122.0, 36.5],
-                    [-121.5, 36.0], [-120.9, 35.3], [-120.6, 34.5], [-119.7, 34.2],
-                    [-119.0, 34.0], [-118.5, 33.8], [-117.3, 32.7], [-117.1, 32.5]
-                ]
-            }
-        },
-        {
-            type: 'Feature',
-            properties: { name: 'California', kind: 'state' },
-            geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                    [-124.4, 42.0], [-120.0, 42.0], [-120.0, 39.0], [-114.13, 34.87],
-                    [-114.5, 34.0], [-114.6, 32.7], [-117.1, 32.5], [-117.3, 32.7],
-                    [-118.5, 33.8], [-119.0, 34.0], [-119.7, 34.2], [-120.6, 34.5],
-                    [-120.9, 35.3], [-121.5, 36.0], [-122.0, 36.5], [-122.4, 37.0],
-                    [-122.5, 37.5], [-123.0, 38.0], [-123.8, 39.0], [-124.1, 40.0],
-                    [-124.2, 41.0], [-124.4, 42.0]
-                ]]
-            }
-        },
-        {
-            type: 'Feature',
-            properties: { name: 'Nevada', kind: 'state' },
-            geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                    [-120.0, 42.0], [-114.05, 42.0], [-114.05, 37.0], [-114.05, 36.0],
-                    [-114.05, 35.0], [-114.6, 35.0], [-114.7, 35.2], [-114.8, 36.0],
-                    [-114.13, 34.87], [-120.0, 39.0], [-120.0, 42.0]
-                ]]
-            }
-        },
-        {
-            type: 'Feature',
-            properties: { name: 'Arizona', kind: 'state' },
-            geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                    [-114.05, 37.0], [-109.05, 37.0], [-109.05, 31.35], [-111.0, 31.35],
-                    [-114.8, 32.5], [-114.6, 32.7], [-114.5, 34.0], [-114.13, 34.87],
-                    [-114.7, 35.2], [-114.6, 35.0], [-114.05, 35.0], [-114.05, 36.0],
-                    [-114.05, 37.0]
-                ]]
-            }
-        },
-        {
-            type: 'Feature',
-            properties: { name: 'Utah', kind: 'state' },
-            geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                    [-114.05, 42.0], [-109.05, 42.0], [-109.05, 37.0], [-114.05, 37.0],
-                    [-114.05, 42.0]
-                ]]
-            }
-        },
-        { type: 'Feature', properties: { name: 'KLSV', kind: 'airfield', label: 'NELLIS' }, geometry: { type: 'Point', coordinates: [-115.034, 36.236] } },
-        { type: 'Feature', properties: { name: 'KTNX', kind: 'airfield', label: 'TONOPAH' }, geometry: { type: 'Point', coordinates: [-117.087, 38.060] } },
-        { type: 'Feature', properties: { name: 'KINS', kind: 'airfield', label: 'CREECH' }, geometry: { type: 'Point', coordinates: [-115.672, 36.587] } },
-        { type: 'Feature', properties: { name: 'KLAS', kind: 'airfield', label: 'LAS' }, geometry: { type: 'Point', coordinates: [-115.152, 36.080] } },
-        { type: 'Feature', properties: { name: 'KNFL', kind: 'airfield', label: 'FALLON' }, geometry: { type: 'Point', coordinates: [-118.701, 39.417] } },
-        { type: 'Feature', properties: { name: 'KNID', kind: 'airfield', label: 'CHINA LK' }, geometry: { type: 'Point', coordinates: [-117.685, 35.685] } },
-        { type: 'Feature', properties: { name: 'KEDW', kind: 'airfield', label: 'EDWARDS' }, geometry: { type: 'Point', coordinates: [-117.884, 34.905] } },
-        { type: 'Feature', properties: { name: 'KRNO', kind: 'airfield', label: 'RENO' }, geometry: { type: 'Point', coordinates: [-119.768, 39.499] } },
-        { type: 'Feature', properties: { name: 'KSLC', kind: 'airfield', label: 'SLC' }, geometry: { type: 'Point', coordinates: [-111.978, 40.788] } },
-        { type: 'Feature', properties: { name: 'KPHX', kind: 'airfield', label: 'PHX' }, geometry: { type: 'Point', coordinates: [-112.012, 33.434] } }
-    ]
-};
 
 if (typeof window !== 'undefined') window.GeoLayer = GeoLayer;

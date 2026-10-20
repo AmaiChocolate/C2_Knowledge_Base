@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BC3 Scope Trainer</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=56">
 </head>
 
 <body>
@@ -52,9 +52,33 @@
                     <button type="button" id="commitBtn">Log Commit</button>
                     <button type="button" id="exportTimelineBtn">Export Timeline</button>
                 </div>
+                <div id="wdDebrief" class="wd-debrief" hidden></div>
             </div>
 
             <div class="info-panel">
+                <div class="section" id="wdSeatSection">
+                    <h3>WD Seat</h3>
+                    <label><input type="checkbox" id="wdEnable"> You are the WD (fighters wait on your calls)</label>
+                    <div id="wdBody" hidden>
+                        <label title="Fighters commit themselves on criteria"><input type="checkbox" id="wdAutoCommit"> Auto commit</label>
+                        <label title="Fighters sort themselves"><input type="checkbox" id="wdAutoTarget"> Auto targeting</label>
+                        <p id="wdStatus" class="wd-status"></p>
+                        <div id="wdFlights" class="wd-row"></div>
+                        <div class="wd-row">
+                            <button type="button" id="wdCommitBtn" title="Commit the selected flight">COMMIT</button>
+                            <button type="button" id="wdTargetBtn" title="Target the selected flight on the group you clicked">TARGET group</button>
+                            <button type="button" id="wdPictureBtn">PICTURE…</button>
+                            <button type="button" id="wdThreatBtn" title="THREAT call (BRAA) on the group you clicked">THREAT…</button>
+                        </div>
+                        <form id="wdForm" hidden></form>
+                        <div id="wdComm" class="wd-comm"></div>
+                        <div class="wd-row">
+                            <button type="button" id="wdPauseBtn">Pause</button>
+                            <button type="button" id="wdDebriefBtn">End mission &amp; debrief</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="section">
                     <h3>Scenario</h3>
                     <select id="scenarioSelect">
@@ -150,23 +174,30 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/milsymbol@2.0.0/dist/milsymbol.js"></script>
-    <script src="src/symbology.js?v=51"></script>
-    <script src="src/clustering.js?v=51"></script>
-    <script src="src/picture_logic.js?v=51"></script>
-    <script src="src/aspect_calculator.js?v=51"></script>
-    <script src="src/radar_model.js?v=51"></script>
-    <script src="src/timeline.js?v=51"></script>
-    <script src="src/scenarios_data.js?v=51"></script>
-    <script src="src/geo_projection.js?v=51"></script>
-    <script src="src/geo_layer.js?v=51"></script>
-    <script src="src/airspace_layer.js?v=51"></script>
-    <script src="src/defensive_profiles.js?v=51"></script>
-    <script src="src/missile_model.js?v=51"></script>
-    <script src="src/pilot_ai.js?v=51"></script>
-    <script src="src/wave_manager.js?v=51"></script>
-    <script src="src/scope_engine.js?v=51"></script>
-    <script src="src/trainer.js?v=51"></script>
-    <script src="src/app.js?v=51"></script>
+    <script src="src/symbology.js?v=56"></script>
+    <!-- Picture engine is shared with the Picture Trainer (single source of truth). -->
+    <script src="../picture_trainer/src/orientation.js?v=56"></script>
+    <script src="../picture_trainer/src/clustering.js?v=56"></script>
+    <script src="../picture_trainer/src/alssa_format.js?v=56"></script>
+    <script src="../picture_trainer/src/picture_logic.js?v=56"></script>
+    <script src="src/aspect_calculator.js?v=56"></script>
+    <script src="src/radar_model.js?v=56"></script>
+    <script src="src/timeline.js?v=56"></script>
+    <script src="src/scenarios_data.js?v=56"></script>
+    <script src="src/geo_projection.js?v=56"></script>
+    <script src="src/geo_data.js?v=56"></script>
+    <script src="src/geo_layer.js?v=56"></script>
+    <script src="src/airspace_layer.js?v=56"></script>
+    <script src="src/defensive_profiles.js?v=56"></script>
+    <script src="src/missile_model.js?v=56"></script>
+    <script src="src/pilot_ai.js?v=56"></script>
+    <script src="src/wave_manager.js?v=56"></script>
+    <script src="../picture_trainer/src/grading.js?v=56"></script>
+    <script src="src/wd_seat.js?v=56"></script>
+    <script src="src/wd_panel.js?v=56"></script>
+    <script src="src/scope_engine.js?v=56"></script>
+    <script src="src/trainer.js?v=56"></script>
+    <script src="src/app.js?v=56"></script>
 </body>
 
 </html>

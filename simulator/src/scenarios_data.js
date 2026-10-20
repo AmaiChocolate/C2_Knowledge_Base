@@ -14,13 +14,13 @@ window.DCA_STANDARD_OVERLAY = {
     { name: "CAP EAST-R", bearing: 119, range: 30, radius: 8 }
   ],
   hvaaAnchors: [
+    // Pinned to the published SHELL IP/CP (same sheet coordinates as geo/_build_nttr.js);
+    // bearing/range/leg are derived from them at load so the orbit matches the drawn AAR.
     {
       name: "SHELL 1",
       type: "tanker",
-      bearing: 152,
-      range: 80,
-      legLength: 25,
-      legHeading: 90,
+      ip: "N37 07 W114 24",
+      cp: "N37 21 W114 12",
       slideNm: 25,
       scramNm: 15
     }
@@ -112,7 +112,7 @@ window.SCENARIO_BANK = {
         2,
         true
       ),
-      { bearing: 158, range: 75, altitude: 24000, callsign: "SHELL1", hostile: false, type: "tanker", heading: 90, speed: 320, orbit: "SHELL 1" }
+      { geo: "N37 07 W114 24", altitude: 24000, callsign: "SHELL1", hostile: false, type: "tanker", heading: 34, speed: 320, orbit: "SHELL 1" }
     ],
     [
       { id: 1, label: "FIRST", formation: "PAIR", releaseAtSec: 0, trackIds: ["BANDIT1", "BANDIT2"] },
@@ -182,7 +182,7 @@ window.SCENARIO_BANK = {
         3,
         true
       ),
-      { bearing: 158, range: 75, altitude: 24000, callsign: "SHELL1", hostile: false, type: "tanker", heading: 90, speed: 320, orbit: "SHELL 1" }
+      { geo: "N37 07 W114 24", altitude: 24000, callsign: "SHELL1", hostile: false, type: "tanker", heading: 34, speed: 320, orbit: "SHELL 1" }
     ],
     [
       { id: 1, label: "FIRST", formation: "WALL", releaseAtSec: 0, trackIds: ["H1", "H2", "H3"] },
@@ -241,7 +241,7 @@ window.SCENARIO_BANK = {
         2,
         true
       ),
-      { bearing: 158, range: 75, altitude: 24000, callsign: "SHELL1", hostile: false, type: "tanker", heading: 90, speed: 320, orbit: "SHELL 1" }
+      { geo: "N37 07 W114 24", altitude: 24000, callsign: "SHELL1", hostile: false, type: "tanker", heading: 34, speed: 320, orbit: "SHELL 1" }
     ],
     [
       { id: 1, label: "FIRST", formation: "LADDER", releaseAtSec: 0, trackIds: ["NEAR1", "NEAR2"] },

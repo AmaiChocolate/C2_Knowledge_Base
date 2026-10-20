@@ -88,7 +88,7 @@ class PilotAI {
         return new Selector([
             new Sequence([
                 new Condition((t) => !!t.orbitAnchor),
-                new Action(() => true)
+                new Action((t) => this.executeHvaa(t))
             ]),
             // DEFEND overrides offensive BVR when inbound missile detected
             new Sequence([
@@ -131,6 +131,7 @@ class PilotAI {
         const restore = track.preDefendState;
         track.preDefendState = null;
         track.defendMode = null;
+        track.defendMissileId = null;
         track.defendChaffDeployed = false;
         track.defendBeamSince = null;
         track.defendBeamSinceSim = null;
@@ -170,44 +171,43 @@ class PilotAI {
         const inboundBrg = this.scope.calculateBRAA(
             track.bearing, track.range, m.bearing, m.range
         ).bearing;
-        const side = track.crankSide === 'LEFT' ? -1 : 1;
         const sim = this.scope.simTimeSec != null ? this.scope.simTimeSec : Date.now() / 1000;
 
-        // Mode selection (sim-time beam hold — not wall clock)
-        if (rangeNm < (profile.breakNm || 12)) {
-            track.defendMode = 'BREAK';
-        } else if (track.inboundActive || track.inboundPitbull || m.state === 'ACTIVE') {
-            track.defendMode = track.defendColdTimer ? 'COLD' : 'BEAM';
-            if (track.defendMode === 'BEAM' && track.defendBeamSinceSim == null) {
-                track.defendBeamSinceSim = sim;
-            }
-            if (track.defendBeamSinceSim != null && sim - track.defendBeamSinceSim > 5) {
-                track.defendMode = 'COLD';
-                track.defendColdTimer = true;
-            }
-        } else {
+        // Doctrine: the only things that beat a missile here are outrunning it or, once it
+        // is active, an unbroken notch inside chaff range — so choose between those two.
+        //   SARH            → NOTCH (breaks the shooter's illumination)
+        //   ARH, escapable  → OUT   (turn tail and outrun it; saves chaff)
+        //   ARH, otherwise  → NOTCH, then BEAM + chaff from pitbull
+        const pitbullNow = track.inboundActive || track.inboundPitbull || m.state === 'ACTIVE';
+        if (track.defendMissileId !== m.id) {
+            track.defendMissileId = m.id;
+            track.defendMode = null;
+        }
+        const chaffNm = profile.chaffEffectiveNm != null ? profile.chaffEffectiveNm : 12;
+        if (m.guidance === 'SARH') {
             track.defendMode = 'NOTCH';
-            track.defendBeamSinceSim = null;
-            track.defendColdTimer = false;
+        } else if (track.defendMode === 'NOTCH' || track.defendMode === 'BEAM') {
+            track.defendMode = pitbullNow ? 'BEAM' : 'NOTCH';
+        } else if (this.canOutrunMissile(track, m, rangeNm, inboundBrg)) {
+            track.defendMode = 'OUT';
+        } else if (track.defendMode === 'OUT' && rangeNm > chaffNm + 5) {
+            // Losing the race but not yet terminal: keep the range open as long as possible
+            track.defendMode = 'OUT';
+        } else {
+            track.defendMode = pitbullNow ? 'BEAM' : 'NOTCH';
         }
 
-        if (track.defendMode === 'BREAK') {
+        if (track.defendMode === 'OUT') {
             track.targetHeading = this.normalizeHdg(inboundBrg + 180);
-            track.speed = Math.min(
-                (track.cruiseSpeed || track.speed || 450) + (profile.breakSpeedBoost || 200),
-                profile.maxBreakSpeed || 1100
-            );
-        } else if (track.defendMode === 'COLD') {
-            track.targetHeading = this.normalizeHdg(inboundBrg + 180);
-            track.speed = Math.max(
-                280,
-                (track.cruiseSpeed || track.speed || 450) * (profile.coldSpeedFactor || 0.85)
-            );
+            track.speed = escapePerformance(track).dashKts;
         } else {
-            track.targetHeading = this.normalizeHdg(inboundBrg + side * 90);
+            // Beam the missile on whichever side needs the smaller turn
+            const left = this.normalizeHdg(inboundBrg - 90);
+            const right = this.normalizeHdg(inboundBrg + 90);
+            const turn = (h) => Math.abs(((h - (track.heading || 0) + 540) % 360) - 180);
+            track.targetHeading = turn(left) <= turn(right) ? left : right;
             track.speed = track.cruiseSpeed || track.speed || 450;
         }
-
         // Chaff: terminal phase only (pitbull/ACTIVE + inside deploy range) — not on support NOTCH
         const pitbull = track.inboundActive || track.inboundPitbull || m.state === 'ACTIVE';
         const chaffDeployNm = profile.chaffDeployNm != null
@@ -217,12 +217,7 @@ class PilotAI {
         const inChaffDeployRange = rangeNm <= chaffDeployNm;
         const mayChaff = inChaffDeployRange
             && (!chaffRequiresActive || pitbull)
-            && (
-                track.defendMode === 'BEAM'
-                || track.defendMode === 'BREAK'
-                || track.defendMode === 'COLD'
-                || (track.defendMode === 'NOTCH' && pitbull)
-            );
+            && (track.defendMode === 'BEAM' || (track.defendMode === 'NOTCH' && pitbull));
 
         // Sim-time clouds so 16x does not stretch a 2.5s burst into ~40s of CM
         const dur = profile.chaffDurationSec || 3;
@@ -267,12 +262,103 @@ class PilotAI {
         if (tl && typeof tl.log === 'function') tl.log(type, detail);
     }
 
+    /**
+     * Sim clock in ms. Every AI timer (shot cooldown, crank, skosh, SA memory) runs on
+     * this so behaviour is identical at 1x and 16x time compression.
+     */
+    nowMs() {
+        return this.scope.simTimeSec != null ? this.scope.simTimeSec * 1000 : Date.now();
+    }
+
     normalizeHdg(h) {
         return ((h % 360) + 360) % 360;
     }
 
     braa(from, to) {
         return this.scope.calculateBRAA(from.bearing, from.range, to.bearing, to.range);
+    }
+
+    /** Angle between the target's nose and its line of sight to the shooter (0 = hot). */
+    targetAspectDeg(shooter, target) {
+        const toShooter = this.braa(target, shooter).bearing;
+        const d = Math.abs(((target.heading || 0) - toShooter + 540) % 360 - 180);
+        return d;
+    }
+
+    /**
+     * Range to shoot from: no-escape range plus `aggression` of the way out to max aero
+     * range, never beyond `capNm`. Recomputed every tick, so a target that turns cold
+     * pulls the launch range in instead of soaking up missiles it can outrun.
+     */
+    launchRangeNm(shooter, target, weapon, aggression, capNm) {
+        const env = missileEnvelope(weapon, target, this.targetAspectDeg(shooter, target));
+        const r = env.rneNm + Math.max(0, Math.min(1, aggression)) * Math.max(0, env.raeroNm - env.rneNm);
+        return Math.max(0, Math.min(capNm != null ? capNm : Infinity, r));
+    }
+
+    blueLaunchRangeNm(track, target) {
+        const emp = this.blueEmploymentProfile(track);
+        const p = typeof getDefensiveProfile === 'function' ? getDefensiveProfile(track) : {};
+        return this.launchRangeNm(
+            track, target, 'FOX3',
+            p.shotAggression != null ? p.shotAggression : 0.25,
+            emp.foxMaxNm != null ? emp.foxMaxNm : this.wezNm
+        );
+    }
+
+    redLaunchRangeNm(track, target, weapon) {
+        const p = typeof getDefensiveProfile === 'function' ? getDefensiveProfile(track) : {};
+        const r27 = weapon === 'R27';
+        return this.launchRangeNm(
+            track, target, weapon,
+            r27 ? (p.r27Aggression != null ? p.r27Aggression : 0.6) : (p.r77Aggression != null ? p.r77Aggression : 0.1),
+            r27 ? this.redR27WezNm : this.redR77WezNm
+        );
+    }
+
+    /** True if turning tail now and running leaves the missile out of flight time. */
+    canOutrunMissile(track, missile, rangeNm, inboundBrg) {
+        const away = this.normalizeHdg(inboundBrg + 180);
+        const turnDeg = Math.abs(((away - (track.heading || 0) + 540) % 360) - 180);
+        const flightSec = Math.max(0, (missile.maxFlightSec || 0) - (missile.flightAge || 0));
+        return rangeNm > missileNoEscapeNm(missile, track, turnDeg, flightSec) + 1.5;
+    }
+
+    /**
+     * Tanker / HVAA retrograde. Inside the slide ring it moves away from the nearest
+     * hostile fighter; inside the scram ring it runs. It rejoins its track once the
+     * threat is 10 nm outside the slide ring.
+     */
+    executeHvaa(track) {
+        const anchor = track.orbitAnchor;
+        if (!track.cruiseSpeed) track.cruiseSpeed = track.speed || 320;
+        const threats = this.aliveHostileFighters();
+        const nearest = threats.length ? this.pickClosest(track, threats) : { target: null, range: Infinity };
+        const scramNm = anchor.scramNm != null ? anchor.scramNm : 15;
+        const slideNm = anchor.slideNm != null ? anchor.slideNm : 25;
+
+        let state = track.hvaaState || 'ORBIT';
+        if (nearest.range <= scramNm) state = 'SCRAM';
+        else if (nearest.range <= slideNm) state = state === 'SCRAM' ? 'SCRAM' : 'SLIDE';
+        else if (nearest.range > slideNm + 10) state = 'ORBIT';
+
+        if (state !== (track.hvaaState || 'ORBIT')) {
+            this.log(`hvaa_${state.toLowerCase()}`, {
+                trackId: track.id,
+                callsign: track.callsign,
+                threatCallsign: nearest.target ? nearest.target.callsign : null,
+                rangeNm: nearest.target ? Math.round(nearest.range) : null
+            });
+        }
+        track.hvaaState = state;
+
+        if (state === 'ORBIT' || !nearest.target) {
+            track.speed = track.cruiseSpeed;
+            return true;
+        }
+        track.targetHeading = this.braa(nearest.target, track).bearing;
+        track.speed = track.cruiseSpeed + (state === 'SCRAM' ? 120 : 40);
+        return true;
     }
 
     nearestHostileInfo(fighter) {
@@ -375,7 +461,9 @@ class PilotAI {
         const hostiles = this.aliveHostileFighters()
             .slice()
             .sort((a, b) => a.bearing - b.bearing);
-        const key = hostiles.map(h => String(h.id)).join('|');
+        // Key on membership only: contacts changing bearing order is not a new picture.
+        const wd = this.scope.wdSeat;
+        const key = hostiles.map(h => String(h.id)).sort().join('|') + (wd ? wd.planKey() : '');
         if (!hostiles.length) {
             this._pictureHostileCount = 0;
         }
@@ -398,25 +486,46 @@ class PilotAI {
             leads = withAmmo.concat(leads.filter(l => withAmmo.indexOf(l) < 0));
         }
 
-        const assignedLeads = leads.slice(0, needed);
+        // TARGETED ownership is sticky: a lead keeps the contacts it already owns for as
+        // long as both are alive. Only new or orphaned contacts get (re)assigned.
+        const liveIds = new Set(hostiles.map(h => String(h.id)));
+        const prev = this._blueSortPlan;
         const assignments = {};
-        assignedLeads.forEach((l) => { assignments[String(l.id)] = []; });
-
-        if (assignedLeads.length === 1) {
-            assignments[String(assignedLeads[0].id)] = hostiles.map(h => String(h.id));
-        } else if (assignedLeads.length > 1) {
-            const chunk = Math.ceil(hostiles.length / assignedLeads.length);
-            assignedLeads.forEach((lead, i) => {
-                assignments[String(lead.id)] = hostiles
-                    .slice(i * chunk, (i + 1) * chunk)
-                    .map(h => String(h.id));
+        const owned = new Set();
+        if (prev) {
+            prev.assignedLeadIds.forEach((lid) => {
+                if (!leads.some(l => String(l.id) === lid)) return;
+                const keep = (prev.assignments[lid] || []).filter(id => liveIds.has(id));
+                if (!keep.length) return;
+                assignments[lid] = keep;
+                keep.forEach(id => owned.add(id));
             });
         }
-
-        const owned = new Set();
-        Object.keys(assignments).forEach((sid) => {
-            assignments[sid].forEach(id => owned.add(id));
+        leads.forEach((l) => {
+            if (Object.keys(assignments).length >= needed) return;
+            if (!assignments[String(l.id)]) assignments[String(l.id)] = [];
         });
+        let assignedLeads = leads.filter(l => assignments[String(l.id)]);
+        hostiles.filter(h => !owned.has(String(h.id))).forEach((h) => {
+            const open = assignedLeads
+                .filter(l => assignments[String(l.id)].length < maxPer)
+                .sort((a, b) => (
+                    assignments[String(a.id)].length - assignments[String(b.id)].length
+                    || this.braa(a, h).range - this.braa(b, h).range
+                ));
+            if (!open.length) return;
+            assignments[String(open[0].id)].push(String(h.id));
+            owned.add(String(h.id));
+        });
+
+        // WD seat: the trainee's targeting replaces the automatic SORT.
+        if (wd && wd.manualTargeting()) {
+            wd.applyTargeting(assignments, leads, hostiles);
+            assignedLeads = leads.filter(l => assignments[String(l.id)]);
+            owned.clear();
+            Object.keys(assignments).forEach(lid => assignments[lid].forEach(id => owned.add(id)));
+        }
+
         const untargeted = hostiles
             .filter(h => !owned.has(String(h.id)))
             .map(h => String(h.id));
@@ -607,6 +716,12 @@ class PilotAI {
 
         const ownedIds = this.ownedHostileIds(track);
         let pool = hostiles.filter(h => ownedIds.indexOf(String(h.id)) >= 0);
+        // Sort within the element: a released wing takes a contact lead is not on.
+        const myLead = this.isBlueWing(track) ? this.getBlueFlightLead(track) : null;
+        if (myLead && myLead.assignedTargetId != null) {
+            const others = pool.filter(h => String(h.id) !== String(myLead.assignedTargetId));
+            if (others.length) pool = others;
+        }
         if (!pool.length && (track.sortReleased || track.forceSortEngage)) {
             pool = this.unownedHostiles(hostiles);
             if (!pool.length) pool = hostiles.slice();
@@ -668,7 +783,7 @@ class PilotAI {
 
         const range = braa.range;
         const foxMin = emp.foxMinNm != null ? emp.foxMinNm : 10;
-        const foxMax = emp.foxMaxNm != null ? emp.foxMaxNm : this.wezNm;
+        const foxMax = this.blueLaunchRangeNm(track, target);
         if (range < foxMin) return { ok: false, reason: 'inside_min_range' };
         if (range > foxMax) return { ok: false, reason: 'outside_wez' };
 
@@ -686,6 +801,12 @@ class PilotAI {
         if (this.hasLiveMissileOnTarget(track.id, target.id)) {
             return { ok: false, reason: 'missile_in_flight' };
         }
+        // Another blue already has a missile on this contact — do not double-shoot.
+        const friendlyShot = (this.scope.missiles || []).some(m =>
+            m.isAlive && m.isAlive() && !m.shooterHostile
+            && String(m.targetId) === String(target.id)
+        );
+        if (friendlyShot) return { ok: false, reason: 'friendly_missile_in_flight' };
         if (
             String(track.foxFiredForTarget) === String(target.id)
             && this.scope.getShooterMissiles
@@ -695,7 +816,7 @@ class PilotAI {
         }
 
         const cooled = !track.lastFoxAt
-            || (Date.now() - track.lastFoxAt) / 1000 >= this.foxCooldownSec;
+            || (this.nowMs() - track.lastFoxAt) / 1000 >= this.foxCooldownSec;
         if (!cooled) return { ok: false, reason: 'cooldown' };
 
         const canFox = typeof canFireOrdnance === 'function'
@@ -713,7 +834,7 @@ class PilotAI {
 
     logFoxHold(track, target, reason, braa) {
         const key = `${reason}_${target ? target.id : 'none'}`;
-        const now = Date.now();
+        const now = this.nowMs();
         if (
             track._lastFoxHoldKey === key
             && track._lastFoxHoldAt
@@ -934,13 +1055,18 @@ class PilotAI {
         const needCoverage = unowned.length > 0
             || (leadWinchester && ownedLive.length > 0);
 
+        // Two or more contacts in the element's lane: wing shoots too, one contact each.
+        const sortInElement = leadEngaging && ownedLive.length >= 2;
+
         const shouldRelease = leaker
+            || sortInElement
             || (leadWinchester && needCoverage)
             || (leadDown && needCoverage)
             || (leadEngaging && leadWinchester && ownedLive.length > 0)
             || (pictureGrew && (unowned.length > 0 || ownedLive.length > 0));
 
         if (!shouldRelease) return;
+        if (this.scope.wdSeat && !this.scope.wdSeat.blueCleared(wing)) return;
 
         wing.sortReleased = true;
         const { target, range } = this.pickBlueTarget(wing);
@@ -999,7 +1125,7 @@ class PilotAI {
         }
 
         if (remaining === 0) {
-            const now = Date.now();
+            const now = this.nowMs();
             if (!track._lastWaveHoldAt || now - track._lastWaveHoldAt > 15000) {
                 track._lastWaveHoldAt = now;
                 this.log('wave_hold', {
@@ -1018,7 +1144,7 @@ class PilotAI {
         if (remaining >= minForRecommit) return false;
 
         if (hostiles.length > remaining) {
-            const now = Date.now();
+            const now = this.nowMs();
             if (!track._lastWaveHoldAt || now - track._lastWaveHoldAt > 15000) {
                 track._lastWaveHoldAt = now;
                 this.log('wave_hold', {
@@ -1047,8 +1173,7 @@ class PilotAI {
     tryFoxShot(track, target, braa, fromMeld) {
         const shot = this.canTakeFoxShot(track, target, braa);
         if (!shot.ok) {
-            const emp = this.blueEmploymentProfile(track);
-            const foxMax = emp.foxMaxNm != null ? emp.foxMaxNm : this.wezNm;
+            const foxMax = this.blueLaunchRangeNm(track, target);
             if (braa.range <= foxMax && track.hasTargeted) {
                 this.logFoxHold(track, target, shot.reason, braa);
                 if (shot.reason === 'winchester' && !track.winchesterLogged) {
@@ -1063,7 +1188,7 @@ class PilotAI {
             return false;
         }
 
-        track.lastFoxAt = Date.now();
+        track.lastFoxAt = this.nowMs();
         track.foxFiredForTarget = target.id;
         track.crankSide = track.crankSide || 'LEFT';
         track.pendingSkoshMissile = true;
@@ -1075,6 +1200,7 @@ class PilotAI {
         if (!spawned) return false;
 
         const logType = fromMeld ? 'fox_from_meld' : 'fox3';
+        const envelope = missileEnvelope('FOX3', target, this.targetAspectDeg(track, target));
         const detail = {
             trackId: track.id,
             callsign: track.callsign,
@@ -1084,10 +1210,11 @@ class PilotAI {
             aspect: shot.aspect,
             aspectDeg: shot.aspectDeg,
             ataDeg: shot.ataDeg,
+            rneNm: Math.round(envelope.rneNm),
+            raeroNm: Math.round(envelope.raeroNm),
             remaining: track.ordnance ? track.ordnance.FOX3 : null
         };
         this.log(logType, detail);
-        if (!fromMeld) this.log('fox3', detail);
 
         track.tacticalState = 'CRANK';
         this.runCrank(track);
@@ -1163,7 +1290,7 @@ class PilotAI {
         const braa = this.braa(track, target);
         track.lastTargetBearing = braa.bearing;
         track.lastTargetRangeNm = braa.range;
-        track.lastTargetAt = Date.now();
+        track.lastTargetAt = this.nowMs();
     }
 
     /**
@@ -1179,7 +1306,7 @@ class PilotAI {
         if (
             track.lastTargetBearing != null
             && track.lastTargetAt
-            && Date.now() - track.lastTargetAt < 120000
+            && this.nowMs() - track.lastTargetAt < 120000
         ) {
             return track.lastTargetBearing;
         }
@@ -1371,7 +1498,9 @@ class PilotAI {
         const { target, range } = this.pickBlueTarget(track);
         const commitNm = this.commitNm();
         const meldNm = this.meldNm(track);
-        const mayEngage = this.isSortAssignedShooter(track) || !!track.forceSortEngage;
+        // WD seat: a flight holds CAP until the trainee commits it.
+        const cleared = !this.scope.wdSeat || !!track.forceSortEngage || this.scope.wdSeat.blueCleared(track);
+        const mayEngage = cleared && (this.isSortAssignedShooter(track) || !!track.forceSortEngage);
 
         if (
             mayEngage
@@ -1464,7 +1593,7 @@ class PilotAI {
         this.maybeEnterTargeted(track, target, braa);
 
         const emp = this.blueEmploymentProfile(track);
-        const foxMax = emp.foxMaxNm != null ? emp.foxMaxNm : this.wezNm;
+        const foxMax = this.blueLaunchRangeNm(track, target);
         if (braa.range <= foxMax) {
             track.tacticalState = 'WEZ';
         }
@@ -1521,7 +1650,7 @@ class PilotAI {
         if (track.pendingSkoshMissile && live.length === 0) {
             track.pendingSkoshMissile = false;
             track.tacticalState = 'SKOSH';
-            track.skoshUntil = Date.now() + this.skoshDurationSec * 1000;
+            track.skoshUntil = this.nowMs() + this.skoshDurationSec * 1000;
             this.runSkosh(track);
         }
     }
@@ -1538,7 +1667,7 @@ class PilotAI {
         track.speed = track.cruiseSpeed || 420;
         track.pendingSkoshMissile = false;
 
-        if (track.skoshUntil && Date.now() >= track.skoshUntil) {
+        if (track.skoshUntil && this.nowMs() >= track.skoshUntil) {
             const still = this.getAssignedTarget(track);
             const hasAmmo = typeof hasBvrOrdnance === 'function'
                 ? hasBvrOrdnance(track)
@@ -1763,7 +1892,17 @@ class PilotAI {
 
         const scored = fighters.map(forward).sort((a, b) => a.braa.range - b.braa.range);
         const fwdHit = scored.find(s => s.forward);
-        if (fwdHit) return fwdHit.t;
+        if (fwdHit) {
+            // Red sort: a wingman leaves lead's contact alone when another is about as close.
+            const lead = this.getFormationLead(track);
+            if (lead && String(lead.assignedTargetId) === String(fwdHit.t.id)) {
+                const other = scored.find(s =>
+                    s.forward && s.t !== fwdHit.t && s.braa.range <= fwdHit.braa.range + 15
+                );
+                if (other) return other.t;
+            }
+            return fwdHit.t;
+        }
         if (scored.length) return scored[0].t;
 
         if (hvaa.length) {
@@ -1824,12 +1963,19 @@ class PilotAI {
         track.pendingSkoshMissile = false;
         track.skoshUntil = null;
         this.rememberTargetCue(track, target);
-        this.log('red_commit', {
-            trackId: track.id,
-            callsign: track.callsign,
-            targetId: target.id,
-            targetCallsign: target.callsign
-        });
+        // Re-entering commit on the same contact after a crank / defend is not a new call.
+        const now = this.nowMs();
+        const sameTarget = String(track._lastRedCommitTarget) === String(target.id);
+        if (!sameTarget || now - (track._lastRedCommitAt || 0) > 60000) {
+            this.log('red_commit', {
+                trackId: track.id,
+                callsign: track.callsign,
+                targetId: target.id,
+                targetCallsign: target.callsign
+            });
+        }
+        track._lastRedCommitTarget = target.id;
+        track._lastRedCommitAt = now;
     }
 
     executeFlankerBvr(track) {
@@ -1945,7 +2091,7 @@ class PilotAI {
         track.targetHeading = braa.bearing;
 
         const cooled = !track.lastFoxAt
-            || (Date.now() - track.lastFoxAt) / 1000 >= this.redFoxCooldownSec;
+            || (this.nowMs() - track.lastFoxAt) / 1000 >= this.redFoxCooldownSec;
         const alreadyFlying = this.scope.getShooterMissiles
             && this.scope.getShooterMissiles(track.id).length > 0;
 
@@ -1961,15 +2107,17 @@ class PilotAI {
                 : true;
 
             const empGate = this.canTakeRedShot(track, target, braa);
+            const r77Nm = this.redLaunchRangeNm(track, target, 'R77');
+            const r27Nm = this.redLaunchRangeNm(track, target, 'R27');
             if (!empGate.ok) {
-                if (braa.range <= this.redR27WezNm) {
+                if (braa.range <= r27Nm) {
                     this.logFoxHold(track, target, empGate.reason, braa);
                 }
-            } else if (braa.range <= this.redR77WezNm && canR77) {
+            } else if (braa.range <= r77Nm && canR77) {
                 this.fireRedMissile(track, target, 'R77', braa.range);
             } else if (
-                braa.range <= this.redR27WezNm
-                && braa.range > this.redR77WezNm
+                braa.range <= r27Nm
+                && braa.range > r77Nm
                 && canR27
             ) {
                 this.fireRedMissile(track, target, 'R27', braa.range);
@@ -2020,7 +2168,7 @@ class PilotAI {
         if (!canFire) return false;
 
         track.tacticalState = 'WEZ';
-        track.lastFoxAt = Date.now();
+        track.lastFoxAt = this.nowMs();
         track.foxFiredForTarget = target.id;
         track.pendingSkoshMissile = true;
         track.crankSide = track.crankSide || 'RIGHT';
@@ -2071,7 +2219,7 @@ class PilotAI {
         if (track.pendingSkoshMissile && live.length === 0) {
             track.pendingSkoshMissile = false;
             track.tacticalState = 'SKOSH';
-            track.skoshUntil = Date.now() + this.skoshDurationSec * 1000;
+            track.skoshUntil = this.nowMs() + this.skoshDurationSec * 1000;
             this.runRedSkosh(track);
         }
     }
@@ -2087,7 +2235,7 @@ class PilotAI {
         track.speed = track.cruiseSpeed || 480;
         track.pendingSkoshMissile = false;
 
-        if (track.skoshUntil && Date.now() >= track.skoshUntil) {
+        if (track.skoshUntil && this.nowMs() >= track.skoshUntil) {
             const still = this.getAssignedTarget(track);
             const hasAmmo = typeof hasBvrOrdnance === 'function'
                 ? hasBvrOrdnance(track)
@@ -2145,13 +2293,13 @@ class PilotAI {
         track.speed = Math.min((track.cruiseSpeed || 480) + 120, 700);
 
         const cooled = !track.lastFoxAt
-            || (Date.now() - track.lastFoxAt) / 1000 >= this.redFoxCooldownSec;
+            || (this.nowMs() - track.lastFoxAt) / 1000 >= this.redFoxCooldownSec;
         const alreadyFlying = this.scope.getShooterMissiles
             && this.scope.getShooterMissiles(track.id).length > 0;
         const canR77 = typeof canFireOrdnance === 'function'
             ? canFireOrdnance(track, 'R77')
             : true;
-        if (cooled && !alreadyFlying && canR77 && braa.range <= this.redR77WezNm) {
+        if (cooled && !alreadyFlying && canR77 && braa.range <= this.redLaunchRangeNm(track, target, 'R77')) {
             const empGate = this.canTakeRedShot(track, target, braa);
             if (empGate.ok) {
                 this.fireRedMissile(track, target, 'R77', braa.range);

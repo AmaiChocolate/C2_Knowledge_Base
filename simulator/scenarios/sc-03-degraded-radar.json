@@ -1,12 +1,9 @@
 {
-  "id": "sc-03-degraded-radar",
-  "name": "NTTR E–W — Degraded Radar Feed",
   "bullseyeLabel": "BULLSEYE: N38°00' W115°00' (NTTR E–W)",
   "bullseyeGeo": {
     "lat": 38,
     "lon": -115
   },
-  "radarMode": "degraded",
   "tacticalLines": {
     "meld": 70,
     "commit": 50,
@@ -40,10 +37,8 @@
     {
       "name": "SHELL 1",
       "type": "tanker",
-      "bearing": 152,
-      "range": 80,
-      "legLength": 25,
-      "legHeading": 90,
+      "ip": "N37 07 W114 24",
+      "cp": "N37 21 W114 12",
       "slideNm": 25,
       "scramNm": 15
     }
@@ -61,6 +56,9 @@
       "width": 15
     }
   ],
+  "id": "sc-03-degraded-radar",
+  "name": "NTTR E–W — Degraded Radar Feed",
+  "radarMode": "degraded",
   "tracks": [
     {
       "bearing": 133,
@@ -71,7 +69,30 @@
       "type": "fighter",
       "heading": 270,
       "speed": 420,
-      "airframe": "F35"
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "LEAD",
+        "flightLead": "RAPTOR11"
+      }
+    },
+    {
+      "bearing": 135,
+      "range": 34,
+      "altitude": 28000,
+      "callsign": "RAPTOR12",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "WING",
+        "flightLead": "RAPTOR11",
+        "offsetNmEast": 2,
+        "offsetNmNorth": -2
+      }
     },
     {
       "bearing": 119,
@@ -82,17 +103,42 @@
       "type": "fighter",
       "heading": 270,
       "speed": 420,
-      "airframe": "F35"
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "LEAD",
+        "flightLead": "VIPER21"
+      }
+    },
+    {
+      "bearing": 121,
+      "range": 28,
+      "altitude": 28000,
+      "callsign": "VIPER22",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "WING",
+        "flightLead": "VIPER21",
+        "offsetNmEast": 2,
+        "offsetNmNorth": -2
+      }
     },
     {
       "bearing": 270,
-      "range": 105,
+      "range": 95,
       "altitude": 30000,
       "callsign": "NEAR1",
       "hostile": true,
       "type": "fighter",
       "heading": 90,
       "speed": 500,
+      "waveId": 1,
+      "isDormant": false,
       "airframe": "SU30",
       "adversaryProfile": "flanker",
       "formation": {
@@ -103,13 +149,15 @@
     },
     {
       "bearing": 268,
-      "range": 130,
-      "altitude": 32000,
-      "callsign": "FAR1",
+      "range": 97,
+      "altitude": 30000,
+      "callsign": "NEAR2",
       "hostile": true,
       "type": "fighter",
       "heading": 90,
       "speed": 500,
+      "waveId": 1,
+      "isDormant": false,
       "airframe": "SU30",
       "adversaryProfile": "flanker",
       "formation": {
@@ -117,38 +165,103 @@
         "role": "WING",
         "leadCallsign": "NEAR1",
         "offsetNmEast": -15,
-        "offsetNmNorth": 5
+        "offsetNmNorth": 0
+      }
+    },
+    {
+      "bearing": 270,
+      "range": 125,
+      "altitude": 32000,
+      "callsign": "FAR1",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 490,
+      "waveId": 2,
+      "isDormant": true,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "LADDER",
+        "role": "LEAD",
+        "leadCallsign": "FAR1"
       }
     },
     {
       "bearing": 275,
-      "range": 132,
+      "range": 127,
       "altitude": 33000,
       "callsign": "FAR2",
       "hostile": true,
       "type": "fighter",
       "heading": 90,
-      "speed": 500,
+      "speed": 490,
+      "waveId": 2,
+      "isDormant": true,
       "airframe": "SU30",
       "adversaryProfile": "flanker",
       "formation": {
         "type": "LADDER",
         "role": "WING",
-        "leadCallsign": "NEAR1",
+        "leadCallsign": "FAR1",
+        "offsetNmEast": -15,
+        "offsetNmNorth": 5
+      }
+    },
+    {
+      "bearing": 262,
+      "range": 130,
+      "altitude": 33000,
+      "callsign": "FAR3",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 490,
+      "waveId": 2,
+      "isDormant": true,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "LADDER",
+        "role": "WING",
+        "leadCallsign": "FAR1",
         "offsetNmEast": -30,
         "offsetNmNorth": -5
       }
     },
     {
-      "bearing": 158,
-      "range": 75,
+      "geo": "N37 07 W114 24",
       "altitude": 24000,
       "callsign": "SHELL1",
       "hostile": false,
       "type": "tanker",
-      "heading": 90,
+      "heading": 34,
       "speed": 320,
       "orbit": "SHELL 1"
+    }
+  ],
+  "waves": [
+    {
+      "id": 1,
+      "label": "FIRST",
+      "formation": "LADDER",
+      "releaseAtSec": 0,
+      "trackIds": [
+        "NEAR1",
+        "NEAR2"
+      ]
+    },
+    {
+      "id": 2,
+      "label": "SECOND",
+      "formation": "LADDER",
+      "releaseAtSec": 90,
+      "trackIds": [
+        "FAR1",
+        "FAR2",
+        "FAR3"
+      ],
+      "releaseIfPriorWaveDestroyed": true
     }
   ]
 }

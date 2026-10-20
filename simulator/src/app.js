@@ -18,10 +18,17 @@ window.addEventListener('DOMContentLoaded', () => {
     scope = new ScopeEngine('tacScope');
     window.scope = scope;
     scope.timeline = timeline; // PilotAI event logging
+    timeline.simClock = () => scope.simTimeSec || 0;
     clusterer = new TrackClusterer(3, 1);
     pictureGen = new PictureGenerator();
     aspectCalc = new AspectCalculator();
     trainer = new BrevityTrainer();
+    scope.wdSeat = new WdSeat(scope, {
+        pictureGen,
+        clusterer,
+        grader: new PictureGrader(pictureGen, clusterer)
+    });
+    if (typeof initWdPanel === 'function') initWdPanel(scope.wdSeat);
 
     initializeControls();
     initializeTabs();
@@ -300,6 +307,16 @@ function applyScenario(data) {
         scope.setBullseyeGeo(data.bullseyeGeo.lat, data.bullseyeGeo.lon);
     }
 
+    // Anything carrying a geographic reference (geo / ip+cp) gets its bullseye
+    // bearing/range from the projection, so it lines up with the airspace overlay.
+    const geoRef = (obj) => (scope.geoProjection ? scope.geoProjection.resolveGeoRef(obj) : obj);
+    data = JSON.parse(JSON.stringify(data));
+    (data.capPoints || []).forEach(geoRef);
+    (data.hvaaAnchors || []).forEach(geoRef);
+    (data.tracks || []).forEach(geoRef);
+    (data.safePassages || []).forEach(p => { geoRef(p.start); geoRef(p.end); });
+    geoRef(data.dal);
+
     if (data.capPoints) {
         scope.capPoints = JSON.parse(JSON.stringify(data.capPoints));
     }
@@ -384,6 +401,9 @@ function applyScenario(data) {
         scope.pilotAI._blueSortPlanKey = null;
         scope.pilotAI._pictureHostileCount = 0;
     }
+    scope.paused = false;
+    if (scope.wdSeat) scope.wdSeat.reset(data.wdStandards);
+    if (typeof refreshWdPanel === 'function') refreshWdPanel(true);
 
     if (scope.radar) {
         scope.radar._accum = 999;
@@ -899,6 +919,10 @@ window.selectTrack = selectTrack;
 
 function updatePictureSuggestion() {
     const suggestionDiv = document.getElementById('pictureSuggestion');
+    if (scope.wdSeat && scope.wdSeat.enabled) {
+        suggestionDiv.innerHTML = '<p><em>Hidden while the WD seat is on — you make the call.</em></p>';
+        return;
+    }
     const hostileTracks = scope.tracks.filter(t => t.hostile);
 
     if (hostileTracks.length === 0) {
@@ -907,15 +931,19 @@ function updatePictureSuggestion() {
     }
 
     const groups = clusterer.cluster(hostileTracks);
-    const result = pictureGen.generatePicture(groups, scope.bullseye);
+    const result = pictureGen.generatePicture(groups, scope.bullseye, { orient: orientationFromTracks(hostileTracks) });
     suggestionDiv.innerHTML = `<p>${result.text}</p>`;
 
     let details = '<div style="font-size: 11px; color: #00ff00; margin-top: 8px; border-top: 1px dashed #004400; padding-top: 5px;">';
     details += `<strong>BREAKDOWN:</strong> ${groups.length} Groups`;
     if (result.waves) details += ` / ${result.waves.length} Waves`;
-    if (result.formation && result.formation.type !== 'UNKNOWN') {
+    if (result.formation && result.formation.type) {
+        const dims = [
+            result.formation.width != null ? `${result.formation.width} WIDE` : null,
+            result.formation.depth != null ? `${result.formation.depth} DEEP` : null
+        ].filter(Boolean).join(', ');
         details += `<br>Formation: ${result.formation.type}`;
-        if (result.formation.dimension) details += ` (${result.formation.dimension})`;
+        if (dims) details += ` (${dims})`;
     }
     details += '</div>';
     suggestionDiv.innerHTML += details;

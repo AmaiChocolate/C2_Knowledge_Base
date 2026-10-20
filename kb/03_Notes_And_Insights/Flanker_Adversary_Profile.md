@@ -1,6 +1,7 @@
 # Flanker Adversary Profile (Training Proxy)
 
 **Last Reviewed:** 2026-08-22  
+**Updated:** 2026-10-13 — shot-range, SA memory and defensive doctrine changed in the simulator (see marked rows); **needs your re-review**  
 **Tags:** `#red-air` `#flanker` `#bvr` `#training`  
 **Related:** [[../05_Tools_And_CrossReferences/AI_Pilot_Architecture|AI Pilot Architecture]] · Crew Aid FLANKER / R-27 / R-77 nomenclature
 
@@ -23,8 +24,9 @@ Crew Aid provides **ID / emitter / missile names only** (FLANKER, SLOTBACK/Bars/
 |------|-----|------|
 | Detect / sort | **90** | Fill `perceivedTracks` (wide search cone) |
 | Commit | **55** | Leave INGRESS; pure pursuit |
-| R-77 WEZ (FOX3 / ADDER) | **22** | Primary active shot |
-| R-27 WEZ (FOX1 / ALAMO) | **32** | Secondary SARH; breaks if shooter notches hard / dies |
+| R-77 WEZ (FOX3 / ADDER) | **22** cap | Primary active shot — launched near no-escape range (`r77Aggression` 0.1), so ≈ 22 on a hot F-35 and shorter on a flanking one *(updated)* |
+| R-27 WEZ (FOX1 / ALAMO) | **32** cap | Secondary SARH thrown long to force blue defensive (`r27Aggression` 0.6, ≈ 28 hot); breaks if shooter notches hard / dies *(updated)* |
+| Track memory | **10 s** | A contact stays in the track file after leaving the radar cone, so cranking or defending does not wipe SA *(updated)* |
 | Crank | **±45°** | Post-shot F-pole |
 | Notch / beam | **15–25** if spiked | Defensive bias |
 
@@ -59,7 +61,7 @@ When inbound missile detected, **DEFEND** overrides offensive BVR (same framewor
 | ARH defeat sustain | ~**3.0 s** notch + chaff/ECM |
 | SARH (R-27) defeat | ~**2.0 s** notch |
 
-Maneuvers: **NOTCH → BEAM → COLD → BREAK**; chaff on first beam per salvo (stops at 0).
+*(Updated)* Maneuvers: **OUT** (turn tail) when the missile can still be outrun, otherwise **NOTCH → BEAM + chaff** from pitbull — the same rule blue uses. A red wingman sorts off its lead's target when another blue is about as close.
 
 ## Ordnance (adversary load)
 
