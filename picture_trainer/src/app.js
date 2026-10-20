@@ -8,13 +8,11 @@
         orientation: 'EW',
         seed: null,
         meta: null,
-        bullsRef: { bearing: 0, range: 0 },
-        answer: null,
-        gradedMode: false
+        formFamily: null
     };
 
     const pictureGen = new PictureGenerator({ callsign: 'TANGO' });
-    const clusterer = new TrackClusterer(3, 1);
+    const clusterer = new TrackClusterer(PICTURE_RULES.groupNm, 1);
     const grader = new PictureGrader(pictureGen, clusterer);
 
     const scope = new ScopeRenderer('tacScope');
@@ -24,16 +22,24 @@
     const els = {
         category: document.getElementById('categorySelect'),
         variation: document.getElementById('variationSelect'),
-        statusBulls: document.getElementById('statusBulls'),
+        statusClock: document.getElementById('statusClock'),
         statusScenario: document.getElementById('statusScenario'),
         statusOrient: document.getElementById('statusOrient'),
         revealPanel: document.getElementById('revealPanel'),
         scorePanel: document.getElementById('scorePanel'),
         studentForm: document.getElementById('studentForm'),
-        pictureFields: document.getElementById('pictureFields'),
-        braaFields: document.getElementById('braaFields'),
-        eaFields: document.getElementById('eaFields'),
-        modeHint: document.getElementById('modeHint')
+        formFields: document.getElementById('formFields'),
+        modeHint: document.getElementById('modeHint'),
+        promptLine: document.getElementById('promptLine'),
+        btnPause: document.getElementById('btnPause')
+    };
+
+    const MODE_HINTS = {
+        picture: 'ALSSA picture — total groups, label and dimensions, anchor BULLSEYE, altitude, track. Leave fields blank when they do not apply.',
+        packages: 'Packages — number of packages, azimuth separation, and the BULLSEYE of either package.',
+        braa: 'Respond in BRAA format from the named fighter — not bullseye.',
+        music: 'MUSIC — anchor the named group off BULLSEYE with altitude and track.',
+        strobe: 'STROBE — range and altitude of the closest group along the fighter\'s strobe bearing (±30°).'
     };
 
     function initCategoryPicker() {
@@ -51,7 +57,7 @@
         els.variation.innerHTML = '';
         const rand = document.createElement('option');
         rand.value = 'random';
-        rand.textContent = 'Random (1–15)';
+        rand.textContent = `Random (1–${VARIATIONS_PER_CATEGORY})`;
         els.variation.appendChild(rand);
         for (let i = 1; i <= VARIATIONS_PER_CATEGORY; i++) {
             const opt = document.createElement('option');
@@ -63,36 +69,25 @@
     }
 
     function resolveLoadParams() {
-        const cat = els.category.value;
-        let variation = els.variation.value;
-        let seed;
-        if (variation === 'random') {
-            const rng = mulberry32(Date.now() & 0xffffffff);
-            const pick = pickRandomVariation(rng);
-            seed = pick.seed;
-            variation = pick.variation;
-        } else {
-            seed = categorySeed(cat, parseInt(variation, 10));
+        const category = els.category.value;
+        if (els.variation.value === 'random') {
+            return pickRandomVariation(mulberry32(Date.now() & 0xffffffff), category);
         }
-        return { category: cat, variation: parseInt(variation, 10), seed };
+        const variation = parseInt(els.variation.value, 10);
+        return { category, variation, seed: categorySeed(category, variation) };
     }
 
     function loadScenario(opts = {}) {
         const params = resolveLoadParams();
         state.category = params.category;
         state.variation = params.variation;
-        state.seed = opts.newSeed ? (params.seed + Date.now()) % 2147483647 : params.seed;
+        state.seed = opts.newSeed === true ? (params.seed + Date.now()) % 2147483647 : params.seed;
         state.orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'EW';
-
-        const rng = mulberry32(state.seed);
-        state.bullsRef = randomBullseye(rng);
 
         const scenario = generateScenario({
             category: state.category,
             seed: state.seed,
-            orientation: state.orientation,
-            bullsBearing: state.bullsRef.bearing,
-            bullsRange: state.bullsRef.range
+            orientation: state.orientation
         });
 
         state.meta = scenario.meta;
@@ -101,87 +96,76 @@
         scope.selectedTrack = null;
         anim.reset(scope.tracks, scenario.motionScript);
 
-        state.answer = grader.buildAnswer(scope.tracks, state.meta, state.orientation);
-
+        const answer = currentAnswer();
+        buildForm(answer.answerKey ? answer.answerKey.family : 'picture');
         updateStatus();
-        updateFormMode();
+        refreshLive();
         hideReveal();
-        els.scorePanel.innerHTML = '<p class="muted">Submit your picture call to grade.</p>';
+        resetScore();
+    }
+
+    /** Truth moves with the tracks, so the answer is always computed from the scope as it is now. */
+    function currentAnswer() {
+        return grader.buildAnswer(scope.tracks, state.meta, state.orientation);
+    }
+
+    function buildForm(family) {
+        state.formFamily = family;
+        els.formFields.innerHTML = '';
+        (ANSWER_FAMILIES[family] || []).forEach(id => {
+            const def = FIELD_DEFS[id];
+            const label = document.createElement('label');
+            label.textContent = `${def.label} `;
+            const input = document.createElement('input');
+            input.name = id;
+            input.autocomplete = 'off';
+            if (def.placeholder) input.placeholder = def.placeholder;
+            label.appendChild(input);
+            els.formFields.appendChild(label);
+        });
+        els.modeHint.textContent = MODE_HINTS[family] || MODE_HINTS.picture;
     }
 
     function updateStatus() {
         const catLabel = SCENARIO_CATEGORIES.find(c => c.id === state.category)?.label || state.category;
-        els.statusBulls.textContent = `BULLSEYE (reference) ${state.bullsRef.bearing}/${state.bullsRef.range}`;
         els.statusScenario.textContent = `${catLabel} · var ${state.variation} · seed ${state.seed}`;
         els.statusOrient.textContent = getOrientation(state.orientation).label;
     }
 
-    function setFieldsetEnabled(container, enabled) {
-        container.querySelectorAll('input, select, textarea').forEach(el => {
-            el.disabled = !enabled;
-        });
-    }
+    /** Clock, pause state and the fighter's request (its bearings change as tracks move). */
+    function refreshLive() {
+        const t = Math.floor(anim.simTime);
+        const clock = `T+${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+        let suffix = '';
+        if (anim.paused) suffix = anim.runComplete ? ' · RUN COMPLETE (frozen)' : ' · PAUSED';
+        els.statusClock.textContent = clock + suffix;
+        els.btnPause.textContent = anim.paused ? 'Resume' : 'Pause';
+        els.btnPause.classList.toggle('active', anim.paused);
 
-    function updateFormMode() {
-        const mode = state.meta?.mode;
-        const showPicture = !mode || mode === 'leading_edge' || mode === 'packages' || mode === 'cap';
-        const showBraa = mode === 'threat' || mode === 'bogey_dope';
-        const showEa = mode === 'ea';
-        els.pictureFields.style.display = showPicture ? 'block' : 'none';
-        els.braaFields.style.display = showBraa ? 'block' : 'none';
-        els.eaFields.style.display = showEa ? 'block' : 'none';
-        setFieldsetEnabled(els.pictureFields, showPicture);
-        setFieldsetEnabled(els.braaFields, showBraa);
-        setFieldsetEnabled(els.eaFields, showEa);
-
-        if (mode === 'threat') {
-            els.modeHint.textContent = 'Threat mode — respond with BRAA from nearest blue fighter, not bulls.';
-        } else if (mode === 'bogey_dope') {
-            els.modeHint.textContent = 'Bogey Dope drill — BRAA + track fill-in from blue fighter.';
-        } else if (mode === 'ea') {
-            els.modeHint.textContent = 'EA drill — identify MUSIC/STROBE/METALLICA and group bulls location.';
-        } else if (mode === 'packages') {
-            els.modeHint.textContent = 'Packages — two geographic packages; picture each sub-package.';
-        } else if (mode === 'leading_edge') {
-            els.modeHint.textContent = 'Leading Edge — total groups shown; call only the nearest subset.';
-        } else {
-            els.modeHint.textContent = 'ALSSA picture — word counts (THREE GROUPS), BULLSEYE location, TRACK fill-in, HOSTILE.';
-        }
+        const prompt = state.meta ? currentAnswer().prompt : null;
+        els.promptLine.hidden = !prompt;
+        if (prompt && els.promptLine.textContent !== prompt) els.promptLine.textContent = prompt;
     }
 
     function hideReveal() {
         els.revealPanel.innerHTML = '<p class="muted">Click Reveal Answer when ready to check.</p>';
     }
 
-    function showReveal() {
-        if (!state.answer) return;
-        els.revealPanel.innerHTML = `
-            <p class="call-text">${escapeHtml(state.answer.text)}</p>
-            <pre class="answer-key">${escapeHtml(JSON.stringify(state.answer.answerKey, null, 2))}</pre>
-        `;
+    function resetScore() {
+        els.scorePanel.innerHTML = '<p class="muted">Submit your call to grade.</p>';
     }
 
-    function readStudentForm() {
-        const fd = new FormData(els.studentForm);
-        const mode = state.meta?.mode;
-        return {
-            groupCount: fd.get('groupCount'),
-            waveCount: fd.get('waveCount'),
-            label: mode === 'ea' ? fd.get('eaLabel') : fd.get('label'),
-            dimensions: fd.get('dimensions'),
-            bullsBearing: fd.get('bullsBearing'),
-            bullsRange: fd.get('bullsRange'),
-            altitudeBlock: fd.get('altitudeBlock'),
-            fillIns: fd.get('fillIns'),
-            braaBearing: fd.get('braaBearing'),
-            braaRange: fd.get('braaRange')
-        };
+    function showReveal() {
+        const answer = currentAnswer();
+        els.revealPanel.innerHTML = `<p class="call-text">${escapeHtml(answer.text)}</p>`
+            + '<p class="muted">Answer is for the scope as it is right now — pause first if you are still measuring.</p>';
     }
 
     function submitGrade() {
-        if (!state.answer?.answerKey) return;
-        const student = readStudentForm();
-        const result = grader.gradeStudent(student, state.answer.answerKey);
+        const answer = currentAnswer();
+        if (!answer.answerKey) return;
+        const student = Object.fromEntries(new FormData(els.studentForm).entries());
+        const result = grader.gradeStudent(student, answer.answerKey);
         els.scorePanel.innerHTML = grader.formatGradeReport(result);
     }
 
@@ -195,14 +179,16 @@
     function bindControls() {
         document.getElementById('btnLoad').addEventListener('click', () => loadScenario());
         document.getElementById('btnNewSeed').addEventListener('click', () => loadScenario({ newSeed: true }));
-        els.category.addEventListener('change', () => {
-            state.category = els.category.value;
-            loadScenario();
-        });
-        els.variation.addEventListener('change', loadScenario);
+        els.category.addEventListener('change', () => loadScenario());
+        els.variation.addEventListener('change', () => loadScenario());
 
         document.querySelectorAll('input[name="orientation"]').forEach(r => {
-            r.addEventListener('change', loadScenario);
+            r.addEventListener('change', () => loadScenario());
+        });
+
+        els.btnPause.addEventListener('click', () => {
+            anim.paused = !anim.paused;
+            refreshLive();
         });
 
         document.getElementById('btnMeasure').addEventListener('click', (e) => {
@@ -228,7 +214,7 @@
 
         document.getElementById('btnResetView').addEventListener('click', () => scope.resetView());
         document.getElementById('btnReveal').addEventListener('click', showReveal);
-        document.getElementById('btnSubmit').addEventListener('click', (e) => {
+        els.studentForm.addEventListener('submit', (e) => {
             e.preventDefault();
             submitGrade();
         });
@@ -236,11 +222,12 @@
         document.getElementById('btnClearForm').addEventListener('click', () => {
             els.studentForm.reset();
             hideReveal();
-            els.scorePanel.innerHTML = '<p class="muted">Submit your picture call to grade.</p>';
+            resetScore();
         });
     }
 
     initCategoryPicker();
     bindControls();
     loadScenario();
+    setInterval(refreshLive, 250);
 })();

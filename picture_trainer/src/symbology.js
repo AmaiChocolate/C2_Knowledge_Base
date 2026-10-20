@@ -130,7 +130,7 @@ class SymbologyRenderer {
         ctx.fillText(track.callsign, offsetX, -5);
 
         const alt = `${(track.altitude / 1000).toFixed(0)}`;
-        const bulls = `${Math.round(track.bearing)}/${Math.round(track.range)}`;
+        const bulls = alssaBearingRange(track);
         ctx.font = '10px monospace';
         ctx.fillText(`${bulls}  ${alt}k`, offsetX, 8);
 

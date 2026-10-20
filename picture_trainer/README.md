@@ -5,13 +5,13 @@ Standalone browser drill for **WD / ABM** picture calls — Parrot Sour-style an
 ## Quick start
 
 1. Open [`index.html`](index.html) in Chrome, Edge, or Firefox.
-2. Pick a **category** and **variation** (15 per category, or Random).
-3. Watch tracks animate; use **Measure** to check lateral/depth separation.
+2. Pick a **category** and **variation** (15 per category, or Random within the category).
+3. Watch tracks animate; **Pause** and use **Measure** to check width / depth.
 4. Fill the **Student picture** form and **Submit & grade**, or **Reveal Answer** for self-check.
 
 ## Categories (15 variations each)
 
-Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Cap, Leading Edge, Waves, Packages, Threat, EA / Bogey Dope, Picture of the Day.
+Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Box, Cap, Leading Edge, Waves, Packages, Threat, EA / Bogey Dope, Picture of the Day.
 
 ## Controls
 
@@ -19,22 +19,47 @@ Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Cap, Leading Edge,
 |---------|--------|
 | Scroll wheel | Zoom toward cursor |
 | Left-drag (default) | Pan |
+| Pause / Resume | Freeze track motion (the run also freezes itself when the raid reaches the 55 nm stop line) |
 | Measure + drag | Bearing/range line between two points |
 | Data trail | Motion history dots |
 | Radar plots | Staggered snapshot markers (~4 s) |
 | Anim speed | 0.5× – 4× (sim time only) |
 | E/W vs N/S | Threat axis + blue CAP placement |
 
+## How answers are produced
+
+Truth moves, so the answer is computed **from the scope as it is at the moment you reveal or submit** — pause first if you are still measuring.
+
+`PictureGenerator` works in the threat-axis frame (WIDE = across the axis, DEEP = along it) and applies the rules in [`Picture_Call_Logic.md`](../kb/03_Notes_And_Insights/Picture_Call_Logic.md): 3 nm groups, the 5 nm depth rule (WALL vs CHAMPAGNE / VIC), 10 nm azimuth anchoring, LEADING EDGE + waves, packages. Every threshold lives in `PICTURE_RULES` at the top of `src/picture_logic.js`; the wave (25 nm) and package (40 nm) breaks are trainer assumptions because the real values are mission-planned.
+
 ## Grading
 
-- **Reveal:** verbatim `PictureGenerator` output from clustered hostile truth.
-- **Graded:** field compare — group/wave count (exact), label (exact), dimensions ±2 nm, bulls ±5°/±3 nm, altitude bucket.
+Field compare against the live answer key:
 
-Special modes: **Threat** and **Bogey Dope** use BRAA from nearest blue fighter; **EA** drills MUSIC/STROBE labels.
+| Field | Tolerance |
+|-------|-----------|
+| Group / wave / leading-edge / package counts | exact (leave blank when not applicable) |
+| Label | exact word (blank for single group or no traditional label) |
+| Wide / deep | ±3 nm |
+| Bullseye or BRAA bearing / range | ±5° / ±3 nm (±5 nm for a CAP) — any group in the called picture is accepted as the anchor |
+| Altitude | ±1 thousand ft of the anchored group — digits or words |
+| Track / aspect | word match (`EAST`, `CAP`, `HOT`, `FLANK …`) |
+
+Special drills show the fighter's request above the form: **Threat** and **Bogey Dope** are answered in BRAA from the named fighter; **EA** drills the controller response to `MUSIC` (anchor the group) and `STROBE` (range to the closest group along the bearing).
+
+Not modelled yet: OPENING / CLOSING, ECHELON, altitude STACKs, weighted-wall separation calls, mixed declarations (everything is HOSTILE), voice input.
+
+## Tests
+
+```bash
+node picture_trainer/tests/run_tests.js
+```
+
+No dependencies. Sweeps every category × variation × orientation headlessly and checks that the answer matches what the generator built, survives 90 s of ingress unchanged, and that a perfect submission scores 100%. Run it after touching anything in `src/` — the GitHub Pages workflow runs it before deploying.
 
 ## Blue air
 
-Four-ship package (2× PAIR) on CAP racetracks — always visible (green circle). Hostiles = red diamond with **BULLS brg/rng** data tags.
+Four-ship package (2× PAIR) on CAP racetracks — always visible (green circle). Hostiles = red diamond with **bullseye brg/rng** data tags (lead only; click a wingman to see its tag).
 
 ## Knowledge base
 
@@ -46,10 +71,18 @@ Four-ship package (2× PAIR) on CAP racetracks — always visible (green circle)
 
 | File | Role |
 |------|------|
-| `src/scope_renderer.js` | Canvas, pan/zoom, measure, grid |
-| `src/animation_engine.js` | Ingress, CAP orbit, formation follow |
-| `src/formation_generator.js` | Procedural ALSSA layouts + blue package |
-| `src/scenario_bank.js` | 14×15 seeded variations |
-| `src/picture_logic.js` | Picture call engine (RANGE, CAP, PACKAGE, LE, THREAT, EA) |
-| `src/grading.js` | Reveal + structured score |
+| `src/orientation.js` | Threat-axis orientations + shared `Geo` helpers (bullseye ↔ east/north ↔ axis frame) |
+| `src/clustering.js` | 3 nm grouping, group centroid / CAP anchor |
+| `src/alssa_format.js` | Number words, BULLSEYE / BRAA / altitude phrasing, input parsing |
+| `src/picture_logic.js` | Picture call engine + `PICTURE_RULES` (also loaded by `../simulator/`) |
+| `src/formation_generator.js` | Seeded layouts in the axis frame + blue package |
+| `src/scenario_bank.js` | 15×15 seeded variations |
+| `src/track_kinematics.js` / `src/animation_engine.js` | Ingress, CAP orbit, wing station-keeping, pause / run end |
+| `src/scope_renderer.js` / `src/symbology.js` | Canvas, pan/zoom, measure, symbols |
+| `src/grading.js` | Answer families, form field definitions, scoring |
 | `src/app.js` | UI wiring |
+
+### Extending
+
+- **New formation / category** — add a layout to `Layouts` in `formation_generator.js`, a `case` in `generateScenario`, an entry in `SCENARIO_CATEGORIES`, and an expectation in `tests/run_tests.js`.
+- **New drill type** — emit a new answer-key `family` from `PictureGenerator`, list its fields in `ANSWER_FAMILIES` (`grading.js`) and add a hint in `app.js`; the form builds itself from those.

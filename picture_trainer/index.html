@@ -12,7 +12,7 @@
             <h1>ALSSA Picture Call Trainer</h1>
             <p class="subtitle">Parrot Sour-style animated formations — WD / ABM drill (no BVR sim)</p>
             <div class="status-bar">
-                <span id="statusBulls">BULLSEYE —</span>
+                <span id="statusClock">T+00:00</span>
                 <span id="statusScenario">—</span>
                 <span id="statusOrient">E/W</span>
             </div>
@@ -23,6 +23,7 @@
                 <div class="scope-container">
                     <canvas id="tacScope" width="800" height="800"></canvas>
                     <div class="scope-controls">
+                        <button type="button" id="btnPause" title="Freeze / resume track motion">Pause</button>
                         <button type="button" id="btnMeasure" title="Drag to measure BR/range">Measure</button>
                         <button type="button" id="btnResetView">Reset View</button>
                         <label class="toggle"><input type="checkbox" id="chkTrail"> Data trail</label>
@@ -65,42 +66,9 @@
                 <div class="panel">
                     <h2>Student picture</h2>
                     <p id="modeHint" class="mode-hint muted">Standard picture call.</p>
+                    <p id="promptLine" class="call-text" hidden></p>
                     <form id="studentForm">
-                        <div id="pictureFields">
-                            <label>Group count <input name="groupCount" type="number" min="1" max="12"></label>
-                            <label>Waves (if any) <input name="waveCount" type="number" min="1" max="4"></label>
-                            <label>Label <input name="label" placeholder="WALL, LADDER, AZIMUTH…"></label>
-                            <label>Dimensions <input name="dimensions" placeholder="THIRTY WIDE / TWENTY DEEP"></label>
-                            <label>Bulls bearing <input name="bullsBearing" type="number" min="0" max="359"></label>
-                            <label>Bulls range (nm) <input name="bullsRange" type="number" min="0"></label>
-                            <label>Altitude block
-                                <select name="altitudeBlock">
-                                    <option value="">—</option>
-                                    <option>HIGH</option>
-                                    <option>MEDIUM</option>
-                                    <option>LOW</option>
-                                </select>
-                            </label>
-                            <label>Fill-ins <input name="fillIns" placeholder="TRACK EAST, HOSTILE"></label>
-                        </div>
-                        <div id="braaFields" style="display:none">
-                            <label>BRAA bearing <input name="braaBearing" type="number" min="0" max="359"></label>
-                            <label>BRAA range (nm) <input name="braaRange" type="number" min="0"></label>
-                            <label>Altitude block
-                                <select name="altitudeBlock">
-                                    <option value="">—</option>
-                                    <option>HIGH</option>
-                                    <option>MEDIUM</option>
-                                    <option>LOW</option>
-                                </select>
-                            </label>
-                            <label>Fill-ins <input name="fillIns" placeholder="HOT"></label>
-                        </div>
-                        <div id="eaFields" style="display:none">
-                            <label>EA type <input name="eaLabel" placeholder="MUSIC / STROBE"></label>
-                            <label>Bulls bearing <input name="bullsBearing" type="number" min="0" max="359"></label>
-                            <label>Bulls range (nm) <input name="bullsRange" type="number" min="0"></label>
-                        </div>
+                        <div id="formFields"></div>
                         <div class="btn-row">
                             <button type="submit" id="btnSubmit" class="primary">Submit &amp; grade</button>
                             <button type="button" id="btnClearForm">Clear</button>
@@ -119,7 +87,7 @@
                 <div class="panel">
                     <h2>Score</h2>
                     <div id="scorePanel">
-                        <p class="muted">Submit your picture call to grade.</p>
+                        <p class="muted">Submit your call to grade.</p>
                     </div>
                 </div>
             </aside>

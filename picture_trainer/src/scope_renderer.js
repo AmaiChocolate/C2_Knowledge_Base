@@ -276,7 +276,10 @@ class ScopeRenderer {
             if (this.showPlots) this.symbology.renderRadarPlots(this.ctx, track);
             const sel = this.selectedTrack && String(this.selectedTrack.id) === String(track.id);
             const symbolSize = this.symbology.renderSymbol(this.ctx, track, pos.x, pos.y, sel, this.viewScale);
-            this.symbology.renderDataBlock(this.ctx, track, pos.x, pos.y, symbolSize.width, this.viewScale);
+            // Wingmen sit inside 2 nm of lead; their tags would only bury the lead's.
+            if (!track.formationAnchor || sel) {
+                this.symbology.renderDataBlock(this.ctx, track, pos.x, pos.y, symbolSize.width, this.viewScale);
+            }
         });
     }
 
