@@ -12,6 +12,9 @@ class AnimationEngine {
         this.lastPlotTime = 0;
         this.motionScript = null;
         this.releasedWaveIds = new Set();
+        this.paused = false;
+        // Set once when the raid reaches its stop line (or a threat reaches its target).
+        this.runComplete = false;
     }
 
     setSpeed(mult) {
@@ -24,6 +27,8 @@ class AnimationEngine {
         this.lastPlotTime = 0;
         this.motionScript = motionScript || null;
         this.releasedWaveIds = new Set();
+        this.paused = false;
+        this.runComplete = false;
 
         (tracks || []).forEach(t => {
             t.history = [];
@@ -41,10 +46,18 @@ class AnimationEngine {
         });
     }
 
+    /** The picture stops being a clean ingress here, so freeze once and let the student finish. */
+    completeRun() {
+        if (this.runComplete) return;
+        this.runComplete = true;
+        this.paused = true;
+    }
+
     update(dt) {
+        if (this.paused) return;
         const scaled = dt * this.animSpeed;
         this.accumulator += scaled;
-        while (this.accumulator >= this.fixedStep) {
+        while (this.accumulator >= this.fixedStep && !this.paused) {
             this.simTime += this.fixedStep;
             this.fixedUpdate(this.fixedStep);
             this.accumulator -= this.fixedStep;
@@ -127,6 +140,7 @@ class AnimationEngine {
 
             const stopNm = track.ingressStopNm != null ? track.ingressStopNm : 55;
             if (track.range < stopNm) {
+                this.completeRun();
                 track.ingress = false;
                 track.motionState = 'HOLD';
                 if (!track.orbitAnchor) {
@@ -162,8 +176,9 @@ class AnimationEngine {
             });
         }
         if (target) {
-            const braa = this.scope.calculateBRAA(track.bearing, track.range, target.bearing, target.range);
+            const braa = Geo.bearingRange(track, target);
             track.targetHeading = braa.bearing;
+            if (braa.range < 5) this.completeRun();
         } else {
             track.targetHeading = track.ingressHeading != null ? track.ingressHeading : track.heading;
         }

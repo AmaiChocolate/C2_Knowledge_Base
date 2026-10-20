@@ -70,18 +70,11 @@ class ScopeEngine {
             { name: "SOUTH", startAngle: 135, endAngle: 225, label: "" }
         ];
 
+        // SHELL is pinned to the published IP/CP so the orbit sits inside the drawn AAR box.
         this.hvaaAnchors = [
-            {
-                name: "SHELL 1",
-                type: "tanker",
-                bearing: 152,
-                range: 80,
-                legLength: 25,
-                legHeading: 90,
-                slideNm: 25,
-                scramNm: 15
-            }
+            { name: "SHELL 1", type: "tanker", ip: "N37 07 W114 24", cp: "N37 21 W114 12", slideNm: 25, scramNm: 15 }
         ];
+        if (this.geoProjection) this.hvaaAnchors.forEach(a => this.geoProjection.resolveGeoRef(a));
 
         // Zoom and Viewport State
         this.viewScale = 1.0;
@@ -131,12 +124,12 @@ class ScopeEngine {
     ensureGeoLoaded() {
         if (!this.geoLayer || this.geoLayer.ready || this.geoLayer.loading) return;
         // Cache-bust GeoJSON (same bust as script tags)
-        this.geoLayer.load('geo/nellis_aor.json?v=34').then(() => this.render()).catch(() => {});
+        this.geoLayer.load('geo/nellis_aor.json?v=56').then(() => this.render()).catch(() => {});
     }
 
     ensureAirspaceLoaded() {
         if (!this.airspaceLayer || this.airspaceLayer.ready || this.airspaceLayer.loading) return;
-        this.airspaceLayer.load('geo/nttr_airspace.json?v=34').then(() => this.render()).catch(() => {});
+        this.airspaceLayer.load('geo/nttr_airspace.json?v=56').then(() => this.render()).catch(() => {});
     }
 
     setBullseyeGeo(lat, lon) {
@@ -343,7 +336,7 @@ class ScopeEngine {
         const deltaTime = Math.min(0.35, rawDt * scale);
 
         try {
-            this.updateSimulation(deltaTime, now);
+            if (!this.paused) this.updateSimulation(deltaTime, now);
         } catch (e) {
             console.error('SIM update error:', e);
             this._lastSimError = String(e && e.message ? e.message : e);
@@ -403,9 +396,6 @@ class ScopeEngine {
                 );
                 geoLine += `  |  SEL ${this.geoProjection.formatLatLon(tll.lat, tll.lon)}`;
             }
-            // Scale check: Tonopah must sit on ~100nm ring if rings and geo share nm
-            const tonopah = this.geoProjection.latLonToBearingRange(38.060, -117.087);
-            geoLine += `  |  KTNX ${tonopah.bearing.toFixed(0)}/${tonopah.range.toFixed(0)} (expect ~272/99)`;
             this.ctx.fillText(geoLine, 10, this.canvas.height - 42);
         }
     }
@@ -460,7 +450,7 @@ class ScopeEngine {
             if (!track.history) track.history = [];
 
             if (track.speed && track.heading !== undefined) {
-                if (track.orbitAnchor) {
+                if (track.orbitAnchor && (!track.hvaaState || track.hvaaState === 'ORBIT')) {
                     try { this.updateOrbitLogic(track, dt); } catch (e) { /* keep sim alive */ }
                 }
 
@@ -527,6 +517,8 @@ class ScopeEngine {
         } else {
             this.tracks = this.truthTracks;
         }
+
+        if (this.wdSeat) this.wdSeat.update();
     }
 
     updatePerception() {
@@ -567,9 +559,14 @@ class ScopeEngine {
         const redDetectNmDefault = 90;
         const redDetectVsF35Nm = 40;
         const redConeDeg = 90;
+        // A contact stays in the red track file for a few seconds after it leaves the
+        // radar cone, so cranking or defending does not instantly wipe red's SA.
+        const redCoastSec = 10;
+        const simNow = this.simTimeSec || 0;
         hostiles.forEach(h => {
             if (h.type !== 'fighter') return;
             h.perceivedTracks = [];
+            h._seenAt = h._seenAt || {};
             friendlies.forEach(f => {
                 if (f.type !== 'fighter' && f.type !== 'tanker' && f.type !== 'awacs' && f.type !== 'isr') {
                     return;
@@ -584,6 +581,9 @@ class ScopeEngine {
                     if (af === 'F35' || af === 'F-35') detectNm = redDetectVsF35Nm;
                 }
                 if (Math.abs(relativeBearing) <= redConeDeg && braa.range <= detectNm) {
+                    h._seenAt[f.id] = simNow;
+                }
+                if (h._seenAt[f.id] != null && simNow - h._seenAt[f.id] <= redCoastSec) {
                     h.perceivedTracks.push(f.id);
                 }
             });
@@ -618,8 +618,9 @@ class ScopeEngine {
     }
 
     /**
-     * Horizontal racetrack (default legs 090/270). Chase a look-ahead point on the
-     * northern lane so SHELL stays E–W and does not drift toward the threat.
+     * Left-hand racetrack about the anchor centre. The outbound leg (along legHeading)
+     * flies the right-hand lane — for an AAR anchor that is the published IP→CP track —
+     * and the return leg flies the left-hand lane, laneHalfNm either side of centre.
      */
     updateOrbitLogic(track, dt) {
         const anchor = track.orbitAnchor;
@@ -629,14 +630,14 @@ class ScopeEngine {
 
         const legHdg = Number(anchor.legHeading != null ? anchor.legHeading : 90);
         const half = Number(anchor.legLength != null ? anchor.legLength : 25) / 2;
-        const laneCross = 5; // nm north of orbit center (toward bulls)
+        const laneHalf = anchor.laneHalfNm != null ? anchor.laneHalfNm : 5;
 
         const center = this.bearingRangeToXY(Number(anchor.bearing), Number(anchor.range));
         const pos = this.bearingRangeToXY(track.bearing, track.range);
         const rad = (legHdg - 90) * (Math.PI / 180);
         const ax = Math.cos(rad);
         const ay = Math.sin(rad);
-        // Left of eastbound = north (toward bulls)
+        // (cx, cy) points left of the leg heading
         const cx = ay;
         const cy = -ax;
 
@@ -654,6 +655,7 @@ class ScopeEngine {
             ? Math.min(along + look, half)
             : Math.max(along - look, -half);
 
+        const laneCross = track.orbitLeg === 'EAST' ? -laneHalf : laneHalf;
         const tx = center.x + (targetAlong * ax + laneCross * cx) * this.scale;
         const ty = center.y + (targetAlong * ay + laneCross * cy) * this.scale;
         let hdg = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI) + 90;
@@ -701,7 +703,7 @@ class ScopeEngine {
 
             this.drawScopeBackdrop();
             this.syncGeoProjection();
-            if (this.showGeography && this.geoLayer) this.geoLayer.draw(this.ctx);
+            if (this.showGeography && this.geoLayer) this.geoLayer.draw(this.ctx, { viewScale: this.viewScale });
             if (this.showAirspace && this.airspaceLayer) {
                 this.airspaceLayer.draw(this.ctx, {
                     viewScale: this.viewScale,
@@ -730,6 +732,36 @@ class ScopeEngine {
         } finally {
             this.ctx.restore();
         }
+        this.drawScaleBar();
+    }
+
+    /** Screen-space nm scale bar — the same px/nm every layer is drawn with. */
+    drawScaleBar() {
+        const pxPerNm = this.scale * this.viewScale;
+        const nm = [1, 2, 5, 10, 20, 50, 100, 200, 500].find(n => n * pxPerNm >= 90) || 500;
+        const len = nm * pxPerNm;
+        const x1 = this.canvas.width - 20;
+        const x0 = x1 - len;
+        const y = this.canvas.height - 62;
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = 'rgba(0, 255, 120, 0.9)';
+        ctx.fillStyle = 'rgba(0, 255, 120, 0.9)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x0, y - 5);
+        ctx.lineTo(x0, y);
+        ctx.lineTo(x1, y);
+        ctx.lineTo(x1, y - 5);
+        ctx.moveTo((x0 + x1) / 2, y - 3);
+        ctx.lineTo((x0 + x1) / 2, y);
+        ctx.stroke();
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`${nm} NM`, (x0 + x1) / 2, y - 6);
+        ctx.restore();
     }
 
     clearCanvas() {
@@ -788,24 +820,28 @@ class ScopeEngine {
         this.ctx.restore();
     }
 
+    /** 20 nm squares anchored on bullseye, drawn across whatever is in view. */
     drawGrid() {
         if (!this.showGrid) return;
 
+        const step = 20 * this.scale;
+        const x0 = -this.viewOffset.x / this.viewScale;
+        const y0 = -this.viewOffset.y / this.viewScale;
+        const x1 = x0 + this.canvas.width / this.viewScale;
+        const y1 = y0 + this.canvas.height / this.viewScale;
+
         this.ctx.strokeStyle = 'rgba(0, 80, 40, 0.25)';
         this.ctx.lineWidth = 0.5 / Math.max(this.viewScale, 0.5);
-
-        for (let x = 0; x <= this.canvas.width; x += 40) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, this.canvas.height);
-            this.ctx.stroke();
+        this.ctx.beginPath();
+        for (let x = this.bullseye.x + Math.ceil((x0 - this.bullseye.x) / step) * step; x <= x1; x += step) {
+            this.ctx.moveTo(x, y0);
+            this.ctx.lineTo(x, y1);
         }
-        for (let y = 0; y <= this.canvas.height; y += 40) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, y);
-            this.ctx.lineTo(this.canvas.width, y);
-            this.ctx.stroke();
+        for (let y = this.bullseye.y + Math.ceil((y0 - this.bullseye.y) / step) * step; y <= y1; y += step) {
+            this.ctx.moveTo(x0, y);
+            this.ctx.lineTo(x1, y);
         }
+        this.ctx.stroke();
     }
 
     drawBearingTicks() {
@@ -916,7 +952,7 @@ class ScopeEngine {
             const inv = 1 / Math.max(this.viewScale, 0.5);
             const legHdg = anchor.legHeading != null ? anchor.legHeading : 90;
             const half = ((anchor.legLength || 25) / 2) * this.scale;
-            const halfW = 5 * this.scale;
+            const halfW = (anchor.laneHalfNm != null ? anchor.laneHalfNm : 5) * this.scale;
 
             // Slide/scram ALWAYS on live tanker position (truth), not the orbit box
             if (this.showHvaaCircles) {
@@ -1136,6 +1172,22 @@ class ScopeEngine {
             this.ctx.lineTo(pos.x, pos.y + 5 * inv);
             this.ctx.stroke();
 
+            // The CAP leg as flown (east-west, to scale) — the marker above is only a symbol.
+            const half = ((this.pilotAI && this.pilotAI.capLegHalfNm) || 10) * this.scale;
+            const lane = 1.5 * this.scale;
+            this.ctx.save();
+            this.ctx.setLineDash([4 * inv, 4 * inv]);
+            this.ctx.strokeStyle = 'rgba(0, 170, 255, 0.55)';
+            this.ctx.lineWidth = 1 * inv;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pos.x - half, pos.y - lane);
+            this.ctx.lineTo(pos.x + half, pos.y - lane);
+            this.ctx.arc(pos.x + half, pos.y, lane, -Math.PI / 2, Math.PI / 2, false);
+            this.ctx.lineTo(pos.x - half, pos.y + lane);
+            this.ctx.arc(pos.x - half, pos.y, lane, Math.PI / 2, -Math.PI / 2, false);
+            this.ctx.stroke();
+            this.ctx.restore();
+
             this.ctx.fillStyle = '#00aaff';
             this.ctx.font = `bold ${9 * inv}px monospace`;
             this.ctx.textAlign = 'center';
@@ -1289,34 +1341,8 @@ class ScopeEngine {
             return null;
         }
 
-        const opts = { shooter, target, type };
-        const t = String(type || 'FOX3').toUpperCase();
-        if (t === 'FOX1' || t === 'R27') {
-            opts.type = 'FOX1';
-            opts.guidance = 'SARH';
-            opts.activeNm = 0;
-            opts.maxFlightSec = 55;
-            opts.sarhBreakDeg = 60;
-            opts.sarhBreakSec = 3;
-        } else if (t === 'R77' || t === 'FOX3') {
-            // Training proxy: AIM-120 earlier pitbull + slightly hotter terminal vs R-77
-            // (do not reduce red WEZ range — only terminal geometry)
-            if (t === 'FOX3') {
-                opts.type = 'FOX3';
-                opts.guidance = 'ACTIVE';
-                opts.activeNm = 8;
-                opts.turnRateDeg = 16;
-                opts.maxFlightSec = 70;
-                opts.killNm = 1.2;
-            } else {
-                opts.type = 'R77';
-                opts.guidance = 'ACTIVE';
-                opts.activeNm = 10;
-                opts.turnRateDeg = 14;
-                opts.maxFlightSec = 50;
-                opts.killNm = 1.5;
-            }
-        }
+        // Fly-out numbers come from MISSILE_PROFILES so pilots and missiles agree on reach.
+        const opts = Object.assign({ shooter, target }, getMissileProfile(type));
 
         const consumed = typeof consumeOrdnance === 'function'
             ? consumeOrdnance(shooter, type)
@@ -1361,7 +1387,7 @@ class ScopeEngine {
                     if (shooter && shooter.type === 'fighter') {
                         if (shooter.tacticalState === 'CRANK' || shooter.tacticalState === 'WEZ') {
                             shooter.tacticalState = 'SKOSH';
-                            shooter.skoshUntil = Date.now() + 8000;
+                            shooter.skoshUntil = this.simTimeSec * 1000 + 8000; // sim clock, same as PilotAI.nowMs()
                             shooter.pendingSkoshMissile = false;
                         }
                     }

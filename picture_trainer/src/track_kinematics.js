@@ -127,34 +127,30 @@ const TrackKinematics = {
 
     steerFormationWing(wing, lead, scope, opts = {}) {
         const cruise = wing.cruiseSpeed || wing.speed || (wing.hostile ? 480 : 420);
-        const maxSep = wing.wingMaxSepNm || 5;
-        wing.speed = cruise;
+        const maxSpeed = wing.hostile ? 560 : 520;
+        const leadEN = Geo.bullsToEN(lead);
+        const slot = Geo.enToBulls({
+            e: leadEN.e + (wing.offsetNmEast || 0),
+            n: leadEN.n + (wing.offsetNmNorth || 0)
+        });
+        const toSlot = Geo.bearingRange(wing, slot);
+        const leadHdg = lead.heading != null ? lead.heading : wing.heading;
 
-        const leadXY = scope.bearingRangeToXY(lead.bearing, lead.range);
-        const scale = scope.scale;
-        const tx = leadXY.x + (wing.offsetNmEast || 0) * scale;
-        const ty = leadXY.y - (wing.offsetNmNorth || 0) * scale;
-        const slot = scope.xyToBearingRange(tx, ty);
-        const toSlot = scope.calculateBRAA(wing.bearing, wing.range, slot.bearing, slot.range);
-        const toLead = scope.calculateBRAA(wing.bearing, wing.range, lead.bearing, lead.range);
-
-        const catchUpBoost = wing.hostile ? 40 : 60;
-        const slotBoost = wing.hostile ? 40 : 40;
-        const maxSpeed = wing.hostile ? 540 : 520;
-
-        if (toLead.range > maxSep) {
-            wing.targetHeading = toLead.bearing;
-            wing.speed = Math.min(cruise + catchUpBoost, maxSpeed);
+        // Out of position: rejoin directly on the slot.
+        if (toSlot.range > (wing.wingRejoinNm || 3)) {
+            wing.targetHeading = toSlot.bearing;
+            wing.speed = Math.min(cruise + 60, maxSpeed);
             return;
         }
 
-        if (toSlot.range > 2.5) {
-            wing.targetHeading = toSlot.bearing;
-            wing.speed = Math.min(cruise + slotBoost, maxSpeed);
-        } else {
-            wing.targetHeading = lead.heading != null ? lead.heading : wing.heading;
-            wing.speed = lead.speed || cruise;
-        }
+        // Station keeping: fly lead's heading, trimming speed for fore/aft error
+        // and a few degrees of heading for lateral error.
+        const rel = (toSlot.bearing - leadHdg) * Math.PI / 180;
+        const ahead = toSlot.range * Math.cos(rel);
+        const right = toSlot.range * Math.sin(rel);
+        const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+        wing.targetHeading = this.normalizeHeading(leadHdg + clamp(right * 20, 25));
+        wing.speed = Math.min((lead.speed || cruise) + clamp(ahead * 80, 80), maxSpeed);
     }
 };
 

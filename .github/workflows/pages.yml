@@ -5,6 +5,7 @@ on:
     branches: [main, master]
     paths:
       - 'picture_trainer/**'
+      - 'simulator/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -26,6 +27,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Run picture trainer tests
+        run: node picture_trainer/tests/run_tests.js
+
+      - name: Run simulator tests
+        run: node simulator/tests/run_tests.js
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

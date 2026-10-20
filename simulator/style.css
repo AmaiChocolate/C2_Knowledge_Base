@@ -230,3 +230,28 @@ input[type="checkbox"] {
     color: #000;
     border-color: #00ff00;
 }
+/* WD seat */
+#wdSeatSection label { display: block; font-size: 12px; margin: 3px 0; }
+.wd-status { font-family: 'Courier New', monospace; font-size: 11px; color: #9fdcb5; margin: 6px 0; }
+.wd-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.wd-row label { display: inline-flex !important; align-items: center; gap: 4px; margin: 0 8px 0 0 !important; }
+.wd-row button { flex: 1 1 auto; }
+#wdForm { border: 1px solid #1a5c2e; padding: 8px; margin: 6px 0; }
+#wdForm label { font-size: 11px; color: #aaffcc; }
+#wdForm input, #wdForm select { width: 100%; margin-top: 2px; background: #0a0e1a; color: #00ff00; border: 1px solid #1a5c2e; padding: 4px; font-family: 'Courier New', monospace; font-size: 12px; }
+#wdForm .wd-form-title { font-size: 12px; color: #ffd24a; margin-bottom: 6px; }
+.wd-comm { max-height: 150px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px; background: #050a08; border: 1px solid #12301d; padding: 6px; }
+.wd-comm .wd-me { color: #7dd3ff; }
+.wd-comm .wd-them { color: #9fdcb5; }
+.wd-debrief { margin-top: 12px; border: 2px solid #00ff66; border-radius: 6px; padding: 12px; background: #0b1420; font-size: 12px; }
+.wd-debrief h3 { color: #00ff66; margin: 0 0 6px; }
+.wd-debrief h4 { color: #7dffb0; margin: 12px 0 4px; font-size: 13px; }
+.wd-debrief table { width: 100%; border-collapse: collapse; }
+.wd-debrief td { padding: 3px 6px; border-top: 1px solid #16324a; vertical-align: top; }
+.wd-debrief tr.wd-jump { cursor: pointer; }
+.wd-debrief tr.wd-jump:hover { background: #12263a; }
+.wd-debrief .wd-good { color: #6f6; }
+.wd-debrief .wd-mid { color: #fd4; }
+.wd-debrief .wd-bad { color: #f66; }
+.wd-debrief .wd-truth { color: #9fb8d0; font-family: 'Courier New', monospace; font-size: 11px; }
+.wd-debrief input[type=range] { width: 100%; }

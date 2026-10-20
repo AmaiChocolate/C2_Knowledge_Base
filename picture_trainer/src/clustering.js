@@ -26,6 +26,16 @@ class TrackClusterer {
         return clusters;
     }
 
+    /** Group by generator truth (`groupId`) instead of proximity. */
+    groupByTruth(tracks) {
+        const byId = new Map();
+        tracks.forEach(t => {
+            if (!byId.has(t.groupId)) byId.set(t.groupId, []);
+            byId.get(t.groupId).push(t);
+        });
+        return [...byId.values()].map(g => this.createGroup(g));
+    }
+
     getNeighbors(track, tracks, excludeIdx) {
         const neighbors = [];
         tracks.forEach((other, idx) => {
@@ -52,36 +62,41 @@ class TrackClusterer {
     }
 
     calculateDistance(t1, t2) {
-        const dx = t2.range * Math.cos(t2.bearing * Math.PI / 180)
-            - t1.range * Math.cos(t1.bearing * Math.PI / 180);
-        const dy = t2.range * Math.sin(t2.bearing * Math.PI / 180)
-            - t1.range * Math.sin(t1.bearing * Math.PI / 180);
-        return Math.sqrt(dx * dx + dy * dy);
+        return Geo.distance(t1, t2);
     }
 
     createGroup(tracks) {
-        let tb = 0;
-        let tr = 0;
-        let ta = 0;
+        // Average in east/north space — averaging raw bearings breaks across 360/000.
+        let e = 0;
+        let n = 0;
+        let alt = 0;
         tracks.forEach(t => {
-            tb += t.bearing;
-            tr += t.range;
-            ta += t.altitude || 28000;
+            const en = Geo.bullsToEN(t);
+            e += en.e;
+            n += en.n;
+            alt += t.altitude || 28000;
         });
-        const n = tracks.length;
-        const lead = tracks.reduce((a, b) => (b.range < a.range ? b : a), tracks[0]);
+        const count = tracks.length;
+        const lead = tracks.find(t => !t.formationAnchor) || tracks[0];
+        const orbiting = !!(lead.orbitAnchor || tracks.some(t => t.isCapOrbit));
+        // A CAP is reported where it is anchored, not where the jet is on the racetrack.
+        const position = orbiting && lead.orbitAnchor
+            ? { bearing: lead.orbitAnchor.bearing, range: lead.orbitAnchor.range }
+            : Geo.enToBulls({ e: e / count, n: n / count });
         return {
             tracks,
-            count: n,
+            count,
             centroid: {
-                bearing: Math.round(tb / n),
-                range: Math.round(tr / n),
-                altitude: Math.round(ta / n)
+                bearing: Geo.norm360(position.bearing),
+                range: position.range,
+                altitude: Math.round(alt / count)
             },
             lead,
+            heading: lead.heading,
             hostile: tracks[0].hostile,
-            isCap: tracks.some(t => t.isCapOrbit),
+            isCap: orbiting,
             isThreat: tracks.some(t => t.isThreat),
+            isJammer: tracks.some(t => t.isJammer),
             packageId: tracks[0].packageId || null
         };
     }

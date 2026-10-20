@@ -1,12 +1,9 @@
 {
-  "id": "sc-01-single-commit",
-  "name": "NTTR E–W — Single Group Commit",
   "bullseyeLabel": "BULLSEYE: N38°00' W115°00' (NTTR E–W)",
   "bullseyeGeo": {
     "lat": 38,
     "lon": -115
   },
-  "radarMode": "normal",
   "tacticalLines": {
     "meld": 70,
     "commit": 50,
@@ -40,10 +37,8 @@
     {
       "name": "SHELL 1",
       "type": "tanker",
-      "bearing": 152,
-      "range": 80,
-      "legLength": 25,
-      "legHeading": 90,
+      "ip": "N37 07 W114 24",
+      "cp": "N37 21 W114 12",
       "slideNm": 25,
       "scramNm": 15
     }
@@ -61,6 +56,9 @@
       "width": 15
     }
   ],
+  "id": "sc-01-single-commit",
+  "name": "NTTR E–W — Single Group Commit",
+  "radarMode": "normal",
   "tracks": [
     {
       "bearing": 133,
@@ -71,7 +69,30 @@
       "type": "fighter",
       "heading": 270,
       "speed": 420,
-      "airframe": "F35"
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "LEAD",
+        "flightLead": "RAPTOR11"
+      }
+    },
+    {
+      "bearing": 135,
+      "range": 34,
+      "altitude": 28000,
+      "callsign": "RAPTOR12",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "WING",
+        "flightLead": "RAPTOR11",
+        "offsetNmEast": 2,
+        "offsetNmNorth": -2
+      }
     },
     {
       "bearing": 119,
@@ -82,7 +103,30 @@
       "type": "fighter",
       "heading": 270,
       "speed": 420,
-      "airframe": "F35"
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "LEAD",
+        "flightLead": "VIPER21"
+      }
+    },
+    {
+      "bearing": 121,
+      "range": 28,
+      "altitude": 28000,
+      "callsign": "VIPER22",
+      "hostile": false,
+      "type": "fighter",
+      "heading": 270,
+      "speed": 420,
+      "airframe": "F35",
+      "formation": {
+        "type": "PAIR",
+        "role": "WING",
+        "flightLead": "VIPER21",
+        "offsetNmEast": 2,
+        "offsetNmNorth": -2
+      }
     },
     {
       "bearing": 270,
@@ -93,6 +137,8 @@
       "type": "fighter",
       "heading": 90,
       "speed": 500,
+      "waveId": 1,
+      "isDormant": false,
       "airframe": "SU30",
       "adversaryProfile": "flanker",
       "formation": {
@@ -110,6 +156,8 @@
       "type": "fighter",
       "heading": 90,
       "speed": 500,
+      "waveId": 1,
+      "isDormant": false,
       "airframe": "SU30",
       "adversaryProfile": "flanker",
       "formation": {
@@ -121,15 +169,77 @@
       }
     },
     {
-      "bearing": 158,
-      "range": 75,
+      "bearing": 270,
+      "range": 155,
+      "altitude": 32000,
+      "callsign": "BANDIT3",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 500,
+      "waveId": 2,
+      "isDormant": true,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "PAIR",
+        "role": "LEAD",
+        "leadCallsign": "BANDIT3"
+      }
+    },
+    {
+      "bearing": 268,
+      "range": 158,
+      "altitude": 32000,
+      "callsign": "BANDIT4",
+      "hostile": true,
+      "type": "fighter",
+      "heading": 90,
+      "speed": 500,
+      "waveId": 2,
+      "isDormant": true,
+      "airframe": "SU30",
+      "adversaryProfile": "flanker",
+      "formation": {
+        "type": "PAIR",
+        "role": "WING",
+        "leadCallsign": "BANDIT3",
+        "offsetNmEast": 0,
+        "offsetNmNorth": 10
+      }
+    },
+    {
+      "geo": "N37 07 W114 24",
       "altitude": 24000,
       "callsign": "SHELL1",
       "hostile": false,
       "type": "tanker",
-      "heading": 90,
+      "heading": 34,
       "speed": 320,
       "orbit": "SHELL 1"
+    }
+  ],
+  "waves": [
+    {
+      "id": 1,
+      "label": "FIRST",
+      "formation": "PAIR",
+      "releaseAtSec": 0,
+      "trackIds": [
+        "BANDIT1",
+        "BANDIT2"
+      ]
+    },
+    {
+      "id": 2,
+      "label": "SECOND",
+      "formation": "PAIR",
+      "releaseAtSec": 90,
+      "trackIds": [
+        "BANDIT3",
+        "BANDIT4"
+      ],
+      "releaseIfPriorWaveDestroyed": true
     }
   ]
 }

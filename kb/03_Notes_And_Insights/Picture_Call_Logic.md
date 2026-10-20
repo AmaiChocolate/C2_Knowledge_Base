@@ -1,170 +1,115 @@
 # Picture Call Logic and Formation Labels
 
 **Last Reviewed:** 2026-08-13  
+**Updated:** 2026-10-13 — re-aligned to the ALSSA comm-standard extract (`05_Tools_And_CrossReferences/sources/alssa_utf8.txt`, air-to-air chapter); **needs your re-review**  
 **Tags:** `#wd` `#picture` `#brevity`  
-**Related:** [[../06_Summaries_And_Learning/WD_Picture_Summary|WD_Picture_Summary]] · sim `sc-02-wall-ladder`
+**Related:** [[../06_Summaries_And_Learning/WD_Picture_Summary|WD_Picture_Summary]] · sim `sc-02-wall-ladder` · [[../../picture_trainer/README|Picture Trainer]] (its answer engine implements this note)
 
-## Picture Call Hierarchy
+## Building blocks
 
-### Standard Format
+- **GROUP** — contacts within **3 nm** in azimuth and range of each other. Single contact is assumed; say `TWO CONTACTS`, or `HEAVY` (+ count if known) for three or more.
+- **Core information order** — total groups → location → altitude → track / aspect → declaration → fill-ins.
+- **Location** — `BULLSEYE 045/60` (never shortened to "bulls" — it gets heard as BRAA). `BRAA` is used when the call is for one specific fighter: BRAA requests, BOGEY DOPE, SNAPLOCK, and THREAT calls.
+- **Altitude** — nearest thousand feet (`THIRTY-TWO THOUSAND`). Controllers do **not** substitute HIGH / LOW for the altitude.
+- **Track** — cardinal / sub-cardinal with bullseye calls (`TRACK EAST`); HOT / FLANK / BEAM / DRAG with BRAA calls. `CAP` may replace track or aspect for an orbiting group. When every group in the picture tracks the same way, say it once after the label.
+- **Declaration** — BOGEY / FRIENDLY / NEUTRAL / BANDIT / HOSTILE; required with a bullseye or BRAA call.
+
+## Five ways to communicate a picture
+
+1. Core information (pre-commit, or nothing else fits — with four or more groups give the total, then only the three highest-priority groups)
+2. Traditional labels
+3. LEADING EDGE
+4. WAVES
+5. PACKAGES
+
+## Traditional labels
+
+Measure **WIDE** across the threat axis and **DEEP** along it. The "lead" group is the one closest to the fighters.
+
+| Groups | Label | Rule of thumb | Dimensions voiced | Group names |
+|--------|-------|---------------|-------------------|-------------|
+| 1 | SINGLE GROUP | only one known group in the area | — | — |
+| 2 | AZIMUTH | wider than deep | `TWO GROUPS AZIMUTH TWENTY` | cardinal (NORTH / SOUTH GROUP) |
+| 2 | RANGE | deeper than wide | `TWO GROUPS RANGE THIRTY` | LEAD / TRAIL GROUP |
+| 3+ | WALL | depth **≤ 5 nm** | `… WIDE` | outer = cardinal, inner = MIDDLE (cardinal-MIDDLE when several) |
+| 3+ | LADDER | separated in range | `… DEEP` (total) | LEAD, MIDDLE / SECOND, THIRD…, TRAIL |
+| 3 | CHAMPAGNE | two closest abreast, third in trail (depth > 5 nm) | WIDE then DEEP | cardinal LEAD GROUPs, TRAIL GROUP |
+| 3 | VIC | one closest, two in trail abreast (depth > 5 nm) | DEEP then WIDE | LEAD GROUP, cardinal TRAIL GROUPs |
+| 4 | BOX | two abreast in front, two abreast behind | WIDE then DEEP | cardinal LEAD / TRAIL GROUPs |
+
+**The 5 nm depth rule** decides WALL versus CHAMPAGNE / VIC.
+
+### Examples (trainer format)
+
 ```
-"[CALLSIGN], [GROUP COUNT], [WAVES (if applicable)], [LABEL], [DIMENSIONS], [LOCATION], [ALTITUDE], [FILL-INS]"
+"TANGO, THREE GROUP WALL, THIRTY WIDE, TRACK EAST. NORTH GROUP BULLSEYE 285/92, THIRTY-TWO THOUSAND, HOSTILE.
+ MIDDLE GROUP, THIRTY THOUSAND, HOSTILE. SOUTH GROUP BULLSEYE 255/90, THIRTY-TWO THOUSAND, HOSTILE, TWO CONTACTS."
+
+"TANGO, THREE GROUP VIC, FIFTEEN DEEP, TWENTY WIDE, TRACK EAST. LEAD GROUP BULLSEYE 270/80, TWENTY-EIGHT THOUSAND, HOSTILE.
+ NORTH TRAIL GROUP, TWENTY-FIVE THOUSAND, HOSTILE. SOUTH TRAIL GROUP, TWENTY-EIGHT THOUSAND, HOSTILE."
+
+"TANGO, TWO GROUPS RANGE TWENTY, TRACK SOUTH. LEAD GROUP BULLSEYE 005/85, TWENTY-FIVE THOUSAND, HOSTILE.
+ TRAIL GROUP, TWENTY-EIGHT THOUSAND, HOSTILE."
+
+"TANGO, SINGLE GROUP BULLSEYE 180/30, TWENTY-TWO THOUSAND, CAP, HOSTILE."
 ```
 
-**Hierarchy**:
-1. **Callsign**: `"VADER"`
-2. **Group Count**: `"THREE GROUPS"` (total number)
-3. **Waves**: `"TWO WAVES"` (if multiple waves detected)
-4. **Label**: `"WALL"` / `"LADDER"` / `"AZIMUTH"`
-5. **Dimensions**: `"FIFTEEN WIDE"` / `"TWENTY DEEP"` (numeric only)
-6. **Location**: `"BULLSEYE 045/60"`
-7. **Altitude**: `"TWENTY THOUSAND"` or `"HIGH"`
-8. **Fill-ins**: `"TRACK EAST, HOSTILE"`
+### Anchoring
+
+Anchor (give a BULLSEYE for) the highest-priority group first: closest to the fighters → most capable → highest → largest. Groups abreast are each anchored only when they are more than **10 nm** apart in azimuth; with several abreast, anchor the outermost. Groups in trail take their position from the lead group and the dimension.
+
+### Amplifying remarks (after the dimensions, in this order)
+
+1. **OPENING / CLOSING** — separation changing enough to matter to the intercept.
+2. **WEIGHTED + cardinal** — three or more groups not evenly spaced: split the azimuth into thirds; a group outside the middle third makes the picture weighted toward that side.
+3. **ECHELON + cardinal** — groups not directly abreast or in trail (not used when the depth offset is 5 nm or less). The 45° line from the closest group decides AZIMUTH versus RANGE.
+4. **TRACK** direction.
+
+> Note: `HEAVY` describes a **group's strength** (3+ contacts). The lopsided-formation remark is `WEIGHTED`, not "heavy north".
+
+## Leading edge and waves
+
+Used when the whole presentation does not fit one label, to shorten a complicated picture, or to get the priority groups targeted quickly.
+
+- Total groups first, then `LEADING EDGE` + a traditional label for the groups the fighters will employ on.
+- Follow-on groups are **waves** (defence in depth): `SECOND WAVE`, `THIRD WAVE`… each with its own label.
+- Give the **separation** to the next wave — shortest distance along the threat axis.
+
+```
+"TANGO, EIGHT GROUPS, LEADING EDGE THREE GROUP CHAMPAGNE, FIFTEEN WIDE, TWELVE DEEP, TRACK EAST. NORTH LEAD GROUP BULLSEYE …
+ SECOND WAVE SEPARATION THIRTY, FIVE GROUP WALL, FORTY WIDE."
+```
+
+How deep the leading edge runs is airframe-specific and set in mission planning — the trainer assumes a wave break at more than 25 nm of depth.
+
+## Packages
+
+Bodies of groups outside the briefed bounding limits are separate packages (waves differ from packages by their *depth* component). Each package may carry its own picture.
+
+```
+"TANGO, TWO PACKAGES AZIMUTH SIXTY, NORTH PACKAGE BULLSEYE 290/100, SOUTH PACKAGE BULLSEYE 250/105."
+"TANGO, NORTH PACKAGE, TWO GROUPS RANGE TEN, TRACK EAST. LEAD GROUP BULLSEYE 290/100, THIRTY THOUSAND, HOSTILE. TRAIL GROUP, …"
+```
+
+Bounding limits are mission-planned — the trainer assumes a package break at more than 40 nm across the axis.
+
+## Fighter-specific calls (BRAA format)
+
+| Trigger | Controller response |
+|---------|---------------------|
+| `"TANGO, RAPTOR11, BOGEY DOPE"` | `"RAPTOR11, GROUP BRAA 275/45, THIRTY THOUSAND, HOT, HOSTILE"` — the nearest group to that fighter; does not imply targeting |
+| Unreported group meets briefed THREAT criteria | `"RAPTOR12, THREAT GROUP BRAA 270/13, FIVE THOUSAND, HOT, HOSTILE"` — to the closest fighter |
+
+FLANK / BEAM / DRAG carry a cardinal (`FLANK NORTHEAST`).
+
+## Electromagnetic attack responses
+
+| Fighter call | Controller response |
+|--------------|---------------------|
+| `STROBE 285` / `STROBE LEAD GROUP` | Range, altitude, declaration and group name of the **closest group along that bearing** (correlate within ±30°; answer CLEAN if nothing correlates) — `"RAPTOR11, STROBE RANGE THIRTY-SEVEN, TWENTY-FIVE THOUSAND, HOSTILE, LEAD GROUP"` |
+| `MUSIC NORTH GROUP` | Anchor that group off bullseye with altitude, track, declaration, fill-ins |
+| `METALLICA LEAD GROUP` | Informative — no response required; fighter keeps targeting responsibility |
 
 ---
 
-## Wave Calls (Multiple Formations in Depth)
-
-### Two-Wave Example
-```
-"VADER, THREE GROUPS, TWO WAVES. 
-FIRST WAVE, TWO GROUPS AZIMUTH, FIFTEEN WIDE, BULLSEYE 045/60, TWENTY THOUSAND, BOGEY. 
-SECOND WAVE, SINGLE GROUP, BULLSEYE 045/80, TWENTY-FIVE THOUSAND, BOGEY."
-```
-
-### Logic Breakdown:
-- **Total Summary First**: `"THREE GROUPS, TWO WAVES"` primes pilot's SA
-- **First Wave**: Leading/immediate threat described first
-- **Second Wave**: Follow-on force (typically deeper in range)
-- **Sequential Format**: Each wave gets complete description before moving to next
-
----
-
-## Formation Labels
-
-### WALL
-**Definition**: 3+ groups separated **laterally** (azimuth separation).
-
-**Geometry**: Groups side-by-side at similar range.
-
-**Purpose**: Maximizes sensor coverage, prevents flanking.
-
-**Example**: 
-```
-"TANGO, THREE GROUPS, WALL, THIRTY WIDE, BULLSEYE 270/45, THIRTY-FIVE THOUSAND, TRACK EAST, HOSTILE."
-```
-
----
-
-### LADDER
-**Definition**: 3+ groups separated in **range** (depth).
-
-**Geometry**: Groups aligned in line, extending toward/away from friendly forces.
-
-**Purpose**: Exhaust defender missiles on lead group while trailing groups engage.
-
-**Example**: 
-```
-"TANGO, FOUR GROUPS, TWO WAVES.
-FIRST WAVE, TWO GROUPS LADDER, TWENTY DEEP, LEADING EDGE BULLSEYE 180/50, HIGH, HOSTILE.
-SECOND WAVE, TWO GROUPS LADDER, FIFTEEN DEEP, LEADING EDGE BULLSEYE 180/80, HIGH, HOSTILE."
-```
-
----
-
-### AZIMUTH
-**Definition**: 2+ groups separated laterally.
-
-**Example**: 
-```
-"VADER, TWO GROUPS AZIMUTH, FIFTEEN WIDE, BULLSEYE 045/60, TWENTY THOUSAND, BOGEY."
-```
-
----
-
-### CHAMPAGNE
-**Definition**: 3 groups - **2 in front, 1 behind**.
-
-**Geometry**: Two lead elements with trailing single group.
-
-**Example**: 
-```
-"TANGO, THREE GROUPS, CHAMPAGNE, LEAD GROUPS BULLSEYE 270/45, HIGH, HOSTILE."
-```
-
----
-
-### VIC
-**Definition**: 3 groups - **1 in front, 2 behind**.
-
-**Geometry**: Strong lead element with supporting wings.
-
-**Example**: 
-```
-"TANGO, THREE GROUPS, VIC, LEAD GROUP BULLSEYE 180/50, HIGH, TRACK WEST, HOSTILE."
-```
-
----
-
-### BOX
-**Definition**: 4 groups - **2 in front, 2 behind** in square/offset square.
-
-**Example**: 
-```
-"TANGO, FOUR GROUPS, BOX, NORTH LEAD BULLSEYE 090/40, HIGH, HOSTILE."
-```
-
----
-
-### CAP
-**Definition**: Group in **orbit** or at specific geographic point.
-
-**Trigger**: Tracks maintaining zero ground speed or circular pattern.
-
-**Example**: 
-```
-"TANGO, SINGLE GROUP, CAP BULLSEYE 180/30, MEDIUM, HOSTILE."
-```
-
----
-
-## Dimension Descriptors
-
-### DEEP (Depth)
-**Format**: Numeric only (e.g., `"TWENTY DEEP"`)
-
-**Definition**: Distance (in NM) between nearest and farthest groups in range.
-
-**Used for**: Ladder, Box formations.
-
----
-
-### WIDE (Width)
-**Format**: Numeric only (e.g., `"FIFTEEN WIDE"`)
-
-**Definition**: Lateral distance (in NM) between outermost groups.
-
-**Used for**: Wall, Azimuth formations.
-
----
-
-### HEAVY (Weight)
-**Definition**: Indicates which portion contains more entities.
-
-**Example**: `"HEAVY NORTH"` (more aircraft in northern groups)
-
----
-
-## Bogey Dope (Nearest Threat Request)
-
-**Fighter Request**: `"RAPTOR, BOGEY DOPE"`
-
-**WD Response**: `"BULLS 270/25, MEDIUM, HOT"`
-
-**Format**: `"[BRAA], [ALTITUDE], [ASPECT]"`
-
-**Logic**: WD calculates bearing, range, altitude, and aspect of **nearest group** relative to requesting aircraft.
-
----
-
-*Sources: Research Document - Technical Architecture for High-Fidelity Tactical C2 Simulation, ALSSA Brevity Standards*
+*Sources: ALSSA multi-Service air control communication standard (local extract, Oct 2024 edition); Research Document - Technical Architecture for High-Fidelity Tactical C2 Simulation. Paraphrased — verify against the PDF in `D:\ACC Refs` before treating as exam truth.*

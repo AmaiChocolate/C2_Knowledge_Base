@@ -20,27 +20,129 @@ function randInt(rng, min, max) {
     return min + Math.floor(rng() * (max - min + 1));
 }
 
-function randFloat(rng, min, max) {
-    return min + rng() * (max - min);
+/**
+ * Formation layouts are built in the threat-axis frame, in nm:
+ *   back  — distance behind the formation's front (0 = closest to the fighters)
+ *   cross — offset across the threat axis
+ * Group centres stay at least 7 nm apart so wingmen (slotted < 2 nm from lead)
+ * can never bridge two groups under the 3 nm rule, and every dimension is chosen
+ * to land clearly on one side of the PICTURE_RULES thresholds.
+ */
+const Layouts = {
+    single() {
+        return [{ back: 0, cross: 0 }];
+    },
+
+    azimuth(rng) {
+        const w = randInt(rng, 8, 25);
+        const stagger = randInt(rng, 0, 3);
+        const lead = pick(rng, [-1, 1]);
+        return [
+            { back: 0, cross: lead * w / 2 },
+            { back: stagger, cross: -lead * w / 2 }
+        ];
+    },
+
+    range(rng) {
+        return [
+            { back: 0, cross: 0 },
+            { back: randInt(rng, 8, 22), cross: randInt(rng, -3, 3) }
+        ];
+    },
+
+    wall(rng, n = randInt(rng, 3, 5)) {
+        const spacing = randInt(rng, 7, 12);
+        const groups = [];
+        for (let i = 0; i < n; i++) {
+            groups.push({ back: randInt(rng, 0, 4), cross: (i - (n - 1) / 2) * spacing });
+        }
+        return groups;
+    },
+
+    /** Three-group wall with the middle group pushed into an outer third. */
+    weightedWall(rng) {
+        const span = randInt(rng, 24, 32);
+        const offset = randInt(rng, 7, Math.floor(span / 3) - 1);
+        const side = pick(rng, [-1, 1]);
+        return [
+            { back: randInt(rng, 0, 4), cross: -span / 2 },
+            { back: randInt(rng, 0, 4), cross: side * (span / 2 - offset) },
+            { back: randInt(rng, 0, 4), cross: span / 2 }
+        ];
+    },
+
+    ladder(rng, n = randInt(rng, 3, 5)) {
+        const groups = [{ back: 0, cross: 0 }];
+        for (let i = 1; i < n; i++) {
+            const prev = groups[i - 1];
+            groups.push({ back: prev.back + randInt(rng, 7, 12), cross: prev.cross + randInt(rng, -2, 2) });
+        }
+        return groups;
+    },
+
+    champagne(rng) {
+        const w = randInt(rng, 10, 24);
+        const stagger = randInt(rng, 0, 3);
+        return [
+            { back: 0, cross: -w / 2 },
+            { back: stagger, cross: w / 2 },
+            { back: stagger + randInt(rng, 8, 20), cross: randInt(rng, -2, 2) }
+        ];
+    },
+
+    vic(rng) {
+        const w = randInt(rng, 10, 24);
+        const d = randInt(rng, 8, 20);
+        return [
+            { back: 0, cross: randInt(rng, -2, 2) },
+            { back: d, cross: -w / 2 },
+            { back: d + randInt(rng, 0, 3), cross: w / 2 }
+        ];
+    },
+
+    box(rng) {
+        const w = randInt(rng, 10, 24);
+        const stagger = randInt(rng, 0, 3);
+        const d = stagger + randInt(rng, 8, 20);
+        return [
+            { back: 0, cross: -w / 2 },
+            { back: stagger, cross: w / 2 },
+            { back: d, cross: -w / 2 },
+            { back: d + randInt(rng, 0, 3), cross: w / 2 }
+        ];
+    }
+};
+
+const TRADITIONAL = ['azimuth', 'range', 'wall', 'ladder', 'champagne', 'vic', 'box'];
+const SHALLOW = ['single', 'azimuth', 'wall'];
+
+function shift(layout, back, cross = 0, extra = {}) {
+    return layout.map(g => Object.assign({}, g, extra, { back: g.back + back, cross: g.cross + cross }));
 }
 
-/** Group centroid in bulls BR. */
-function groupCentroid(bearing, range, alt = 32000) {
-    return { bearing: Math.round(bearing), range: Math.round(range), altitude: alt };
+function depthOf(layout) {
+    return Math.max(...layout.map(g => g.back));
+}
+
+/** Stack formations in depth, each one a wave gap (30-36 nm) behind the last. */
+function stackWaves(rng, kinds) {
+    let groups = [];
+    let back = 0;
+    kinds.forEach((kind, i) => {
+        const layout = Layouts[kind](rng);
+        if (i > 0) back += randInt(rng, 30, 36);
+        groups = groups.concat(shift(layout, back, randInt(rng, -6, 6)));
+        back += depthOf(layout);
+    });
+    return groups;
 }
 
 /**
- * Build hostile group centroids + tracks for a category.
+ * Build hostile groups + tracks for a category.
  * Returns { tracks, meta } where tracks include blue + red.
  */
 function generateScenario(params) {
-    const {
-        category,
-        seed,
-        orientation = 'EW',
-        bullsBearing = 0,
-        bullsRange = 0
-    } = params;
+    const { category, seed, orientation = 'EW' } = params;
 
     const rng = mulberry32(seed);
     const orient = getOrientation(orientation);
@@ -48,348 +150,206 @@ function generateScenario(params) {
         category,
         seed,
         orientation,
+        // null = standard picture; otherwise threat | bogey_dope | ea_music | ea_strobe
         mode: null,
-        leadingEdgeCount: null,
-        packageWidth: null,
-        eaType: null,
-        isCapOrbit: false
+        requesterId: null
     };
 
-    let hostileGroups = [];
+    let layout;
+    let frontRange = randInt(rng, 75, 110);
 
     switch (category) {
         case 'random':
-            hostileGroups = generateRandom(rng, orient);
+            layout = Layouts[pick(rng, TRADITIONAL)](rng);
             break;
         case 'azimuth':
-            hostileGroups = generateAzimuth(rng, orient);
-            break;
         case 'range':
-            hostileGroups = generateRange(rng, orient);
-            break;
         case 'wall':
-            hostileGroups = generateWall(rng, orient);
-            break;
         case 'ladder':
-            hostileGroups = generateLadder(rng, orient);
-            break;
         case 'champagne':
-            hostileGroups = generateChampagne(rng, orient);
-            break;
         case 'vic':
-            hostileGroups = generateVic(rng, orient);
+        case 'box':
+            layout = Layouts[category](rng);
             break;
         case 'cap':
-            meta.mode = 'cap';
-            meta.isCapOrbit = true;
-            hostileGroups = generateCap(rng, orient);
+            layout = shift(Layouts[pick(rng, ['single', 'single', 'azimuth', 'range'])](rng), 0, 0, { isCapOrbit: true });
+            frontRange = randInt(rng, 60, 90);
             break;
         case 'leading_edge':
-            meta.mode = 'leading_edge';
-            hostileGroups = generateLeadingEdge(rng, orient, meta);
+            layout = stackWaves(rng, [pick(rng, TRADITIONAL), 'wall', pick(rng, SHALLOW)]);
+            frontRange = randInt(rng, 65, 75);
             break;
         case 'waves':
-            hostileGroups = generateWaves(rng, orient);
+            layout = generateWaves(rng);
+            frontRange = randInt(rng, 65, 80);
             break;
         case 'packages':
-            meta.mode = 'packages';
-            meta.packageWidth = randInt(rng, 50, 70);
-            hostileGroups = generatePackages(rng, orient, meta);
+            layout = generatePackages(rng);
             break;
         case 'threat':
             meta.mode = 'threat';
-            hostileGroups = generateThreat(rng, orient, meta);
+            layout = Layouts[pick(rng, ['azimuth', 'range', 'wall'])](rng);
+            frontRange = randInt(rng, 90, 115);
             break;
         case 'ea_bogey':
-            meta.mode = rng() > 0.5 ? 'ea' : 'bogey_dope';
-            meta.eaType = pick(rng, ['MUSIC', 'STROBE', 'METALLICA']);
-            hostileGroups = generateEaBogey(rng, orient);
+            meta.mode = pick(rng, ['ea_music', 'ea_strobe', 'bogey_dope']);
+            meta.requesterId = pick(rng, ['B1L', 'B2L']);
+            layout = Layouts[pick(rng, ['azimuth', 'range', 'wall', 'vic'])](rng);
+            layout[randInt(rng, 0, layout.length - 1)].isJammer = meta.mode !== 'bogey_dope';
             break;
         case 'potd':
-            hostileGroups = generatePotd(seed, orient, meta);
+            layout = generatePotd(rng);
+            frontRange = randInt(rng, 65, 80);
             break;
         default:
-            hostileGroups = generateWall(rng, orient);
+            layout = Layouts.wall(rng);
     }
 
-    const hostileTracks = groupsToTracks(hostileGroups, orient, rng, true);
+    const hostileGroups = placeGroups(layout, orient, rng, frontRange);
+    if (meta.mode === 'threat') hostileGroups.push(buildThreatGroup(orient, rng));
+
+    const speed = randInt(rng, 450, 510);
+    const hostileTracks = groupsToTracks(hostileGroups, orient, rng, speed);
     const blueTracks = buildBluePackage(orient, rng);
-    const tracks = [...blueTracks, ...hostileTracks];
-    const motionScript = buildMotionScript(hostileGroups, rng);
 
     return {
-        tracks,
+        tracks: [...blueTracks, ...hostileTracks],
         meta,
-        motionScript,
-        bulls: { bearing: bullsBearing, range: bullsRange },
+        motionScript: null,
         hostileGroupCount: hostileGroups.length
     };
 }
 
-/** Seeded wave release schedule — same seed always yields same timing. */
-function buildMotionScript(groups, rng) {
-    const waveIds = [...new Set(groups.map(g => g.waveId).filter(Boolean))].sort((a, b) => a - b);
-    if (!waveIds.length) return { waves: [] };
-
-    const waves = waveIds.map((id, idx) => {
-        if (idx === 0) return { id, releaseAtSec: 0 };
-        const base = 75 * idx;
-        return { id, releaseAtSec: base + randInt(rng, 0, 30) };
-    });
-    return { waves };
+function generateWaves(rng) {
+    if (rng() < 0.4) {
+        return stackWaves(rng, [pick(rng, TRADITIONAL), pick(rng, SHALLOW), pick(rng, SHALLOW)]);
+    }
+    return stackWaves(rng, [pick(rng, TRADITIONAL), pick(rng, ['single', ...TRADITIONAL])]);
 }
 
-function generateRandom(rng, orient) {
-    const type = pick(rng, ['wall', 'ladder', 'azimuth', 'vic', 'champagne']);
-    if (type === 'wall') return generateWall(rng, orient);
-    if (type === 'ladder') return generateLadder(rng, orient);
-    if (type === 'azimuth') return generateAzimuth(rng, orient);
-    if (type === 'vic') return generateVic(rng, orient);
-    return generateChampagne(rng, orient);
-}
-
-function generateAzimuth(rng, orient) {
-    const baseR = randInt(rng, 80, 120);
-    const baseB = orient.threatBearingCenter + randInt(rng, -15, 15);
-    const width = randInt(rng, 10, 25);
+/** Two bodies of groups split across the axis by more than the package gap. */
+function generatePackages(rng) {
+    const sep = randInt(rng, 60, 80);
+    const small = () => {
+        const kind = pick(rng, ['single', 'azimuth', 'range']);
+        if (kind !== 'azimuth') return Layouts[kind](rng);
+        const w = randInt(rng, 8, 12);
+        return [{ back: 0, cross: -w / 2 }, { back: randInt(rng, 0, 3), cross: w / 2 }];
+    };
     return [
-        { centroid: groupCentroid(baseB - width / 2, baseR), tracksPerGroup: randInt(rng, 1, 2) },
-        { centroid: groupCentroid(baseB + width / 2, baseR + randInt(rng, -3, 3)), tracksPerGroup: randInt(rng, 1, 2) }
+        ...shift(small(), randInt(rng, 0, 10), -sep / 2),
+        ...shift(small(), randInt(rng, 0, 10), sep / 2)
     ];
 }
 
-function generateRange(rng, orient) {
-    const baseB = orient.threatBearingCenter + randInt(rng, -8, 8);
-    const leadR = randInt(rng, 70, 90);
-    const depth = randInt(rng, 15, 30);
-    return [
-        { centroid: groupCentroid(baseB, leadR), tracksPerGroup: randInt(rng, 1, 2) },
-        { centroid: groupCentroid(baseB + randInt(rng, -5, 5), leadR + depth), tracksPerGroup: randInt(rng, 1, 2) }
-    ];
+/** Picture of the Day — the harder presentations. */
+function generatePotd(rng) {
+    const kind = pick(rng, ['leading_edge', 'three_waves', 'packages', 'weighted', 'box', 'ladder5', 'wall5']);
+    if (kind === 'leading_edge') return stackWaves(rng, [pick(rng, TRADITIONAL), 'wall', 'wall']);
+    if (kind === 'three_waves') return stackWaves(rng, [pick(rng, ['vic', 'champagne', 'box']), 'azimuth', 'single']);
+    if (kind === 'packages') return generatePackages(rng);
+    if (kind === 'weighted') return Layouts.weightedWall(rng);
+    if (kind === 'box') return Layouts.box(rng);
+    if (kind === 'ladder5') return Layouts.ladder(rng, 5);
+    return Layouts.wall(rng, 5);
 }
 
-function generateWall(rng, orient) {
-    const n = randInt(rng, 3, 5);
-    const baseR = randInt(rng, 85, 115);
-    const baseB = orient.threatBearingCenter;
-    const spacing = randInt(rng, 8, 14);
-    const groups = [];
-    for (let i = 0; i < n; i++) {
-        const offset = (i - (n - 1) / 2) * spacing;
-        groups.push({
-            centroid: groupCentroid(baseB + offset, baseR + randInt(rng, -4, 4)),
-            tracksPerGroup: randInt(rng, 1, 2)
-        });
-    }
-    return groups;
-}
-
-function generateLadder(rng, orient) {
-    const n = randInt(rng, 3, 5);
-    const baseB = orient.threatBearingCenter + randInt(rng, -10, 10);
-    const startR = randInt(rng, 75, 95);
-    const step = randInt(rng, 12, 18);
-    const groups = [];
-    for (let i = 0; i < n; i++) {
-        groups.push({
-            centroid: groupCentroid(baseB + randInt(rng, -3, 3), startR + i * step),
-            tracksPerGroup: randInt(rng, 1, 2)
-        });
-    }
-    return groups;
-}
-
-function generateChampagne(rng, orient) {
-    const baseB = orient.threatBearingCenter;
-    const leadR = randInt(rng, 80, 100);
-    const trailR = leadR + randInt(rng, 18, 28);
-    const lat = randInt(rng, 8, 14);
-    return [
-        { centroid: groupCentroid(baseB - lat, leadR), tracksPerGroup: 2 },
-        { centroid: groupCentroid(baseB + lat, leadR), tracksPerGroup: 2 },
-        { centroid: groupCentroid(baseB, trailR), tracksPerGroup: 2 }
-    ];
-}
-
-function generateVic(rng, orient) {
-    const baseB = orient.threatBearingCenter;
-    const leadR = randInt(rng, 75, 90);
-    const trailR = leadR + randInt(rng, 20, 30);
-    const lat = randInt(rng, 10, 16);
-    return [
-        { centroid: groupCentroid(baseB, leadR), tracksPerGroup: 2 },
-        { centroid: groupCentroid(baseB - lat, trailR), tracksPerGroup: 2 },
-        { centroid: groupCentroid(baseB + lat, trailR), tracksPerGroup: 2 }
-    ];
-}
-
-function generateCap(rng, orient) {
-    const n = randInt(rng, 1, 2);
-    const groups = [];
-    for (let i = 0; i < n; i++) {
-        groups.push({
-            centroid: groupCentroid(
-                orient.threatBearingCenter + randInt(rng, -20, 20),
-                randInt(rng, 60, 90)
-            ),
-            tracksPerGroup: 2,
-            isCapOrbit: true
-        });
-    }
-    return groups;
-}
-
-function generateLeadingEdge(rng, orient, meta) {
-    const total = randInt(rng, 6, 10);
-    meta.leadingEdgeCount = randInt(rng, 3, 4);
-    const baseB = orient.threatBearingCenter;
-    const groups = [];
-    for (let i = 0; i < total; i++) {
-        const isLe = i < meta.leadingEdgeCount;
-        groups.push({
-            centroid: groupCentroid(
-                baseB + randInt(rng, -25, 25),
-                isLe ? randInt(rng, 70, 95) : randInt(rng, 110, 140)
-            ),
-            tracksPerGroup: 1
-        });
-    }
-    return groups;
-}
-
-function generateWaves(rng, orient) {
-    const waveCount = randInt(rng, 2, 3);
-    const groups = [];
-    let r = randInt(rng, 70, 85);
-    for (let w = 0; w < waveCount; w++) {
-        const perWave = randInt(rng, 2, 3);
-        for (let g = 0; g < perWave; g++) {
-            groups.push({
-                centroid: groupCentroid(
-                    orient.threatBearingCenter + randInt(rng, -15, 15) + g * randInt(rng, 6, 10),
-                    r + g * randInt(rng, 3, 8)
-                ),
-                tracksPerGroup: randInt(rng, 1, 2),
-                waveId: w + 1
-            });
-        }
-        r += randInt(rng, 22, 30);
-    }
-    return groups;
-}
-
-function generatePackages(rng, orient, meta) {
-    const groups = [];
-    const northB = orient.threatBearingCenter - 30 + randInt(rng, -10, 10);
-    const southB = orient.threatBearingCenter + 30 + randInt(rng, -10, 10);
-    const r1 = randInt(rng, 80, 100);
-    const r2 = randInt(rng, 85, 105);
-    groups.push(
-        { centroid: groupCentroid(northB, r1), tracksPerGroup: 2, packageId: 'NORTH' },
-        { centroid: groupCentroid(northB + 12, r1 + 5), tracksPerGroup: 1, packageId: 'NORTH' },
-        { centroid: groupCentroid(southB, r2), tracksPerGroup: 2, packageId: 'SOUTH' },
-        { centroid: groupCentroid(southB - 10, r2 + 8), tracksPerGroup: 1, packageId: 'SOUTH' }
+/** Turn a threat-axis layout into bullseye-referenced groups with altitude and strength. */
+function placeGroups(layout, orient, rng, frontRange) {
+    const front = Geo.toAxis(
+        { bearing: orient.threatBearingCenter + randInt(rng, -10, 10), range: frontRange },
+        orient
     );
-    return groups;
-}
-
-function generateThreat(rng, orient, meta) {
-    const groups = generateWall(rng, orient).slice(0, 3);
-    groups.push({
-        centroid: groupCentroid(
-            orient.friendlyCapBearing + randInt(rng, -15, 15),
-            randInt(rng, 25, 34)
-        ),
-        tracksPerGroup: 2,
-        isThreat: true
+    const baseAlt = pick(rng, [18, 22, 25, 28, 30, 32, 35, 38]);
+    return layout.map(g => {
+        const pos = Geo.fromAxis({ along: front.along - g.back, cross: front.cross + g.cross }, orient);
+        const altK = Math.max(5, baseAlt + pick(rng, [-6, -3, 0, 0, 0, 0, 3]));
+        return {
+            centroid: { bearing: pos.bearing, range: pos.range, altitude: altK * 1000 },
+            tracksPerGroup: pick(rng, [1, 1, 1, 1, 2, 2, 2, 2, 2, 3]),
+            isCapOrbit: !!g.isCapOrbit,
+            isJammer: !!g.isJammer
+        };
     });
-    meta.threatGroupIndex = groups.length - 1;
-    return groups;
 }
 
-function generateEaBogey(rng, orient) {
-    return generateAzimuth(rng, orient);
-}
-
-/** 15 curated hard seeds — multi-wave / weighted layouts. */
-function generatePotd(seed, orient, meta) {
-    const idx = seed % 15;
-    meta.mode = idx % 3 === 0 ? 'leading_edge' : null;
-    if (meta.mode === 'leading_edge') meta.leadingEdgeCount = 4;
-    if (idx % 5 === 0) {
-        meta.mode = 'waves';
-        return generateWaves(mulberry32(seed + 1000), orient);
-    }
-    if (idx % 7 === 0) {
-        meta.mode = 'packages';
-        meta.packageWidth = 60;
-        return generatePackages(mulberry32(seed + 2000), orient, meta);
-    }
-    const layouts = [
-        () => generateWall(mulberry32(seed), orient),
-        () => generateLadder(mulberry32(seed + 1), orient),
-        () => generateChampagne(mulberry32(seed + 2), orient),
-        () => generateVic(mulberry32(seed + 3), orient),
-        () => generateWaves(mulberry32(seed + 4), orient)
+/** Low pop-up group 18-28 nm from a blue CAP station, pointed at the nearest one. */
+function buildThreatGroup(orient, rng) {
+    const stations = [
+        { bearing: orient.friendlyCapBearing, range: orient.friendlyCapRange },
+        { bearing: orient.friendlyCapBearing2, range: orient.friendlyCapRange2 }
     ];
-    return layouts[idx % layouts.length]();
+    const station = Geo.bullsToEN(pick(rng, stations));
+    const from = (orient.threatBearingCenter + randInt(rng, -40, 40)) * Math.PI / 180;
+    const dist = randInt(rng, 18, 28);
+    const pos = Geo.enToBulls({
+        e: station.e + dist * Math.sin(from),
+        n: station.n + dist * Math.cos(from)
+    });
+    const nearest = stations.reduce((a, b) => (Geo.distance(pos, b) < Geo.distance(pos, a) ? b : a));
+    return {
+        centroid: { bearing: pos.bearing, range: pos.range, altitude: randInt(rng, 1, 9) * 1000 },
+        tracksPerGroup: randInt(rng, 1, 2),
+        heading: Geo.bearingRange(pos, nearest).bearing,
+        isThreat: true
+    };
 }
 
-function groupsToTracks(groups, orient, rng, hostile) {
+function groupsToTracks(groups, orient, rng, speed) {
     const tracks = [];
-    let gIdx = 0;
-    groups.forEach((grp) => {
-        gIdx += 1;
+    // Wing slots behind and either side of lead, in the threat-axis frame.
+    const slots = [{ along: -1.0, cross: 1.3 }, { along: -1.0, cross: -1.3 }];
+    groups.forEach((grp, i) => {
+        const gIdx = i + 1;
         const n = grp.tracksPerGroup || 1;
         const leadId = `H${gIdx}L`;
+        const leadEN = Geo.bullsToEN(grp.centroid);
         for (let t = 0; t < n; t++) {
             const isLead = t === 0;
-            const offsetB = isLead ? 0 : randFloat(rng, -1.5, 1.5);
-            const offsetR = isLead ? 0 : randFloat(rng, -1.5, 1.5);
-            const id = isLead ? leadId : `H${gIdx}W${t}`;
-            const speed = 480 + randInt(rng, -15, 15);
+            const slot = isLead ? { e: 0, n: 0 } : Geo.axisOffsetToEN(slots[t - 1].along, slots[t - 1].cross, orient);
+            const pos = Geo.enToBulls({ e: leadEN.e + slot.e, n: leadEN.n + slot.n });
             const track = {
-                id,
+                id: isLead ? leadId : `H${gIdx}W${t}`,
                 callsign: isLead ? `BANDIT${gIdx}` : `BANDIT${gIdx}-${t}`,
                 hostile: true,
                 affiliation: 'hostile',
                 type: 'fighter',
-                bearing: grp.centroid.bearing + offsetB,
-                range: grp.centroid.range + offsetR,
-                altitude: grp.centroid.altitude || 32000,
-                heading: orient.threatHeading,
+                bearing: pos.bearing,
+                range: pos.range,
+                altitude: grp.centroid.altitude,
+                heading: grp.heading != null ? grp.heading : orient.threatHeading,
                 ingressHeading: orient.threatHeading,
+                // One speed for the whole raid keeps the formation rigid while it ingresses.
                 speed,
                 cruiseSpeed: speed,
                 groupId: gIdx,
-                packageId: grp.packageId || null,
-                waveId: grp.waveId || null,
-                isDormant: !!(grp.waveId && grp.waveId > 1),
+                waveId: null,
+                isDormant: false,
                 isCapOrbit: !!grp.isCapOrbit,
                 isThreat: !!grp.isThreat,
+                isJammer: !!grp.isJammer,
                 formationAnchor: isLead ? null : leadId,
-                offsetNmEast: isLead ? 0 : randFloat(rng, -1, 1),
-                offsetNmNorth: isLead ? 0 : randFloat(rng, 1.5, 2.5),
-                ingress: !grp.isCapOrbit && !(grp.waveId && grp.waveId > 1),
+                offsetNmEast: slot.e,
+                offsetNmNorth: slot.n,
+                ingress: !grp.isCapOrbit,
                 ingressStopNm: 55,
                 holdOrbitLeg: rng() > 0.5 ? 'EAST' : 'WEST',
-                holdLegLength: randInt(rng, 14, 20)
+                holdLegLength: randInt(rng, 10, 14)
             };
 
             if (grp.isCapOrbit && isLead) {
                 track.orbitAnchor = {
                     bearing: grp.centroid.bearing,
                     range: grp.centroid.range,
-                    legLength: randInt(rng, 16, 22),
+                    legLength: randInt(rng, 10, 14),
                     legHeading: orient.threatHeading,
-                    laneCross: 4
+                    laneCross: 3
                 };
                 track.orbitLeg = rng() > 0.5 ? 'EAST' : 'WEST';
-                track.ingress = false;
             }
 
-            if (grp.isThreat && isLead) {
-                track.speed = 520 + randInt(rng, 0, 20);
+            if (grp.isThreat) {
+                track.speed = speed + 40;
                 track.cruiseSpeed = track.speed;
             }
 
@@ -450,4 +410,5 @@ function buildBluePackage(orient, rng) {
 if (typeof window !== 'undefined') {
     window.mulberry32 = mulberry32;
     window.generateScenario = generateScenario;
+    window.Layouts = Layouts;
 }

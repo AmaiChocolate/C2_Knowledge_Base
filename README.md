@@ -16,7 +16,7 @@ After GitHub Pages is enabled, open:
 
 **https://\<your-github-username\>.github.io/C2_Knowledge_Base/**
 
-(Pushes to `main` that touch `picture_trainer/` auto-deploy via `.github/workflows/pages.yml`.)
+(Pushes to `main` that touch `picture_trainer/` or `simulator/` run both test suites — `node picture_trainer/tests/run_tests.js` and `node simulator/tests/run_tests.js` — and then auto-deploy the Picture Trainer via `.github/workflows/pages.yml`.)
 
 Prior work archived at `C:\Users\Renla\ABM_Knowledge_System` — do not delete until you confirm this merge.
 

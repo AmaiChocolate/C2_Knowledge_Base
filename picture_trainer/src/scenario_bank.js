@@ -9,6 +9,7 @@ const SCENARIO_CATEGORIES = [
     { id: 'ladder', label: 'Ladder' },
     { id: 'champagne', label: 'Champagne' },
     { id: 'vic', label: 'Vic' },
+    { id: 'box', label: 'Box' },
     { id: 'cap', label: 'Cap' },
     { id: 'leading_edge', label: 'Leading Edge' },
     { id: 'waves', label: 'Waves' },
@@ -27,13 +28,6 @@ function categorySeed(categoryId, variationIndex) {
     return Math.abs(h) + variationIndex * 997;
 }
 
-function randomBullseye(rng) {
-    return {
-        bearing: Math.floor(rng() * 360),
-        range: 0
-    };
-}
-
 function listVariations(categoryId) {
     const out = [];
     for (let i = 1; i <= VARIATIONS_PER_CATEGORY; i++) {
@@ -47,13 +41,13 @@ function listVariations(categoryId) {
     return out;
 }
 
-function pickRandomVariation(rng) {
-    const cat = SCENARIO_CATEGORIES[Math.floor(rng() * SCENARIO_CATEGORIES.length)];
+/** Random variation (1-15) of the given category. */
+function pickRandomVariation(rng, categoryId) {
     const varIdx = 1 + Math.floor(rng() * VARIATIONS_PER_CATEGORY);
     return {
-        category: cat.id,
+        category: categoryId,
         variation: varIdx,
-        seed: categorySeed(cat.id, varIdx)
+        seed: categorySeed(categoryId, varIdx)
     };
 }
 
@@ -61,7 +55,6 @@ if (typeof window !== 'undefined') {
     window.SCENARIO_CATEGORIES = SCENARIO_CATEGORIES;
     window.VARIATIONS_PER_CATEGORY = VARIATIONS_PER_CATEGORY;
     window.categorySeed = categorySeed;
-    window.randomBullseye = randomBullseye;
     window.listVariations = listVariations;
     window.pickRandomVariation = pickRandomVariation;
 }

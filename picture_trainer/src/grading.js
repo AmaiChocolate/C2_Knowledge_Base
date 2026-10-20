@@ -1,143 +1,177 @@
 /**
- * Grading — reveal answer + field compare (ALSSA-aware parsing).
+ * Grading — builds the answer from live scope truth and compares the student form to it.
+ *
+ * An answer key is { family, fields, anchors?, tolerances }. `family` selects which
+ * form fields are shown and graded (ANSWER_FAMILIES); adding a drill type means adding
+ * a family here and emitting its key from PictureGenerator.
  */
+const FIELD_DEFS = {
+    groupCount: { label: 'Total groups', kind: 'count' },
+    waveCount: { label: 'Waves (blank if one)', kind: 'count' },
+    leadingEdgeCount: { label: 'Leading edge groups (blank if no waves)', kind: 'count' },
+    packageCount: { label: 'Packages', kind: 'count' },
+    label: { label: 'Label', kind: 'label', placeholder: 'AZIMUTH, RANGE, WALL, LADDER, VIC…' },
+    width: { label: 'Wide / azimuth (nm)', kind: 'nm' },
+    depth: { label: 'Deep / range (nm)', kind: 'nm' },
+    bullsBearing: { label: 'Anchor BULLSEYE bearing', kind: 'anchorBearing' },
+    bullsRange: { label: 'Anchor BULLSEYE range (nm)', kind: 'anchorRange' },
+    braaBearing: { label: 'BRAA bearing', kind: 'bearing' },
+    braaRange: { label: 'BRAA range (nm)', kind: 'range' },
+    strobeRange: { label: 'STROBE range (nm)', kind: 'range' },
+    altitude: { label: 'Altitude (thousands ft)', kind: 'altitude', placeholder: '32 or THIRTY-TWO THOUSAND' },
+    track: { label: 'Track direction', kind: 'word', placeholder: 'EAST, SOUTHWEST, CAP…' },
+    aspect: { label: 'Aspect', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG' }
+};
+
+const ANSWER_FAMILIES = {
+    picture: ['groupCount', 'waveCount', 'leadingEdgeCount', 'label', 'width', 'depth',
+        'bullsBearing', 'bullsRange', 'altitude', 'track'],
+    packages: ['packageCount', 'width', 'bullsBearing', 'bullsRange'],
+    braa: ['braaBearing', 'braaRange', 'altitude', 'aspect'],
+    music: ['bullsBearing', 'bullsRange', 'altitude', 'track'],
+    strobe: ['strobeRange', 'altitude']
+};
+
 class PictureGrader {
     constructor(pictureGen, clusterer) {
         this.pictureGen = pictureGen;
         this.clusterer = clusterer;
     }
 
+    /** Answer for what is on the scope right now (dormant tracks are not on the scope). */
     buildAnswer(tracks, meta, orientation) {
-        const hostiles = tracks.filter(t => t.hostile);
-        const blues = tracks.filter(t => !t.hostile && t.type === 'fighter');
-        const groups = this.clusterer.cluster(hostiles);
+        const visible = tracks.filter(t => !t.isDormant);
+        const hostiles = visible.filter(t => t.hostile);
+        const blues = visible.filter(t => !t.hostile && t.type === 'fighter');
+        const groups = hostiles.every(t => t.groupId != null)
+            ? this.clusterer.groupByTruth(hostiles)
+            : this.clusterer.cluster(hostiles);
 
-        const picMeta = Object.assign({}, meta || {}, {
+        return this.pictureGen.generatePicture(groups, null, Object.assign({}, meta || {}, {
             orientation,
-            trackFillIn: getOrientation(orientation).trackFillIn
-        });
-
-        if (meta && meta.mode === 'leading_edge') {
-            picMeta.leadingEdgeCount = meta.leadingEdgeCount;
-        }
-        if (meta && meta.mode === 'threat') {
-            const threatTrack = hostiles.find(t => t.isThreat) || hostiles[hostiles.length - 1];
-            const threatGroup = groups.find(g => g.tracks.some(t => t.id === threatTrack.id)) || groups[0];
-            const nearestBlue = blues.reduce((a, b) => {
-                const da = this.braaDist(a, threatGroup.centroid);
-                const db = this.braaDist(b, threatGroup.centroid);
-                return da < db ? a : b;
-            }, blues[0]);
-            picMeta.nearestBlue = nearestBlue;
-            picMeta.braa = this.pictureGen.calcBraa(nearestBlue, threatGroup.centroid);
-            if (threatGroup) threatGroup.isThreat = true;
-        }
-        if (meta && meta.mode === 'bogey_dope') {
-            const targetGroup = this.pictureGen.findLeadingEdge(groups);
-            const nearestBlue = blues[0];
-            picMeta.nearestBlue = nearestBlue;
-            picMeta.targetGroup = targetGroup;
-            picMeta.braa = this.pictureGen.calcBraa(nearestBlue, targetGroup.centroid);
-        }
-        if (meta && meta.mode === 'ea') {
-            picMeta.eaType = meta.eaType || 'MUSIC';
-        }
-
-        return this.pictureGen.generatePicture(groups, null, picMeta);
-    }
-
-    braaDist(from, centroid) {
-        const dx = centroid.range * Math.cos(centroid.bearing * Math.PI / 180)
-            - from.range * Math.cos(from.bearing * Math.PI / 180);
-        const dy = centroid.range * Math.sin(centroid.bearing * Math.PI / 180)
-            - from.range * Math.sin(from.bearing * Math.PI / 180);
-        return Math.sqrt(dx * dx + dy * dy);
+            blues
+        }));
     }
 
     gradeStudent(student, answerKey) {
-        if (!answerKey) return { score: 0, details: [{ field: 'answer', ok: false, msg: 'No answer key' }] };
+        if (!answerKey) return { score: 0, points: 0, max: 0, pass: false, details: [] };
 
+        const tol = answerKey.tolerances;
+        const fields = answerKey.fields || {};
+        const anchor = this.matchAnchor(student, answerKey);
         const details = [];
-        let pts = 0;
-        let max = 0;
 
-        const check = (field, got, expected, exact) => {
-            max += 1;
-            let ok = false;
-            if (expected == null || expected === '') {
-                ok = got == null || got === '';
-            } else if (exact) {
-                ok = String(got || '').toUpperCase() === String(expected).toUpperCase();
-            } else {
-                ok = String(got || '').toUpperCase().includes(String(expected).toUpperCase());
+        (ANSWER_FAMILIES[answerKey.family] || []).forEach(id => {
+            const def = FIELD_DEFS[id];
+            const got = student[id];
+            let expected = fields[id];
+            let ok;
+
+            switch (def.kind) {
+                case 'count':
+                    ok = this.numberMatches(got, expected, 0, true);
+                    break;
+                case 'nm':
+                    ok = this.numberMatches(got, expected, tol.dimensionNm, true);
+                    break;
+                case 'range':
+                    ok = this.numberMatches(got, expected, tol.rangeNm, false);
+                    break;
+                case 'bearing':
+                    ok = this.bearingMatches(got, expected, tol.bearingDeg);
+                    break;
+                case 'anchorBearing':
+                    expected = anchor.bearing;
+                    ok = this.bearingMatches(got, expected, tol.bearingDeg);
+                    break;
+                case 'anchorRange':
+                    expected = anchor.range;
+                    ok = this.numberMatches(got, expected, anchor.isCap ? tol.capRangeNm : tol.rangeNm, false);
+                    break;
+                case 'altitude': {
+                    if (anchor) expected = anchor.altitudeK;
+                    const k = alssaParseAltitudeK(got);
+                    ok = !isNaN(k) && Math.abs(k - expected) <= tol.altitudeK;
+                    break;
+                }
+                case 'aspect':
+                    // "FLANK NORTHEAST" is graded on the aspect word.
+                    ok = !!expected && this.normalizeWord(got).startsWith(this.normalizeWord(expected));
+                    break;
+                case 'label':
+                    ok = this.normalizeLabel(got) === this.normalizeLabel(expected);
+                    break;
+                default:
+                    ok = this.normalizeWord(got) === this.normalizeWord(expected);
             }
-            if (ok) pts += 1;
-            details.push({ field, ok, expected, got });
-        };
 
-        const checkNum = (field, got, expected, tol) => {
-            max += 1;
-            const g = alssaParseNumber(got);
-            const e = alssaParseNumber(expected);
-            const ok = !isNaN(g) && !isNaN(e) && Math.abs(g - e) <= tol;
-            if (ok) pts += 1;
-            details.push({ field, ok, expected: e, got: g });
-        };
+            details.push({ field: def.label, ok, expected: this.displayExpected(def, expected, anchor), got });
+        });
 
-        const checkAltitude = (got, answerKey) => {
-            max += 1;
-            const gotU = String(got || '').trim().toUpperCase();
-            const block = alssaFormatAltitude(answerKey.altitudeFt, true);
-            const thousands = alssaFormatAltitude(answerKey.altitudeFt, false);
-            const ok = gotU === String(answerKey.altitudeBlock || '').toUpperCase()
-                || gotU === block
-                || gotU === thousands
-                || (answerKey.altitudeFt && gotU.includes(String(Math.round(answerKey.altitudeFt / 1000))));
-            if (ok) pts += 1;
-            details.push({ field: 'altitudeBlock', ok, expected: answerKey.altitudeBlock, got });
-        };
+        const points = details.filter(d => d.ok).length;
+        const max = details.length;
+        const score = max ? Math.round((points / max) * 100) : 0;
+        return { score, points, max, details, pass: score >= 70 };
+    }
 
-        if (answerKey.mode === 'threat' || answerKey.mode === 'bogey_dope') {
-            checkNum('braaBearing', student.braaBearing, answerKey.braaBearing, 5);
-            checkNum('braaRange', student.braaRange, answerKey.braaRange, 3);
-            checkAltitude(student.altitudeBlock, answerKey);
-            check('fillIns', student.fillIns, answerKey.fillIns, false);
-        } else if (answerKey.mode === 'ea') {
-            check('label', student.label, answerKey.label, true);
-            checkNum('bullsBearing', student.bullsBearing, answerKey.bullsBearing, 5);
-            checkNum('bullsRange', student.bullsRange, answerKey.bullsRange, 3);
-        } else {
-            checkNum('groupCount', student.groupCount, answerKey.groupCount, 0);
-            if (answerKey.waveCount != null) {
-                checkNum('waveCount', student.waveCount, answerKey.waveCount, 0);
-            }
-            check('label', student.label, answerKey.label, true);
-            if (answerKey.dimensionNm != null) {
-                const gotDim = alssaParseDimensionNm(student.dimensions);
-                checkNum('dimensions', gotDim, answerKey.dimensionNm, 2);
-            }
-            checkNum('bullsBearing', student.bullsBearing, answerKey.bullsBearing, 5);
-            checkNum('bullsRange', student.bullsRange, answerKey.bullsRange, 3);
-            checkAltitude(student.altitudeBlock, answerKey);
-            if (answerKey.fillIns) {
-                check('fillIns (track)', student.fillIns, answerKey.trackFillIn || 'TRACK', false);
-                check('fillIns (declaration)', student.fillIns, 'HOSTILE', false);
-            }
-        }
+    /**
+     * Any group in the called picture is a legitimate anchor; grade bearing, range and
+     * altitude against the one the student appears to have anchored (else the priority anchor).
+     */
+    matchAnchor(student, answerKey) {
+        const anchors = answerKey.anchors;
+        if (!anchors || !anchors.length) return null;
+        const tol = answerKey.tolerances;
+        return anchors.find(a => (
+            this.bearingMatches(student.bullsBearing, a.bearing, tol.bearingDeg)
+            && this.numberMatches(student.bullsRange, a.range, a.isCap ? tol.capRangeNm : tol.rangeNm, false)
+        )) || anchors[0];
+    }
 
-        const pct = max ? Math.round((pts / max) * 100) : 0;
-        return { score: pct, points: pts, max, details, pass: pct >= 70 };
+    /** `blankWhenNull`: when the answer has no such element the student must leave it blank (or 0). */
+    numberMatches(got, expected, tolerance, blankWhenNull) {
+        const g = alssaParseNumber(got);
+        if (expected == null) return blankWhenNull && (isNaN(g) ? String(got || '').trim() === '' : g === 0);
+        return !isNaN(g) && Math.abs(g - expected) <= tolerance;
+    }
+
+    bearingMatches(got, expected, tolerance) {
+        const g = alssaParseNumber(got);
+        return !isNaN(g) && expected != null && Geo.angleDiff(g, expected) <= tolerance;
+    }
+
+    normalizeWord(val) {
+        return String(val || '').toUpperCase().replace(/\b(TRACK|GROUPS?)\b/g, '').replace(/[^A-Z]/g, '');
+    }
+
+    normalizeLabel(val) {
+        const word = this.normalizeWord(val);
+        return (word === 'NONE' || word === 'SINGLE' || word === 'UNKNOWN') ? '' : word;
+    }
+
+    displayExpected(def, expected, anchor) {
+        if (expected == null || expected === '') return '(blank)';
+        if (def.kind === 'anchorBearing') return `${String(expected).padStart(3, '0')} (${anchor.name})`;
+        if (def.kind === 'bearing') return String(expected).padStart(3, '0');
+        return String(expected);
     }
 
     formatGradeReport(result) {
-        if (!result.details.length) return 'No submission.';
+        if (!result.details.length) return '<p class="muted">Nothing to grade.</p>';
+        const esc = s => String(s == null || s === '' ? '(blank)' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         let html = `<p><strong>Score: ${result.score}%</strong> (${result.pass ? 'PASS' : 'NEEDS WORK'})</p><ul>`;
         result.details.forEach(d => {
-            html += `<li style="color:${d.ok ? '#6f6' : '#f66'}">${d.field}: ${d.ok ? 'OK' : `expected ${d.expected}, got ${d.got}`}</li>`;
+            html += `<li style="color:${d.ok ? '#6f6' : '#f66'}">${esc(d.field)}: `
+                + `${d.ok ? 'OK' : `expected ${esc(d.expected)}, got ${esc(d.got)}`}</li>`;
         });
         html += '</ul>';
         return html;
     }
 }
 
-if (typeof window !== 'undefined') window.PictureGrader = PictureGrader;
+if (typeof window !== 'undefined') {
+    window.FIELD_DEFS = FIELD_DEFS;
+    window.ANSWER_FAMILIES = ANSWER_FAMILIES;
+    window.PictureGrader = PictureGrader;
+}

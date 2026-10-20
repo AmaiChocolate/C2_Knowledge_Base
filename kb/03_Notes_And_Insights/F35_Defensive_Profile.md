@@ -1,6 +1,7 @@
 # F-35 Defensive Profile (Training Proxy)
 
 **Last Reviewed:** 2026-08-22  
+**Updated:** 2026-10-13 — shot-range and defensive doctrine changed in the simulator (see marked rows); **needs your re-review**  
 **Tags:** `#f35` `#defensive` `#bvr` `#training`  
 **Related:** [[Flanker_Adversary_Profile]] · [[../05_Tools_And_CrossReferences/AI_Pilot_Architecture|AI Pilot Architecture]]
 
@@ -22,7 +23,9 @@ Unclassified **F-35** BVR defensive training geometry for blue fighters (RAPTOR/
 | Parameter | Value |
 |-----------|-------|
 | TAC RANGE (TARGETED) | **60 nm** |
-| FOX min / max | **8 / 40 nm** (AIM-120D NEZ proxy — outranges R-77 @ 22 nm) |
+| FOX min / max | **8 / 40 nm** — 40 is the cap; the actual launch range is computed each tick (below) |
+| Launch range *(updated)* | No-escape range + **25 %** of the way to max aero range (`shotAggression`). ≈ **30 nm** on a hot Flanker, ≈ **20 nm** on a cold one — a target that turns away pulls the range in instead of soaking up missiles |
+| Deconfliction *(updated)* | One blue missile per contact at a time, across the whole package |
 | FOX aspect gate | None for ARH — stern/trail shots allowed (ATA + range only) |
 | FOX ATA gate | Shooter nose ≤**40°** of LOS (no beam/cold launches) |
 | FOX min / guns | Inside **8 nm** → no FOX3; convert to **MERGE/guns** even with AIM-120 remaining |
@@ -32,7 +35,8 @@ Unclassified **F-35** BVR defensive training geometry for blue fighters (RAPTOR/
 | TARGETED through commit | Persists (not cleared on commit) |
 | Min missiles for recommit | **2** (hold CAP / `wave_hold` if Winchester or outnumbered) |
 | SORT / TARGETED | Flight lead owns up to **3** contacts; `ceil(N/3)` leads commit; other flight CAP reserve |
-| Wing engage | Not auto with lead — release on leaker / lead Winchester / lead down |
+| SORT stability *(updated)* | Ownership is sticky — a lead keeps its contacts until one side dies |
+| Wing engage *(updated)* | Reserve at CAP; released on **two or more contacts in the element's lane** (wing takes the one lead is not on), leaker, lead Winchester, or lead defensive / down |
 
 ## Ordnance (DCA load)
 
@@ -55,14 +59,15 @@ When AIM-120 count reaches zero, fighter logs **Winchester** and holds CAP (`wav
 
 ## Countermeasures
 
-Priority when inbound missile detected:
+*(Updated)* The sim only lets a missile be beaten two ways — outrun it, or hold an unbroken notch inside chaff range once it is active — so the defence chooses between exactly those:
 
-1. **NOTCH/BEAM** — heading 70–110° to inbound missile bearing (Doppler notch)
-2. **BEAM** — after pitbull; hold beam ~5 s
-3. **COLD** — drag away from threat (reduced speed)
-4. **BREAK** — inside **12 nm** inbound; max-performance turn away + speed boost
+1. **SARH (R-27)** → **NOTCH**: beam the missile; ~2 s breaks the shot.
+2. **ARH that can still be outrun** → **OUT**: turn tail and run at break speed. Decided from the missile's remaining flight time against own turn + dash; saves chaff.
+3. **ARH that cannot be outrun** → **NOTCH**, becoming **BEAM + chaff** from pitbull inside ~14 nm.
 
-Deploy chaff on **BEAM/BREAK/COLD**, and on **NOTCH once pitbull/ACTIVE**, inside ~14 nm — not on early support NOTCH. Multiple bundles may be expended: a new dispense is allowed when the cloud expires or within **0.5 s** of expiry (overlap) so sustained CM can bridge defeat timers.
+The earlier BREAK-inside-12 nm (turn cold at the last moment) is gone: turning cold inside chaff range gave up the only defeat the model offers, and it was how most blue losses happened.
+
+Multiple bundles may be expended: a new dispense is allowed when the cloud expires or within **0.5 s** of expiry (overlap) so sustained CM can bridge defeat timers.
 
 ## Missile defeat (sim logic)
 
@@ -81,6 +86,6 @@ Offensive post-shot SKOSH (crank after blue fires) is separate from defensive **
 
 - **SKOSH / PITBULL** — missile active on friendly (timeline `pitbull` event)
 - **NOTCH** — beam perpendicular to threat
-- **BREAK** — immediate max turn (THREAT inside break range)
+- **OUT** — turn tail to kinematically defeat the missile
 
 *Sources: Tactical_Range_Calls.md, AI_Pilot_Architecture.md, simulator `defensive_profiles.js`*

@@ -5,12 +5,12 @@ const WaveManager = {
     initScenario(scope, waves) {
         scope.scenarioWaves = waves ? JSON.parse(JSON.stringify(waves)) : [];
         scope.releasedWaveIds = new Set();
+        scope.scenarioStartSimSec = scope.simTimeSec || 0;
     },
 
+    /** Sim seconds since the scenario loaded — wave timing must follow time compression. */
     getElapsedSec(scope) {
-        const tl = scope.timeline;
-        if (tl && tl.startedAt) return (Date.now() - tl.startedAt) / 1000;
-        return 0;
+        return (scope.simTimeSec || 0) - (scope.scenarioStartSimSec || 0);
     },
 
     findTracksByCallsign(scope, callsigns) {

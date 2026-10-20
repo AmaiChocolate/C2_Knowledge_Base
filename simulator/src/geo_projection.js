@@ -1,21 +1,66 @@
 /**
- * Local equirectangular projection centered on bullseye lat/lon.
- * Suitable for ~1000nm AOR at mid-latitudes (Nellis theater).
+ * Azimuthal-equidistant projection centred on bullseye. Every point is drawn at its
+ * true great-circle bearing and distance from bullseye, so the map, the airspace and
+ * anything placed by bullseye bearing/range share one geometry by construction.
  * Canvas: north = −Y (matches existing BR polar math).
  */
+const EARTH_RADIUS_NM = 3440.065;
+
 class GeoProjection {
     constructor(opts = {}) {
         this.lat0 = opts.lat != null ? opts.lat : 38.0;
         this.lon0 = opts.lon != null ? opts.lon : -115.0;
         this.pxPerNm = opts.pxPerNm != null ? opts.pxPerNm : 2;
         this.bullseyeCanvas = opts.bullseyeCanvas || { x: 400, y: 400 };
-        this._cosLat0 = Math.cos(this.lat0 * Math.PI / 180);
     }
 
     setBullseyeGeo(lat, lon) {
         this.lat0 = lat;
         this.lon0 = lon;
-        this._cosLat0 = Math.cos(this.lat0 * Math.PI / 180);
+    }
+
+    /** { lat, lon } from a sheet/DMS string or a { lat, lon } object. */
+    static toLatLon(ref) {
+        if (ref == null) return null;
+        if (typeof ref === 'string') return GeoProjection.parseDms(ref);
+        return (ref.lat != null && ref.lon != null) ? { lat: ref.lat, lon: ref.lon } : null;
+    }
+
+    /**
+     * Give a scenario object its bullseye bearing/range from a geographic reference, so
+     * overlay items pinned to real coordinates cannot drift from the airspace drawing.
+     *   { geo: "N37 07 W114 24" }                    → bearing, range
+     *   { ip: "...", cp: "...", laneHalfNm? }        → racetrack whose outbound leg is the
+     *                                                  IP→CP track (left-hand pattern)
+     */
+    resolveGeoRef(obj) {
+        if (!obj) return obj;
+        const ip = GeoProjection.toLatLon(obj.ip);
+        const cp = GeoProjection.toLatLon(obj.cp);
+        if (ip && cp) {
+            const a = this.latLonToNm(ip.lat, ip.lon);
+            const b = this.latLonToNm(cp.lat, cp.lon);
+            const dx = b.xNm - a.xNm;
+            const dy = b.yNm - a.yNm;
+            const len = Math.hypot(dx, dy);
+            const lane = obj.laneHalfNm != null ? obj.laneHalfNm : 5;
+            // Centre sits one lane-width left of the published track.
+            const cx = (a.xNm + b.xNm) / 2 - (dy / len) * lane;
+            const cy = (a.yNm + b.yNm) / 2 + (dx / len) * lane;
+            obj.legHeading = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+            obj.legLength = len;
+            obj.laneHalfNm = lane;
+            obj.range = Math.hypot(cx, cy);
+            obj.bearing = (Math.atan2(cx, cy) * 180 / Math.PI + 360) % 360;
+            return obj;
+        }
+        const p = GeoProjection.toLatLon(obj.geo);
+        if (p) {
+            const br = this.latLonToBearingRange(p.lat, p.lon);
+            obj.bearing = br.bearing;
+            obj.range = br.range;
+        }
+        return obj;
     }
 
     setPxPerNm(px) {
@@ -28,18 +73,15 @@ class GeoProjection {
 
     /** Degrees lat/lon → nm east / nm north of bulls */
     latLonToNm(lat, lon) {
-        return {
-            xNm: (lon - this.lon0) * 60 * this._cosLat0,
-            yNm: (lat - this.lat0) * 60
-        };
+        const br = this.latLonToBearingRange(lat, lon);
+        const rad = br.bearing * Math.PI / 180;
+        return { xNm: br.range * Math.sin(rad), yNm: br.range * Math.cos(rad) };
     }
 
     /** Nm east/north of bulls → lat/lon */
     nmToLatLon(xNm, yNm) {
-        return {
-            lat: this.lat0 + yNm / 60,
-            lon: this.lon0 + xNm / (60 * this._cosLat0)
-        };
+        const bearing = Math.atan2(xNm, yNm) * 180 / Math.PI;
+        return this.bearingRangeToLatLon(bearing, Math.hypot(xNm, yNm));
     }
 
     /** Lat/lon → canvas XY (same space as bearingRangeToXY) */
@@ -63,25 +105,34 @@ class GeoProjection {
         return this.nmToLatLon(xNm, yNm);
     }
 
-    /**
-     * Bullseye BR → lat/lon.
-     * Matches ScopeEngine.bearingRangeToXY: rad = (brg-90)*π/180,
-     * dx = range*cos(rad), dy = range*sin(rad).
-     */
+    /** Bullseye bearing (true) / range (nm) → lat/lon along the great circle. */
     bearingRangeToLatLon(bearing, rangeNm) {
-        const rad = (bearing - 90) * Math.PI / 180;
-        const eastNm = rangeNm * Math.cos(rad);
-        const northNm = -rangeNm * Math.sin(rad);
-        return this.nmToLatLon(eastNm, northNm);
+        const d2r = Math.PI / 180;
+        const lat0 = this.lat0 * d2r;
+        const brg = bearing * d2r;
+        const c = rangeNm / EARTH_RADIUS_NM;
+        const lat = Math.asin(Math.sin(lat0) * Math.cos(c) + Math.cos(lat0) * Math.sin(c) * Math.cos(brg));
+        const lon = this.lon0 * d2r + Math.atan2(
+            Math.sin(brg) * Math.sin(c) * Math.cos(lat0),
+            Math.cos(c) - Math.sin(lat0) * Math.sin(lat)
+        );
+        return { lat: lat / d2r, lon: lon / d2r };
     }
 
-    /** Lat/lon → bullseye BR */
+    /** Lat/lon → bullseye bearing (true) / great-circle range (nm). */
     latLonToBearingRange(lat, lon) {
-        const { xNm, yNm } = this.latLonToNm(lat, lon);
-        const range = Math.sqrt(xNm * xNm + yNm * yNm);
-        let bearing = Math.atan2(-yNm, xNm) * (180 / Math.PI) + 90;
-        if (bearing < 0) bearing += 360;
-        if (bearing >= 360) bearing -= 360;
+        const d2r = Math.PI / 180;
+        const lat0 = this.lat0 * d2r;
+        const lat1 = lat * d2r;
+        const dLon = (lon - this.lon0) * d2r;
+        const h = Math.sin((lat1 - lat0) / 2) ** 2
+            + Math.cos(lat0) * Math.cos(lat1) * Math.sin(dLon / 2) ** 2;
+        const range = 2 * EARTH_RADIUS_NM * Math.asin(Math.min(1, Math.sqrt(h)));
+        let bearing = Math.atan2(
+            Math.sin(dLon) * Math.cos(lat1),
+            Math.cos(lat0) * Math.sin(lat1) - Math.sin(lat0) * Math.cos(lat1) * Math.cos(dLon)
+        ) / d2r;
+        bearing = ((bearing % 360) + 360) % 360;
         return { bearing, range };
     }
 
