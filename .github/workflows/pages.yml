@@ -34,6 +34,11 @@ jobs:
       - name: Run simulator tests
         run: node simulator/tests/run_tests.js
 
+      # Pages serves files with a 10-minute cache, so a browser can pair a new
+      # index.html with old scripts. Stamp local asset URLs with the commit.
+      - name: Cache-bust local scripts and styles
+        run: sed -i -E 's#(src|href)="((src/[^"]+\.js)|style\.css)"#\1="\2?v=${{ github.sha }}"#' picture_trainer/index.html
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
