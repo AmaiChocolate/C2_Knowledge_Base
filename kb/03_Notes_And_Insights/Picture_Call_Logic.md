@@ -2,7 +2,7 @@
 
 **Last Reviewed:** 2026-08-13  
 **Updated:** 2026-10-13 — re-aligned to the ALSSA comm-standard extract (`05_Tools_And_CrossReferences/sources/alssa_utf8.txt`, air-to-air chapter); **needs your re-review**  
-**Updated:** 2026-10-23 — added *Maneuvers (after the picture)* for the Picture Trainer; **needs your re-review**  
+**Updated:** 2026-10-23 — added *Maneuvers (after the picture)* and *SPLIT* for the Picture Trainer; **needs your re-review**  
 **Tags:** `#wd` `#picture` `#brevity`  
 **Related:** [[../06_Summaries_And_Learning/WD_Picture_Summary|WD_Picture_Summary]] · sim `sc-02-wall-ladder` · [[../../picture_trainer/README|Picture Trainer]] (its answer engine implements this note)
 
@@ -108,7 +108,16 @@ Groups keep flying after the initial picture, and they maneuver. Once the pictur
 "TANGO, SOUTH PACKAGE LEAD GROUP, BEAM SOUTH"
 ```
 
-*Trainer convention:* the Picture Trainer drills track maneuvers only. SPLIT, altitude changes and other maneuver calls are not modelled yet. **Check this format against the ALSSA maneuver paragraph before treating it as doctrine.**
+### SPLIT
+
+A group that divides into two groups more than 3 nm apart has **split**. Name the group as called, say `SPLIT`, then give each resulting group by its new name with BULLSEYE, altitude, track and declaration. The new names put the side across the threat axis in front of the old name (`LEAD GROUP` → `NORTH LEAD GROUP` / `SOUTH LEAD GROUP`). From then on, the pieces go by those names.
+
+```
+"TANGO, LEAD GROUP SPLIT. NORTH LEAD GROUP BULLSEYE 275/80, THIRTY THOUSAND, TRACK NORTHEAST, HOSTILE.
+ SOUTH LEAD GROUP BULLSEYE 272/77, THIRTY THOUSAND, TRACK EAST, HOSTILE."
+```
+
+*Trainer convention:* the Picture Trainer drills track maneuvers and splits. Altitude changes and other maneuver calls are not modelled yet. The new-name rule gives awkward names when the old name already starts with a side (`NORTH NORTH GROUP`), and the trainer skips a split whose names would collide with a group already called. **Check the maneuver and SPLIT formats against the ALSSA maneuver paragraph before treating them as doctrine.**
 
 ## Fighter-specific calls (BRAA format)
 

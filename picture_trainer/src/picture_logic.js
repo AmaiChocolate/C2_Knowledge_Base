@@ -165,6 +165,30 @@ class PictureGenerator {
         };
     }
 
+    /**
+     * A named group has split: name it, then give each resulting group by its new name
+     * with BULLSEYE, altitude, track and declaration. Either piece is a valid anchor.
+     * @param pieces [{ group, name }] — the two groups the split left
+     */
+    generateSplitCall(parentName, pieces) {
+        const parts = pieces.map(({ group: g, name }) => [
+            `${name} ${alssaBullseye(g.centroid)}`, alssaFormatAltitude(g.centroid.altitude),
+            `TRACK ${Geo.cardinal8(g.heading)}`, 'HOSTILE', alssaContacts(g.count)
+        ].filter(Boolean).join(', '));
+        return {
+            text: `"${this.callsign}, ${parentName} SPLIT. ${parts.join('. ')}."`,
+            prompt: null,
+            groups: pieces.map(p => p.group),
+            formation: null,
+            answerKey: {
+                family: 'maneuver',
+                fields: { groupName: parentName, maneuver: 'SPLIT', direction: null },
+                anchors: pieces.map(p => this.anchorOf(p.group, p.name)),
+                tolerances: this.rules.tolerances
+            }
+        };
+    }
+
     buildPictureKey(groups, formation, waves) {
         const called = formation.named.map(n => n.group);
         const tracks = [...new Set(called.map(g => g.track))];
