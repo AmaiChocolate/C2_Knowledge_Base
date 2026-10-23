@@ -20,7 +20,7 @@ const PICTURE_RULES = {
     waveGapNm: 25,
     packageGapNm: 40,
     aspectDeg: { hot: 30, flank: 60, beam: 110 },
-    tolerances: { bearingDeg: 5, rangeNm: 3, capRangeNm: 5, dimensionNm: 3, altitudeK: 1 }
+    tolerances: { bearingDeg: 5, rangeNm: 3, capRangeNm: 5, dimensionNm: 3, altitudeK: 1, directionDeg: 30 }
 };
 
 const ORDINALS = ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVENTH', 'EIGHTH', 'NINTH', 'TENTH'];
@@ -81,6 +81,7 @@ class PictureGenerator {
             prompt: null,
             groups,
             formation,
+            named: this.callNames(formation.named),
             answerKey: this.buildPictureKey(groups, formation, null)
         };
     }
@@ -101,6 +102,7 @@ class PictureGenerator {
             groups,
             waves,
             formation: formations[0],
+            named: this.callNames(formations[0].named),
             answerKey: this.buildPictureKey(groups, formations[0], waves)
         };
     }
@@ -124,10 +126,40 @@ class PictureGenerator {
             groups,
             packages,
             formation: null,
+            named: formations.flatMap((f, i) => (f.named.length === 1
+                ? [{ group: f.named[0].group, name: `${names[i]} PACKAGE` }]
+                : f.named.map(n => ({ group: n.group, name: `${names[i]} PACKAGE ${n.name}` })))),
             answerKey: {
                 family: 'packages',
                 fields: { packageCount: packages.length, width: separation },
                 anchors: anchors.map((g, i) => this.anchorOf(g, `${names[i]} PACKAGE`)),
+                tolerances: this.rules.tolerances
+            }
+        };
+    }
+
+    /** The names groups go by once the picture is called; a lone group is just GROUP. */
+    callNames(named) {
+        return named.map(n => ({ group: n.group, name: n.name === 'SINGLE GROUP' ? 'GROUP' : n.name }));
+    }
+
+    /**
+     * A named group has changed track after the picture: call it by the name it already
+     * has with the new aspect — never re-label the picture.
+     * @param fighterRef point the aspect is measured from (the friendly fighters)
+     */
+    generateManeuverCall(group, maneuver, name, fighterRef) {
+        const word = this.aspectWord(group.centroid, maneuver.heading, fighterRef);
+        const direction = word === 'HOT' ? null : Geo.cardinal8(maneuver.heading);
+        return {
+            text: `"${this.callsign}, ${name}, ${direction ? `${word} ${direction}` : word}"`,
+            prompt: null,
+            groups: [group],
+            formation: null,
+            answerKey: {
+                family: 'maneuver',
+                fields: { groupName: name, maneuver: word, direction },
+                heading: Math.round(maneuver.heading),
                 tolerances: this.rules.tolerances
             }
         };
@@ -282,12 +314,17 @@ class PictureGenerator {
     /** HOT / FLANK / BEAM / DRAG from target aspect; all but HOT carry the track direction. */
     aspect(group, fighter) {
         if (group.isCap) return 'CAP';
-        const toFighter = Geo.bearingRange(group.centroid, fighter).bearing;
-        const ta = Geo.angleDiff(group.heading, toFighter);
+        const word = this.aspectWord(group.centroid, group.heading, fighter);
+        return word === 'HOT' ? word : `${word} ${Geo.cardinal8(group.heading)}`;
+    }
+
+    /** Aspect band of a heading flown from `from`, as seen from `fighter`. */
+    aspectWord(from, heading, fighter) {
+        const toFighter = Geo.bearingRange(from, fighter).bearing;
+        const ta = Geo.angleDiff(heading, toFighter);
         const a = this.rules.aspectDeg;
         if (ta <= a.hot) return 'HOT';
-        const word = ta <= a.flank ? 'FLANK' : (ta <= a.beam ? 'BEAM' : 'DRAG');
-        return `${word} ${Geo.cardinal8(group.heading)}`;
+        return ta <= a.flank ? 'FLANK' : (ta <= a.beam ? 'BEAM' : 'DRAG');
     }
 
     // ------------------------------------------------------------- formation text

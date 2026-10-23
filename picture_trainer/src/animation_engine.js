@@ -13,6 +13,8 @@ class AnimationEngine {
         this.motionScript = null;
         this.releasedWaveIds = new Set();
         this.paused = false;
+        // Optional ManeuverDirector: turns groups after the picture is called.
+        this.maneuvers = null;
         // Set once when the raid reaches its stop line (or a threat reaches its target).
         this.runComplete = false;
     }
@@ -43,6 +45,28 @@ class AnimationEngine {
             if (!t.isDormant && t.waveId) {
                 this.releasedWaveIds.add(t.waveId);
             }
+        });
+    }
+
+    /** Stop line for an ingressing track — pulled in once the picture is called and maneuvers start. */
+    stopLineOf(track) {
+        const base = track.ingressStopNm != null ? track.ingressStopNm : 55;
+        return this.maneuvers ? this.maneuvers.stopLineOf(track) : base;
+    }
+
+    /**
+     * Unfreeze a run that stopped at the stop line: groups that were holding there
+     * ingress again, on to the pulled-in stop line.
+     */
+    resumeRun() {
+        if (!this.runComplete) return;
+        this.runComplete = false;
+        this.paused = false;
+        (this.scope.tracks || []).forEach(t => {
+            if (!t.hostile || t.motionState !== 'HOLD' || t.isCapOrbit) return;
+            t.motionState = null;
+            t.orbitAnchor = null;
+            t.ingress = true;
         });
     }
 
@@ -78,6 +102,7 @@ class AnimationEngine {
     fixedUpdate(dt) {
         this.updateWaves();
         const tracks = this.scope.tracks || [];
+        if (this.maneuvers) this.maneuvers.update(tracks, this.simTime);
 
         tracks.forEach(t => {
             if (t.isDormant) return;
@@ -119,6 +144,11 @@ class AnimationEngine {
             return;
         }
 
+        if (track.hostile && track.maneuverHeading != null) {
+            this.steerManeuver(track);
+            return;
+        }
+
         if (!track.hostile && (track.capStation || track.capLegHalfNm != null)) {
             TrackKinematics.steerCap(track, this.scope);
             return;
@@ -138,8 +168,7 @@ class AnimationEngine {
             track.targetHeading = track.ingressHeading != null ? track.ingressHeading : track.heading;
             track.speed = track.cruiseSpeed || track.speed || 480;
 
-            const stopNm = track.ingressStopNm != null ? track.ingressStopNm : 55;
-            if (track.range < stopNm) {
+            if (track.range < this.stopLineOf(track)) {
                 this.completeRun();
                 track.ingress = false;
                 track.motionState = 'HOLD';
@@ -160,6 +189,25 @@ class AnimationEngine {
         if (track.motionState === 'HOLD' && track.orbitAnchor) {
             TrackKinematics.steerOrbit(track, this.scope);
         }
+    }
+
+    /** Fly the maneuver heading; the stop line (or inside it, if it started there) ends the run. */
+    steerManeuver(track) {
+        track.targetHeading = track.maneuverHeading;
+        track.speed = track.cruiseSpeed || track.speed || 480;
+        const floorNm = track.maneuverFloorNm != null ? track.maneuverFloorNm : this.stopLineOf(track);
+        if (track.range >= floorNm) return;
+        this.completeRun();
+        track.maneuverHeading = null;
+        track.motionState = 'HOLD';
+        track.orbitAnchor = {
+            bearing: track.bearing,
+            range: track.range,
+            legLength: track.holdLegLength || 18,
+            legHeading: track.heading,
+            laneCross: 4
+        };
+        track.orbitLeg = track.holdOrbitLeg || 'EAST';
     }
 
     steerThreatIngress(track) {
