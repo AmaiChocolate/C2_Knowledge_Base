@@ -15,7 +15,7 @@ const vm = require('vm');
 const SRC = path.join(__dirname, '..', 'src');
 const SCRIPTS = [
     'orientation', 'clustering', 'alssa_format', 'picture_logic', 'formation_generator',
-    'scenario_bank', 'track_kinematics', 'symbology', 'scope_renderer', 'animation_engine', 'grading'
+    'scenario_bank', 'track_kinematics', 'maneuvers', 'symbology', 'scope_renderer', 'animation_engine', 'grading'
 ];
 
 function loadTrainer() {
@@ -45,7 +45,7 @@ function loadTrainer() {
         Geo, getOrientation, PICTURE_RULES, PictureGenerator, TrackClusterer, PictureGrader,
         ScopeRenderer, AnimationEngine, SCENARIO_CATEGORIES, VARIATIONS_PER_CATEGORY,
         ANSWER_FAMILIES, categorySeed, generateScenario, alssaNumberToWords, alssaParseNumber,
-        alssaParseAltitudeK
+        alssaParseAltitudeK, ManeuverDirector
     })`, sandbox);
 }
 
@@ -201,6 +201,120 @@ function simulate(scenario, seconds) {
         }
     });
 });
+
+// --------------------------------------------------------------- maneuvers
+
+/** Step an existing animation; stops early on a pause or when `until` holds. */
+function step(anim, seconds, until) {
+    for (let t = 0; t < seconds * 20 && !anim.paused; t++) {
+        anim.update(0.05);
+        if (until && until()) return true;
+    }
+    return !!(until && until());
+}
+
+const PICTURE_LABELS = /\b(AZIMUTH|RANGE|WALL|LADDER|CHAMPAGNE|VIC|BOX|LEADING EDGE|WAVE|PACKAGES|WIDE|DEEP)\b/;
+
+/**
+ * Call the picture, then let the director maneuver groups: every maneuver must be
+ * called by the name from that picture (never a new label), match the scripted
+ * aspect, grade 100% when answered perfectly, and never merge two groups.
+ */
+function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
+    const scope = new T.ScopeRenderer('tacScope');
+    const anim = new T.AnimationEngine(scope);
+    const director = new T.ManeuverDirector();
+    anim.maneuvers = director;
+    // A coarser sim step keeps the sweep fast; turns still integrate in < 0.5 degree steps.
+    anim.fixedStep = 0.1;
+    scope.tracks = scenario.tracks;
+    anim.reset(scope.tracks, scenario.motionScript);
+    director.reset(scenario.meta, true);
+
+    step(anim, callAfterSec);
+    const picture = grader.buildAnswer(scope.tracks, scenario.meta, orientation);
+    check(director.commit(picture, anim.simTime), where, 'picture did not commit for maneuvers');
+    anim.resumeRun();
+    const names = new Set(picture.named.map(n => n.name));
+    const hostiles = () => scope.tracks.filter(t => t.hostile);
+
+    while (director.phase === 'maneuvers') {
+        const seen = step(anim, 120, () => !!director.pending(scope.tracks) || director.phase !== 'maneuvers');
+        if (director.phase !== 'maneuvers') break;
+        check(!anim.paused, where, `run froze at T+${Math.round(anim.simTime)} before maneuver ${director.called + 1}`);
+        check(seen, where, 'scheduled maneuver never became visible');
+        if (!seen) return;
+
+        const m = director.pending(scope.tracks);
+        const answer = grader.buildManeuverAnswer(scope.tracks, director);
+        const key = answer.answerKey;
+        check(key && key.family === 'maneuver', where, 'no maneuver answer key');
+        check(names.has(key.fields.groupName), where, `maneuver names ${key.fields.groupName}, not a group from the picture`);
+        check(!PICTURE_LABELS.test(answer.text.replace(key.fields.groupName, '')), where, `maneuver re-labels the picture: ${answer.text}`);
+        check(key.fields.maneuver === m.type, where, `scripted ${m.type}, called ${key.fields.maneuver}: ${answer.text}`);
+        check(grader.gradeStudent(perfectStudent(key), key).score === 100, where, `perfect maneuver call not 100%: ${answer.text}`);
+        if (key.fields.direction) {
+            const wrong = Object.assign(perfectStudent(key), { direction: T.Geo.cardinal8(key.heading + 180) });
+            check(grader.gradeStudent(wrong, key).score < 100, where, 'reciprocal direction graded correct');
+        }
+        stats.maneuvers += 1;
+        stats.types[m.type] = (stats.types[m.type] || 0) + 1;
+
+        // Finish the turn and fly it out: the 3 nm rule must still see the same groups.
+        for (let s = 0; s < 6; s++) {
+            step(anim, 10);
+            check(clusterer.cluster(hostiles()).length === scenario.hostileGroupCount, where,
+                `groups merged or split ${s * 10 + 10} s into a ${m.type}`);
+        }
+        const settled = grader.buildManeuverAnswer(scope.tracks, director).answerKey;
+        check(settled && settled.fields.maneuver === m.type, where, `${m.type} read as ${settled && settled.fields.maneuver} once settled`);
+        director.markCalled(anim.simTime);
+    }
+    if (director.called) stats.scenarios += 1;
+    stats.total += 1;
+}
+
+(function maneuverSweep() {
+    const stats = { scenarios: 0, total: 0, maneuvers: 0, types: {} };
+    ['EW', 'NS'].forEach(orientation => {
+        T.SCENARIO_CATEGORIES.forEach(cat => {
+            for (let v = 1; v <= T.VARIATIONS_PER_CATEGORY; v++) {
+                const seed = T.categorySeed(cat.id, v);
+                const scenario = T.generateScenario({ category: cat.id, seed, orientation });
+                const where = `maneuver ${cat.id}/${orientation}/v${v}`;
+                if (scenario.meta.mode != null) {
+                    const d = new T.ManeuverDirector();
+                    d.reset(scenario.meta, true);
+                    check(!d.canCommit, where, 'BRAA / EA drill should not maneuver');
+                    continue;
+                }
+                // Alternate an early call with one made after the run froze at the stop line.
+                try {
+                    runManeuvers(where, scenario, orientation, v % 3 === 0 ? 1200 : 20, stats);
+                } catch (e) {
+                    check(false, where, `threw ${e.stack}`);
+                }
+            }
+        });
+    });
+    check(stats.scenarios >= stats.total * 0.9, 'maneuver', `only ${stats.scenarios} of ${stats.total} pictures got a maneuver`);
+    ['HOT', 'FLANK', 'BEAM', 'DRAG'].forEach(t => check(stats.types[t] > 0, 'maneuver', `no ${t} maneuvers in the sweep`));
+    console.log(`  maneuvers: ${stats.maneuvers} across ${stats.scenarios}/${stats.total} pictures`, JSON.stringify(stats.types));
+})();
+
+(function maneuverGrading() {
+    const key = { family: 'maneuver', fields: { groupName: 'NORTH GROUP', maneuver: 'FLANK', direction: 'NORTH' },
+        heading: 20, tolerances: T.PICTURE_RULES.tolerances };
+    const grade = s => grader.gradeStudent(s, key).score;
+    check(grade({ groupName: 'north group', maneuver: 'flank', direction: 'N' }) === 100, 'maneuver', 'abbreviated cardinal');
+    check(grade({ groupName: 'NORTH', maneuver: 'FLANK NORTH', direction: 'NORTHEAST' }) === 100, 'maneuver', 'adjacent cardinal within 30 deg');
+    check(grade({ groupName: 'SOUTH GROUP', maneuver: 'FLANK', direction: 'NORTH' }) < 100, 'maneuver', 'wrong group accepted');
+    check(grade({ groupName: 'NORTH GROUP', maneuver: 'BEAM', direction: 'NORTH' }) < 100, 'maneuver', 'wrong aspect accepted');
+    check(grade({ groupName: 'NORTH GROUP', maneuver: 'FLANK', direction: 'EAST' }) < 100, 'maneuver', 'direction 70 deg off accepted');
+    const hot = { family: 'maneuver', fields: { groupName: 'GROUP', maneuver: 'HOT', direction: null }, heading: 90,
+        tolerances: T.PICTURE_RULES.tolerances };
+    check(grader.gradeStudent({ groupName: 'single group', maneuver: 'HOT', direction: '' }, hot).score === 100, 'maneuver', 'HOT single group');
+})();
 
 // ------------------------------------------------------------------ run end
 

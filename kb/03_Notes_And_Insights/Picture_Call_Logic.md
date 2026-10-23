@@ -2,6 +2,7 @@
 
 **Last Reviewed:** 2026-08-13  
 **Updated:** 2026-10-13 — re-aligned to the ALSSA comm-standard extract (`05_Tools_And_CrossReferences/sources/alssa_utf8.txt`, air-to-air chapter); **needs your re-review**  
+**Updated:** 2026-10-23 — added *Maneuvers (after the picture)* for the Picture Trainer; **needs your re-review**  
 **Tags:** `#wd` `#picture` `#brevity`  
 **Related:** [[../06_Summaries_And_Learning/WD_Picture_Summary|WD_Picture_Summary]] · sim `sc-02-wall-ladder` · [[../../picture_trainer/README|Picture Trainer]] (its answer engine implements this note)
 
@@ -92,6 +93,22 @@ Bodies of groups outside the briefed bounding limits are separate packages (wave
 ```
 
 Bounding limits are mission-planned — the trainer assumes a package break at more than 40 nm across the axis.
+
+## Maneuvers (after the picture)
+
+Groups keep flying after the initial picture, and they maneuver. Once the picture is called the **group names are locked**: a wall whose north group turns away is still a wall of NORTH / MIDDLE / SOUTH GROUP. Call the maneuver by the name the group already has; do **not** re-label or re-call the picture because the geometry no longer fits WALL.
+
+- **Format** — `[group name], [aspect] [cardinal]`. The aspect is relative to the friendly fighters, in the same bands as BRAA aspect: HOT, FLANK, BEAM, DRAG. FLANK / BEAM / DRAG carry the new track direction; HOT stands alone.
+- A lone group is just `GROUP`. In a packages picture the package name is part of the group's name.
+
+```
+"TANGO, NORTH GROUP, FLANK NORTH"
+"TANGO, LEAD GROUP, DRAG WEST"
+"TANGO, NORTH GROUP, HOT"            (the same group turning back in)
+"TANGO, SOUTH PACKAGE LEAD GROUP, BEAM SOUTH"
+```
+
+*Trainer convention:* the Picture Trainer drills track maneuvers only. SPLIT, altitude changes and other maneuver calls are not modelled yet. **Check this format against the ALSSA maneuver paragraph before treating it as doctrine.**
 
 ## Fighter-specific calls (BRAA format)
 

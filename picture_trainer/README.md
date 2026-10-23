@@ -8,6 +8,7 @@ Standalone browser drill for **WD / ABM** picture calls — Parrot Sour-style an
 2. Pick a **category** and **variation** (15 per category, or Random within the category).
 3. Watch tracks animate; **Pause** and use **Measure** to check width / depth.
 4. Fill the **Student picture** form and **Submit & grade**, or **Reveal Answer** for self-check.
+5. After the picture is called, groups **maneuver**. Call each one by the name you gave it (see below).
 
 ## Categories (15 variations each)
 
@@ -19,7 +20,7 @@ Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Box, Cap, Leading 
 |---------|--------|
 | Scroll wheel | Zoom toward cursor |
 | Left-drag (default) | Pan |
-| Pause / Resume | Freeze track motion (the run also freezes itself when the raid reaches the 55 nm stop line) |
+| Pause / Resume | Freeze track motion (the run also freezes itself when the raid reaches the 55 nm stop line, 20 nm once the picture is called) |
 | Measure + drag | Bearing/range line between two points |
 | Data trail | Motion history dots |
 | Radar plots | Staggered snapshot markers (~4 s) |
@@ -31,6 +32,12 @@ Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Box, Cap, Leading 
 Truth moves, so the answer is computed **from the scope as it is at the moment you reveal or submit** — pause first if you are still measuring.
 
 `PictureGenerator` works in the threat-axis frame (WIDE = across the axis, DEEP = along it) and applies the rules in [`Picture_Call_Logic.md`](../kb/03_Notes_And_Insights/Picture_Call_Logic.md): 3 nm groups, the 5 nm depth rule (WALL vs CHAMPAGNE / VIC), 10 nm azimuth anchoring, LEADING EDGE + waves, packages. Every threshold lives in `PICTURE_RULES` at the top of `src/picture_logic.js`; the wave (25 nm) and package (40 nm) breaks are trainer assumptions because the real values are mission-planned.
+
+## Maneuvers
+
+With **Maneuvers after the picture** checked (default), submitting or revealing the picture locks its group names. A few seconds later a named group turns to a HOT, FLANK, BEAM or DRAG heading relative to the friendly fighters, and the form switches to a maneuver call: the group's name, the aspect, and the direction (blank for HOT). Do not re-label the picture: a wall that starts flanking is still NORTH / MIDDLE / SOUTH GROUP. Each run has one or two maneuvers. A group that has turned away often comes back HOT. Groups with no unique name (follow-on waves, core-information `GROUP`s) do not maneuver. The BRAA and EA drills have no maneuvers.
+
+Once the picture is called, the stop line moves 35 nm closer (to 20 nm) so the maneuvers have room. Calling the picture after the run has frozen resumes it. The run freezes again when a group reaches the new line. The director lives in `src/maneuvers.js` (`MANEUVER_RULES` for timings and target aspects). It only turns a group when a straight-line look-ahead keeps it clear of the other groups and the stop line.
 
 ## Grading
 
@@ -44,10 +51,12 @@ Field compare against the live answer key:
 | Bullseye or BRAA bearing / range | ±5° / ±3 nm (±5 nm for a CAP) — any group in the called picture is accepted as the anchor |
 | Altitude | ±1 thousand ft of the anchored group — digits or words |
 | Track / aspect | word match (`EAST`, `CAP`, `HOT`, `FLANK …`) |
+| Maneuver group / aspect | the name from your picture; HOT / FLANK / BEAM / DRAG |
+| Maneuver direction | any cardinal within 30° of the new heading (`N` / `NORTH`); blank for HOT |
 
 Special drills show the fighter's request above the form: **Threat** and **Bogey Dope** are answered in BRAA from the named fighter; **EA** drills the controller response to `MUSIC` (anchor the group) and `STROBE` (range to the closest group along the bearing).
 
-Not modelled yet: OPENING / CLOSING, ECHELON, altitude STACKs, weighted-wall separation calls, mixed declarations (everything is HOSTILE), voice input.
+Not modelled yet: OPENING / CLOSING, ECHELON, altitude STACKs, SPLITs and altitude maneuvers, weighted-wall separation calls, mixed declarations (everything is HOSTILE), voice input.
 
 ## Tests
 
@@ -78,6 +87,7 @@ Four-ship package (2× PAIR) on CAP racetracks — always visible (green circle)
 | `src/formation_generator.js` | Seeded layouts in the axis frame + blue package |
 | `src/scenario_bank.js` | 15×15 seeded variations |
 | `src/track_kinematics.js` / `src/animation_engine.js` | Ingress, CAP orbit, wing station-keeping, pause / run end |
+| `src/maneuvers.js` | Post-picture maneuvers: locked group names, planning, scheduling |
 | `src/scope_renderer.js` / `src/symbology.js` | Canvas, pan/zoom, measure, symbols |
 | `src/grading.js` | Answer families, form field definitions, scoring |
 | `src/app.js` | UI wiring |

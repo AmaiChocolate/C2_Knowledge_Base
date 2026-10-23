@@ -18,6 +18,8 @@
     const scope = new ScopeRenderer('tacScope');
     const anim = new AnimationEngine(scope);
     scope.setAnimationEngine(anim);
+    const maneuvers = new ManeuverDirector();
+    anim.maneuvers = maneuvers;
 
     const els = {
         category: document.getElementById('categorySelect'),
@@ -31,7 +33,8 @@
         formFields: document.getElementById('formFields'),
         modeHint: document.getElementById('modeHint'),
         promptLine: document.getElementById('promptLine'),
-        btnPause: document.getElementById('btnPause')
+        btnPause: document.getElementById('btnPause'),
+        chkManeuvers: document.getElementById('chkManeuvers')
     };
 
     const MODE_HINTS = {
@@ -39,7 +42,8 @@
         packages: 'Packages — number of packages, azimuth separation, and the BULLSEYE of either package.',
         braa: 'Respond in BRAA format from the named fighter — not bullseye.',
         music: 'MUSIC — anchor the named group off BULLSEYE with altitude and track.',
-        strobe: 'STROBE — range and altitude of the closest group along the fighter\'s strobe bearing (±30°).'
+        strobe: 'STROBE — range and altitude of the closest group along the fighter\'s strobe bearing (±30°).',
+        maneuver: 'Maneuver — the picture is called, so do not re-label it. Name the group as you called it, then HOT / FLANK / BEAM / DRAG and the cardinal it is now tracking.'
     };
 
     function initCategoryPicker() {
@@ -95,6 +99,7 @@
         scope.orientation = state.orientation;
         scope.selectedTrack = null;
         anim.reset(scope.tracks, scenario.motionScript);
+        maneuvers.reset(state.meta, els.chkManeuvers.checked);
 
         const answer = currentAnswer();
         buildForm(answer.answerKey ? answer.answerKey.family : 'picture');
@@ -106,7 +111,25 @@
 
     /** Truth moves with the tracks, so the answer is always computed from the scope as it is now. */
     function currentAnswer() {
+        if (maneuvers.phase !== 'picture') return grader.buildManeuverAnswer(scope.tracks, maneuvers);
         return grader.buildAnswer(scope.tracks, state.meta, state.orientation);
+    }
+
+    /**
+     * The picture has been called (submitted or revealed): lock its group names and
+     * move on to maneuvers. A run frozen at the stop line resumes so they can happen.
+     */
+    function commitPicture(answer) {
+        if (!maneuvers.commit(answer, anim.simTime)) return;
+        anim.resumeRun();
+        els.studentForm.reset();
+        buildForm('maneuver');
+    }
+
+    /** One maneuver has been called: grade or reveal it, then wait for the next. */
+    function maneuverCalled() {
+        maneuvers.markCalled(anim.simTime);
+        els.studentForm.reset();
     }
 
     function buildForm(family) {
@@ -142,9 +165,20 @@
         els.btnPause.textContent = anim.paused ? 'Resume' : 'Pause';
         els.btnPause.classList.toggle('active', anim.paused);
 
-        const prompt = state.meta ? currentAnswer().prompt : null;
+        const prompt = state.meta ? (maneuverStatus() || currentAnswer().prompt) : null;
         els.promptLine.hidden = !prompt;
         if (prompt && els.promptLine.textContent !== prompt) els.promptLine.textContent = prompt;
+    }
+
+    function maneuverStatus() {
+        if (maneuvers.phase === 'picture') return null;
+        if (maneuvers.phase === 'done') {
+            return maneuvers.called ? 'All maneuvers called — load the next scenario.' : 'No group could maneuver clear of the others this run.';
+        }
+        const n = `${maneuvers.called + 1} of ${maneuvers.planned}`;
+        return maneuvers.pending(scope.tracks)
+            ? `Maneuver ${n}: a group has changed track — call it.`
+            : `Picture called — watch for maneuvers (${n}).`;
     }
 
     function hideReveal() {
@@ -157,16 +191,24 @@
 
     function showReveal() {
         const answer = currentAnswer();
+        const family = answer.answerKey && answer.answerKey.family;
         els.revealPanel.innerHTML = `<p class="call-text">${escapeHtml(answer.text)}</p>`
-            + '<p class="muted">Answer is for the scope as it is right now — pause first if you are still measuring.</p>';
+            + (maneuvers.phase !== 'picture' ? '' : '<p class="muted">Answer is for the scope as it is right now — pause first if you are still measuring.</p>');
+        if (maneuvers.phase === 'picture') commitPicture(answer);
+        else if (family === 'maneuver') maneuverCalled();
     }
 
     function submitGrade() {
         const answer = currentAnswer();
-        if (!answer.answerKey) return;
+        if (!answer.answerKey) {
+            if (maneuvers.phase !== 'picture') els.scorePanel.innerHTML = `<p class="muted">${escapeHtml(answer.text)}</p>`;
+            return;
+        }
         const student = Object.fromEntries(new FormData(els.studentForm).entries());
         const result = grader.gradeStudent(student, answer.answerKey);
         els.scorePanel.innerHTML = grader.formatGradeReport(result);
+        if (maneuvers.phase === 'picture') commitPicture(answer);
+        else maneuverCalled();
     }
 
     function escapeHtml(s) {
@@ -204,6 +246,10 @@
         });
         document.getElementById('chkCallsigns').addEventListener('change', (e) => {
             scope.showCallsigns = e.target.checked;
+        });
+        // Takes effect for the picture not yet called; a run already in maneuvers carries on.
+        els.chkManeuvers.addEventListener('change', (e) => {
+            maneuvers.enabled = e.target.checked;
         });
 
         document.querySelectorAll('[data-speed]').forEach(btn => {

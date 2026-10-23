@@ -20,7 +20,10 @@ const FIELD_DEFS = {
     strobeRange: { label: 'STROBE range (nm)', kind: 'range' },
     altitude: { label: 'Altitude (thousands ft)', kind: 'altitude', placeholder: '32 or THIRTY-TWO THOUSAND' },
     track: { label: 'Track direction', kind: 'word', placeholder: 'EAST, SOUTHWEST, CAP…' },
-    aspect: { label: 'Aspect', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG' }
+    aspect: { label: 'Aspect', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG' },
+    groupName: { label: 'Group (name from your picture)', kind: 'name', placeholder: 'NORTH GROUP, LEAD GROUP…' },
+    maneuver: { label: 'Maneuver', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG' },
+    direction: { label: 'Direction (blank if HOT)', kind: 'cardinal', placeholder: 'NORTH, SOUTHWEST…' }
 };
 
 const ANSWER_FAMILIES = {
@@ -29,7 +32,8 @@ const ANSWER_FAMILIES = {
     packages: ['packageCount', 'width', 'bullsBearing', 'bullsRange'],
     braa: ['braaBearing', 'braaRange', 'altitude', 'aspect'],
     music: ['bullsBearing', 'bullsRange', 'altitude', 'track'],
-    strobe: ['strobeRange', 'altitude']
+    strobe: ['strobeRange', 'altitude'],
+    maneuver: ['groupName', 'maneuver', 'direction']
 };
 
 class PictureGrader {
@@ -51,6 +55,23 @@ class PictureGrader {
             orientation,
             blues
         }));
+    }
+
+    /**
+     * After the picture is called: the maneuver awaiting a call, by the name the group
+     * was given in that picture. No answer key while nothing has visibly maneuvered.
+     */
+    buildManeuverAnswer(tracks, director) {
+        const m = director.pending(tracks);
+        if (!m) {
+            const text = director.phase === 'done'
+                ? 'All maneuvers called — load the next scenario.'
+                : 'No maneuver yet — the groups are still flying as called.';
+            return { text, prompt: null, groups: [], formation: null, answerKey: null };
+        }
+        const hostiles = tracks.filter(t => t.hostile && !t.isDormant && t.groupId === m.groupId);
+        const group = this.clusterer.groupByTruth(hostiles)[0];
+        return this.pictureGen.generateManeuverCall(group, m, m.name, director.fighterReference(tracks));
     }
 
     gradeStudent(student, answerKey) {
@@ -101,6 +122,12 @@ class PictureGrader {
                 case 'label':
                     ok = this.normalizeLabel(got) === this.normalizeLabel(expected);
                     break;
+                case 'name':
+                    ok = this.normalizeLabel(got) === this.normalizeLabel(expected);
+                    break;
+                case 'cardinal':
+                    ok = this.cardinalMatches(got, expected, answerKey.heading, tol.directionDeg);
+                    break;
                 default:
                     ok = this.normalizeWord(got) === this.normalizeWord(expected);
             }
@@ -133,6 +160,20 @@ class PictureGrader {
         const g = alssaParseNumber(got);
         if (expected == null) return blankWhenNull && (isNaN(g) ? String(got || '').trim() === '' : g === 0);
         return !isNaN(g) && Math.abs(g - expected) <= tolerance;
+    }
+
+    /**
+     * Any cardinal whose centre is within the direction tolerance of the true heading —
+     * a group on 250 may be called WEST or SOUTHWEST. Blank when there is no direction (HOT).
+     */
+    cardinalMatches(got, expected, heading, tolerance) {
+        const word = this.normalizeWord(got);
+        if (expected == null) return word === '';
+        const short = { N: 'NORTH', NE: 'NORTHEAST', E: 'EAST', SE: 'SOUTHEAST', S: 'SOUTH', SW: 'SOUTHWEST', W: 'WEST', NW: 'NORTHWEST' };
+        const idx = CARDINALS_8.indexOf(short[word] || word);
+        if (idx < 0) return false;
+        const truth = heading != null ? heading : CARDINALS_8.indexOf(expected) * 45;
+        return Geo.angleDiff(idx * 45, truth) <= tolerance;
     }
 
     bearingMatches(got, expected, tolerance) {
