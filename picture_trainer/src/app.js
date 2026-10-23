@@ -252,6 +252,9 @@
         document.getElementById('chkCallsigns').addEventListener('change', (e) => {
             scope.showCallsigns = e.target.checked;
         });
+        document.getElementById('chkContacts').addEventListener('change', (e) => {
+            scope.showContacts = e.target.checked;
+        });
         // Takes effect for the picture not yet called; a run already in maneuvers carries on.
         els.chkManeuvers.addEventListener('change', (e) => {
             maneuvers.enabled = e.target.checked;

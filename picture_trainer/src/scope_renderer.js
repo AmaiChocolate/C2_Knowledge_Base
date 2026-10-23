@@ -15,6 +15,7 @@ class ScopeRenderer {
         this.showTrail = false;
         this.showPlots = false;
         this.showCallsigns = true;
+        this.showContacts = false;
         this.symbology = new SymbologyRenderer();
         this.measureModeActive = false;
         this.isDraggingMeasure = false;
@@ -124,15 +125,21 @@ class ScopeRenderer {
         return { bearing: Math.round(bearing), range: Math.round(range) };
     }
 
+    /** Closest track within the click slop, so a wingman beside its lead can be picked. */
     hitTest(wx, wy) {
         const slop = 18 / Math.max(this.viewScale, 0.5);
-        for (let i = this.tracks.length - 1; i >= 0; i--) {
-            const t = this.tracks[i];
-            if (t.isDormant) continue;
+        let best = null;
+        let bestD = slop;
+        this.tracks.forEach(t => {
+            if (t.isDormant) return;
             const p = this.bearingRangeToXY(t.bearing, t.range);
-            if (Math.hypot(p.x - wx, p.y - wy) <= slop) return t;
-        }
-        return null;
+            const d = Math.hypot(p.x - wx, p.y - wy);
+            if (d <= bestD) {
+                best = t;
+                bestD = d;
+            }
+        });
+        return best;
     }
 
     loop() {
@@ -252,6 +259,15 @@ class ScopeRenderer {
     }
 
     drawTracks() {
+        // Contacts per lead, for the optional strength readout on the lead's tag.
+        const contacts = new Map();
+        if (this.showContacts) {
+            this.tracks.forEach(t => {
+                if (t.isDormant) return;
+                const lead = t.formationAnchor || t.id;
+                contacts.set(lead, (contacts.get(lead) || 0) + 1);
+            });
+        }
         this.tracks.forEach(track => {
             if (track.isDormant) return;
             const pos = this.bearingRangeToXY(track.bearing, track.range);
@@ -261,7 +277,8 @@ class ScopeRenderer {
             const symbolSize = this.symbology.renderSymbol(this.ctx, track, pos.x, pos.y, sel, this.viewScale);
             // Wingmen sit inside 2 nm of lead; their tags would only bury the lead's.
             if (sel || (this.showCallsigns && !track.formationAnchor)) {
-                this.symbology.renderDataBlock(this.ctx, track, pos.x, pos.y, symbolSize.width, this.viewScale);
+                this.symbology.renderDataBlock(this.ctx, track, pos.x, pos.y, symbolSize.width, this.viewScale,
+                    track.formationAnchor ? null : contacts.get(track.id));
             }
         });
     }
