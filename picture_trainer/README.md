@@ -24,6 +24,8 @@ Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Box, Cap, Leading 
 | Measure + drag | Bearing/range line between two points |
 | Data trail | Motion history dots |
 | Radar plots | Staggered snapshot markers (~4 s) |
+| Callsigns | Track tags on / off (a selected track keeps its tag) |
+| Contact count | Group strength on the lead's tag (`BANDIT1 x2`) — off by default; otherwise zoom in to count contacts (wingmen sit < 2 nm from lead) |
 | Anim speed | 0.5× – 4× (sim time only) |
 | E/W vs N/S | Threat axis + blue CAP placement |
 
