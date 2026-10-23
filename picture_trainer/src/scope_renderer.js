@@ -1,5 +1,5 @@
 /**
- * Picture Trainer scope — render, pan/zoom, measure (no BVR sim).
+ * Picture Trainer scope — render, pan/zoom, measure.
  */
 class ScopeRenderer {
     constructor(canvasId) {
@@ -158,7 +158,6 @@ class ScopeRenderer {
 
         this.drawBackdrop();
         if (this.showGrid) this.drawGrid();
-        this.drawRangeRings();
         this.drawBearingTicks();
         this.drawThreatAxis();
         this.drawBullseye();
@@ -195,19 +194,6 @@ class ScopeRenderer {
             this.ctx.lineTo(800, y);
             this.ctx.stroke();
         }
-    }
-
-    drawRangeRings() {
-        const rings = [25, 50, 75, 100, 125];
-        this.ctx.setLineDash([4, 6]);
-        rings.forEach(nm => {
-            this.ctx.strokeStyle = 'rgba(0,160,80,0.35)';
-            this.ctx.lineWidth = 1 / Math.max(this.viewScale, 0.5);
-            this.ctx.beginPath();
-            this.ctx.arc(this.bullseye.x, this.bullseye.y, nm * this.scale, 0, Math.PI * 2);
-            this.ctx.stroke();
-        });
-        this.ctx.setLineDash([]);
     }
 
     drawBearingTicks() {
@@ -249,10 +235,6 @@ class ScopeRenderer {
         );
         this.ctx.stroke();
         this.ctx.setLineDash([]);
-        const inv = 1 / Math.max(this.viewScale, 0.5);
-        this.ctx.fillStyle = 'rgba(255,100,100,0.8)';
-        this.ctx.font = `${9 * inv}px monospace`;
-        this.ctx.fillText('THREAT AXIS', this.bullseye.x + 60 * inv, this.bullseye.y - 20 * inv);
     }
 
     drawBullseye() {
