@@ -202,6 +202,9 @@
         document.getElementById('chkPlots').addEventListener('change', (e) => {
             scope.showPlots = e.target.checked;
         });
+        document.getElementById('chkCallsigns').addEventListener('change', (e) => {
+            scope.showCallsigns = e.target.checked;
+        });
 
         document.querySelectorAll('[data-speed]').forEach(btn => {
             btn.addEventListener('click', () => {
