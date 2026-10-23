@@ -22,8 +22,10 @@ const FIELD_DEFS = {
     track: { label: 'Track direction', kind: 'word', placeholder: 'EAST, SOUTHWEST, CAP…' },
     aspect: { label: 'Aspect', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG' },
     groupName: { label: 'Group (name from your picture)', kind: 'name', placeholder: 'NORTH GROUP, LEAD GROUP…' },
-    maneuver: { label: 'Maneuver', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG' },
-    direction: { label: 'Direction (blank if HOT)', kind: 'cardinal', placeholder: 'NORTH, SOUTHWEST…' }
+    maneuver: { label: 'Maneuver', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG / SPLIT' },
+    direction: { label: 'Direction (blank if HOT or SPLIT)', kind: 'cardinal', placeholder: 'NORTH, SOUTHWEST…' },
+    splitBearing: { label: 'SPLIT: a new group\'s BULLSEYE bearing', kind: 'anchorBearing' },
+    splitRange: { label: 'SPLIT: a new group\'s BULLSEYE range (nm)', kind: 'anchorRange' }
 };
 
 const ANSWER_FAMILIES = {
@@ -33,7 +35,7 @@ const ANSWER_FAMILIES = {
     braa: ['braaBearing', 'braaRange', 'altitude', 'aspect'],
     music: ['bullsBearing', 'bullsRange', 'altitude', 'track'],
     strobe: ['strobeRange', 'altitude'],
-    maneuver: ['groupName', 'maneuver', 'direction']
+    maneuver: ['groupName', 'maneuver', 'direction', 'splitBearing', 'splitRange']
 };
 
 class PictureGrader {
@@ -69,9 +71,12 @@ class PictureGrader {
                 : 'No maneuver yet — the groups are still flying as called.';
             return { text, prompt: null, groups: [], formation: null, answerKey: null };
         }
-        const hostiles = tracks.filter(t => t.hostile && !t.isDormant && t.groupId === m.groupId);
-        const group = this.clusterer.groupByTruth(hostiles)[0];
-        return this.pictureGen.generateManeuverCall(group, m, m.name, director.fighterReference(tracks));
+        const groupOf = id => this.clusterer.groupByTruth(tracks.filter(t => t.hostile && !t.isDormant && t.groupId === id))[0];
+        if (m.type === 'SPLIT') {
+            const pieces = director.splitPieces(tracks).map(p => ({ group: groupOf(p.groupId), name: p.name }));
+            return this.pictureGen.generateSplitCall(m.name, pieces);
+        }
+        return this.pictureGen.generateManeuverCall(groupOf(m.groupId), m, m.name, director.fighterReference(tracks));
     }
 
     gradeStudent(student, answerKey) {
@@ -102,12 +107,15 @@ class PictureGrader {
                     ok = this.bearingMatches(got, expected, tol.bearingDeg);
                     break;
                 case 'anchorBearing':
-                    expected = anchor.bearing;
-                    ok = this.bearingMatches(got, expected, tol.bearingDeg);
+                    // No anchor (a track maneuver): the field stays blank.
+                    expected = anchor ? anchor.bearing : null;
+                    ok = anchor ? this.bearingMatches(got, expected, tol.bearingDeg) : this.numberMatches(got, null, 0, true);
                     break;
                 case 'anchorRange':
-                    expected = anchor.range;
-                    ok = this.numberMatches(got, expected, anchor.isCap ? tol.capRangeNm : tol.rangeNm, false);
+                    expected = anchor ? anchor.range : null;
+                    ok = anchor
+                        ? this.numberMatches(got, expected, anchor.isCap ? tol.capRangeNm : tol.rangeNm, false)
+                        : this.numberMatches(got, null, 0, true);
                     break;
                 case 'altitude': {
                     if (anchor) expected = anchor.altitudeK;
@@ -149,9 +157,11 @@ class PictureGrader {
         const anchors = answerKey.anchors;
         if (!anchors || !anchors.length) return null;
         const tol = answerKey.tolerances;
+        const bearing = student.bullsBearing != null ? student.bullsBearing : student.splitBearing;
+        const range = student.bullsRange != null ? student.bullsRange : student.splitRange;
         return anchors.find(a => (
-            this.bearingMatches(student.bullsBearing, a.bearing, tol.bearingDeg)
-            && this.numberMatches(student.bullsRange, a.range, a.isCap ? tol.capRangeNm : tol.rangeNm, false)
+            this.bearingMatches(bearing, a.bearing, tol.bearingDeg)
+            && this.numberMatches(range, a.range, a.isCap ? tol.capRangeNm : tol.rangeNm, false)
         )) || anchors[0];
     }
 
@@ -192,7 +202,7 @@ class PictureGrader {
 
     displayExpected(def, expected, anchor) {
         if (expected == null || expected === '') return '(blank)';
-        if (def.kind === 'anchorBearing') return `${String(expected).padStart(3, '0')} (${anchor.name})`;
+        if (def.kind === 'anchorBearing' && anchor) return `${String(expected).padStart(3, '0')} (${anchor.name})`;
         if (def.kind === 'bearing') return String(expected).padStart(3, '0');
         return String(expected);
     }

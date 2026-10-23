@@ -43,7 +43,7 @@
         braa: 'Respond in BRAA format from the named fighter — not bullseye.',
         music: 'MUSIC — anchor the named group off BULLSEYE with altitude and track.',
         strobe: 'STROBE — range and altitude of the closest group along the fighter\'s strobe bearing (±30°).',
-        maneuver: 'Maneuver — the picture is called, so do not re-label it. Name the group as you called it, then HOT / FLANK / BEAM / DRAG and the cardinal it is now tracking.'
+        maneuver: 'Maneuver — the picture is called, so do not re-label it. Name the group as you called it, then HOT / FLANK / BEAM / DRAG and the cardinal it is now tracking. For a SPLIT, give the BULLSEYE of either new group.'
     };
 
     function initCategoryPicker() {
@@ -128,7 +128,7 @@
 
     /** One maneuver has been called: grade or reveal it, then wait for the next. */
     function maneuverCalled() {
-        maneuvers.markCalled(anim.simTime);
+        maneuvers.markCalled(anim.simTime, scope.tracks);
         els.studentForm.reset();
     }
 
@@ -207,8 +207,13 @@
         const student = Object.fromEntries(new FormData(els.studentForm).entries());
         const result = grader.gradeStudent(student, answer.answerKey);
         els.scorePanel.innerHTML = grader.formatGradeReport(result);
-        if (maneuvers.phase === 'picture') commitPicture(answer);
-        else maneuverCalled();
+        if (maneuvers.phase === 'picture') {
+            commitPicture(answer);
+        } else {
+            // Show the call: after a SPLIT the new group names are needed for what comes next.
+            els.revealPanel.innerHTML = `<p class="call-text">${escapeHtml(answer.text)}</p>`;
+            maneuverCalled();
+        }
     }
 
     function escapeHtml(s) {

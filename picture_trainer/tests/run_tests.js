@@ -71,7 +71,10 @@ const EXPECTED_LABEL = {
 /** A submission built straight from the key — must always score 100%. */
 function perfectStudent(key) {
     const s = Object.assign({}, key.fields);
-    if (key.anchors) {
+    if (key.anchors && key.family === 'maneuver') {
+        s.splitBearing = key.anchors[0].bearing;
+        s.splitRange = key.anchors[0].range;
+    } else if (key.anchors) {
         s.bullsBearing = key.anchors[0].bearing;
         s.bullsRange = key.anchors[0].range;
         s.altitude = key.anchors[0].altitudeK;
@@ -217,8 +220,9 @@ const PICTURE_LABELS = /\b(AZIMUTH|RANGE|WALL|LADDER|CHAMPAGNE|VIC|BOX|LEADING E
 
 /**
  * Call the picture, then let the director maneuver groups: every maneuver must be
- * called by the name from that picture (never a new label), match the scripted
- * aspect, grade 100% when answered perfectly, and never merge two groups.
+ * called by the name from that picture (or from an earlier split), never with a new
+ * label, match the scripted maneuver, grade 100% when answered perfectly, and never
+ * merge two groups. A SPLIT must add exactly one group.
  */
 function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
     const scope = new T.ScopeRenderer('tacScope');
@@ -237,6 +241,7 @@ function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
     anim.resumeRun();
     const names = new Set(picture.named.map(n => n.name));
     const hostiles = () => scope.tracks.filter(t => t.hostile);
+    let groupCount = scenario.hostileGroupCount;
 
     while (director.phase === 'maneuvers') {
         const seen = step(anim, 120, () => !!director.pending(scope.tracks) || director.phase !== 'maneuvers');
@@ -257,18 +262,31 @@ function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
             const wrong = Object.assign(perfectStudent(key), { direction: T.Geo.cardinal8(key.heading + 180) });
             check(grader.gradeStudent(wrong, key).score < 100, where, 'reciprocal direction graded correct');
         }
+        if (m.type === 'SPLIT') {
+            groupCount += 1;
+            check(key.anchors.length === 2 && key.anchors[0].name !== key.anchors[1].name, where, `split pieces ${answer.text}`);
+            check(key.anchors.every(a => !names.has(a.name)), where, `split piece reuses a called name: ${answer.text}`);
+            const second = Object.assign(perfectStudent(key), { splitBearing: String(key.anchors[1].bearing), splitRange: String(key.anchors[1].range) });
+            check(grader.gradeStudent(second, key).score === 100, where, 'either split piece should be a valid anchor');
+            const off = Object.assign(perfectStudent(key), { splitRange: String(key.anchors[0].range + 20) });
+            check(grader.gradeStudent(off, key).score < 100, where, 'split BULLSEYE 20 nm off graded correct');
+        } else {
+            const stray = Object.assign(perfectStudent(key), { splitBearing: '270', splitRange: '80' });
+            check(grader.gradeStudent(stray, key).score < 100, where, 'BULLSEYE on a track maneuver graded correct');
+        }
         stats.maneuvers += 1;
         stats.types[m.type] = (stats.types[m.type] || 0) + 1;
 
         // Finish the turn and fly it out: the 3 nm rule must still see the same groups.
         for (let s = 0; s < 6; s++) {
             step(anim, 10);
-            check(clusterer.cluster(hostiles()).length === scenario.hostileGroupCount, where,
-                `groups merged or split ${s * 10 + 10} s into a ${m.type}`);
+            check(clusterer.cluster(hostiles()).length === groupCount, where,
+                `3 nm rule sees ${clusterer.cluster(hostiles()).length} groups, expected ${groupCount}, ${s * 10 + 10} s into a ${m.type}`);
         }
         const settled = grader.buildManeuverAnswer(scope.tracks, director).answerKey;
         check(settled && settled.fields.maneuver === m.type, where, `${m.type} read as ${settled && settled.fields.maneuver} once settled`);
-        director.markCalled(anim.simTime);
+        if (m.type === 'SPLIT') settled.anchors.forEach(a => names.add(a.name));
+        director.markCalled(anim.simTime, scope.tracks);
     }
     if (director.called) stats.scenarios += 1;
     stats.total += 1;
@@ -298,7 +316,7 @@ function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
         });
     });
     check(stats.scenarios >= stats.total * 0.9, 'maneuver', `only ${stats.scenarios} of ${stats.total} pictures got a maneuver`);
-    ['HOT', 'FLANK', 'BEAM', 'DRAG'].forEach(t => check(stats.types[t] > 0, 'maneuver', `no ${t} maneuvers in the sweep`));
+    ['HOT', 'FLANK', 'BEAM', 'DRAG', 'SPLIT'].forEach(t => check(stats.types[t] > 0, 'maneuver', `no ${t} maneuvers in the sweep`));
     console.log(`  maneuvers: ${stats.maneuvers} across ${stats.scenarios}/${stats.total} pictures`, JSON.stringify(stats.types));
 })();
 
