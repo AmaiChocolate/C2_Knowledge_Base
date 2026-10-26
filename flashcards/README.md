@@ -19,7 +19,13 @@ The back of each card gives the correct call one sentence per line, the key valu
 
 - **Filters**: category, pictures and/or maneuvers, threat axis, shuffled or in order.
 - **Full scope / Raid close-up** (`V`): the close-up zooms on the hostiles so you can count contacts (wingmen sit under 2 nm from lead).
-- **Measure**: click two points to read bearing / range, for WIDE and DEEP. `Esc` clears it.
+- **Measurements** (`M`, on by default): the numbers you would otherwise measure are already drawn on the scope, so the card drills the call, not the ruler work:
+  - pictures: WIDE and DEEP brackets for each formation (or wave), wave SEPARATION, and package AZIMUTH separation
+  - THREAT / BOGEY DOPE / STROBE: lines from the fighter with a BRAA readout box (wingmen are tagged so you can find RAPTOR12)
+  - maneuvers: each group's heading and its angle off the fighters (0° = HOT), the number that decides HOT / FLANK / BEAM / DRAG
+
+  They come from the same geometry as the answer key, so they agree with it. Turn them off to practise estimating.
+- **Measure tool** (optional): click two points to read bearing / range yourself. `Esc` clears it.
 - **Save image**: downloads the snapshot as a PNG, with any measurement, for slides or handouts.
 - **Got it / Missed it** (`1` / `2`): at the end, *Review the ones I missed* replays only those. The missed list is also kept in this browser (if it allows storage), so **Missed cards only** brings them back next time.
 - `Space` flips, `←` / `→` go back or skip.
@@ -35,7 +41,7 @@ node flashcards/build/build_cards.js          # rewrites flashcards/cards_data.j
 node flashcards/build/build_cards.js --check  # what CI runs: fails if cards_data.js is stale or a card is bad
 ```
 
-The build flies each scenario headlessly, takes the picture card 32 s into the ingress, "calls" it, and keeps flying. Each maneuver becomes a card about 20 s after the turn shows. Timings are in `SNAPSHOT` at the top of the build script. The study notes on the back are in `TIPS`.
+The build flies each scenario headlessly, takes the picture card 32 s into the ingress, "calls" it, and keeps flying. Each maneuver becomes a card about 20 s after the turn shows. Timings are in `SNAPSHOT` at the top of the build script, the study notes on the back in `TIPS`, and the drawn measurements in the *measurements* section of the build script.
 
 | File | Role |
 |------|------|

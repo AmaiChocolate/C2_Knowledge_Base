@@ -260,6 +260,10 @@ button.bad {
     color: var(--friendly);
 }
 
+.sym.given {
+    color: #5ad1ff;
+}
+
 .sym.axis {
     color: #ff7a7a;
 }

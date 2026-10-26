@@ -67,6 +67,7 @@
         index: 0,
         flipped: false,
         view: 'scope',
+        showGiven: loadPref('showMeasurements', true),
         measuring: false,
         measurePts: [],
         renderView: null,
@@ -83,6 +84,21 @@
         } catch (_) {
             return new Set();
         }
+    }
+
+    function loadPref(name, fallback) {
+        try {
+            const v = localStorage.getItem(`pictureFlashcards.${name}`);
+            return v == null ? fallback : v === 'true';
+        } catch (_) {
+            return fallback;
+        }
+    }
+
+    function savePref(name, value) {
+        try {
+            localStorage.setItem(`pictureFlashcards.${name}`, String(value));
+        } catch (_) { /* private window or blocked storage */ }
     }
 
     function saveMissed() {
@@ -205,7 +221,7 @@
         if (!card) return;
         // Draw at the box's real width so tags stay readable on a phone instead of shrinking.
         const width = Math.max(340, Math.min(800, Math.round(els.scope.clientWidth || 800)));
-        const out = CardRender.render(card, { view: state.view, width, height: Math.round(width * (width < 600 ? 1 : 0.7)) });
+        const out = CardRender.render(card, { view: state.view, measurements: state.showGiven, width, height: Math.round(width * (width < 600 ? 1 : 0.7)) });
         state.renderView = out.view;
         els.scope.innerHTML = out.svg;
         els.scope.classList.toggle('measuring', state.measuring);
@@ -314,6 +330,13 @@
         drawScope();
     }
 
+    function toggleGiven() {
+        state.showGiven = !state.showGiven;
+        savePref('showMeasurements', state.showGiven);
+        $('btnGiven').classList.toggle('active', state.showGiven);
+        drawScope();
+    }
+
     function toggleMeasure() {
         state.measuring = !state.measuring;
         state.measurePts = [];
@@ -376,6 +399,7 @@
         else if (e.key === 'ArrowRight') next();
         else if (e.key === 'ArrowLeft') prev();
         else if (e.key === 'v' || e.key === 'V') setView(state.view === 'scope' ? 'raid' : 'scope');
+        else if (e.key === 'm' || e.key === 'M') toggleGiven();
         else if (e.key === 'Escape' && state.measurePts.length) {
             state.measurePts = [];
             drawMeasure();
@@ -394,6 +418,8 @@
         $('btnRestart').addEventListener('click', () => startDeck());
         document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
         els.measure.addEventListener('click', toggleMeasure);
+        $('btnGiven').addEventListener('click', toggleGiven);
+        $('btnGiven').classList.toggle('active', state.showGiven);
         $('btnSave').addEventListener('click', saveImage);
         els.scope.addEventListener('click', onScopeClick);
         document.addEventListener('keydown', onKey);
