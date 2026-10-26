@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picture Call Flash Cards</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Picture Call Flash Cards</h1>
+            <p class="subtitle">Still scope snapshots from the ALSSA Picture Trainer. Make the call, then flip the card to check it.</p>
+        </header>
+
+        <section class="panel deck-controls" aria-label="Deck">
+            <label>Category
+                <select id="selCategory"></select>
+            </label>
+            <label>Cards
+                <select id="selKind">
+                    <option value="all">Pictures + maneuvers</option>
+                    <option value="picture">Pictures only</option>
+                    <option value="maneuver">Maneuvers only</option>
+                </select>
+            </label>
+            <label>Threat axis
+                <select id="selOrient">
+                    <option value="all">Both</option>
+                    <option value="EW">E/W (west threat)</option>
+                    <option value="NS">N/S (north threat)</option>
+                </select>
+            </label>
+            <label>Order
+                <select id="selOrder">
+                    <option value="shuffle">Shuffled</option>
+                    <option value="ordered">In order</option>
+                </select>
+            </label>
+            <label class="toggle"><input type="checkbox" id="chkMissed"> Missed cards only</label>
+            <button type="button" id="btnStart" class="primary">Start deck</button>
+            <p id="deckStatus" class="deck-status"></p>
+        </section>
+
+        <main id="cardArea" class="card panel">
+            <div class="card-head">
+                <span id="cardMeta" class="card-meta"></span>
+                <span id="cardCount" class="card-count"></span>
+            </div>
+            <div class="progress"><div id="progressBar"></div></div>
+
+            <p id="cardTask" class="card-task"></p>
+            <p id="cardPrompt" class="call-text prompt" hidden></p>
+            <details id="cardContext" class="context" hidden open>
+                <summary>Already called</summary>
+                <ol id="contextList"></ol>
+            </details>
+
+            <div class="scope-tools">
+                <div class="seg" role="group" aria-label="View">
+                    <button type="button" data-view="scope" class="active" title="BULLSEYE, fighters and the raid (V)">Full scope</button>
+                    <button type="button" data-view="raid" title="Zoom to the hostiles to count contacts (V)">Raid close-up</button>
+                </div>
+                <button type="button" id="btnMeasure" title="Click two points to read bearing / range">Measure</button>
+                <button type="button" id="btnSave" title="Save this snapshot as a PNG image">Save image</button>
+            </div>
+            <div id="scope" class="scope"></div>
+            <p class="legend">
+                <span class="sym hostile">◆</span> Hostile
+                <span class="sym friendly">●</span> Friendly fighters
+                <span class="sym">⋯</span> Radar plots (last ~30 s)
+                <span class="sym axis">- -</span> Threat axis
+                · Tags: callsign, BULLSEYE brg/rng, altitude
+            </p>
+
+            <div class="card-actions">
+                <button type="button" id="btnPrev" title="Previous card (←)">← Prev</button>
+                <button type="button" id="btnFlip" class="primary" title="Space">Show answer</button>
+                <button type="button" id="btnGot" class="good" hidden title="1">Got it</button>
+                <button type="button" id="btnMiss" class="bad" hidden title="2">Missed it</button>
+                <button type="button" id="btnNext" title="Next card (→)">Skip →</button>
+            </div>
+
+            <section id="answer" class="answer" hidden>
+                <h2>Correct call</h2>
+                <div id="answerCall" class="call-text answer-call"></div>
+                <dl id="answerBreakdown" class="breakdown"></dl>
+                <ul id="answerTips" class="tips"></ul>
+            </section>
+
+            <section id="deckDone" class="deck-done" hidden>
+                <h2>Deck complete</h2>
+                <p id="doneSummary"></p>
+                <div class="card-actions">
+                    <button type="button" id="btnReviewMissed" class="primary">Review the ones I missed</button>
+                    <button type="button" id="btnRestart">Start over</button>
+                </div>
+            </section>
+        </main>
+
+        <p class="footnote">Keys: <kbd>Space</kbd> flip · <kbd>1</kbd> got it · <kbd>2</kbd> missed · <kbd>←</kbd>/<kbd>→</kbd> prev / skip · <kbd>V</kbd> view.
+            Answers come from the Picture Trainer engine and the rules in <code>kb/03_Notes_And_Insights/Picture_Call_Logic.md</code>.</p>
+    </div>
+
+    <script src="cards_data.js"></script>
+    <script src="src/card_render.js"></script>
+    <script src="src/deck.js"></script>
+</body>
+</html>
