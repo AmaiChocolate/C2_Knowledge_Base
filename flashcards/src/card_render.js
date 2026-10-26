@@ -18,7 +18,9 @@ const CardRender = (function () {
         friendly: '#33ff88',
         friendlyTag: '#80ffb8',
         tagBg: 'rgba(0,0,0,0.6)',
-        measure: '#ffee55'
+        measure: '#ffee55',
+        given: '#5ad1ff',
+        givenBg: 'rgba(0,16,28,0.85)'
     };
     const NICE_STEPS = [2, 5, 10, 20, 25, 50, 100];
     const TAG_W = 84;
@@ -182,7 +184,66 @@ const CardRender = (function () {
         return out.join('');
     }
 
+    function labelBox(v, l) {
+        const pa = toPx(v, l.a[0], l.a[1]);
+        const pb = toPx(v, l.b[0], l.b[1]);
+        const w = l.t.length * 7 + 8;
+        return { x: (pa.x + pb.x) / 2 - w / 2, y: (pa.y + pb.y) / 2 - 9, w, h: 16 };
+    }
+
+    /** A dimension line with end ticks and its value in a box at the middle. */
+    function drawDimension(v, l) {
+        const pa = toPx(v, l.a[0], l.a[1]);
+        const pb = toPx(v, l.b[0], l.b[1]);
+        const len = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1;
+        const nx = -(pb.y - pa.y) / len * 5;
+        const ny = (pb.x - pa.x) / len * 5;
+        const tick = p => `<line x1="${fmt(p.x - nx)}" y1="${fmt(p.y - ny)}" x2="${fmt(p.x + nx)}" y2="${fmt(p.y + ny)}"/>`;
+        let out = `<g stroke="${COLORS.given}" stroke-width="1.4">`
+            + `<line x1="${fmt(pa.x)}" y1="${fmt(pa.y)}" x2="${fmt(pb.x)}" y2="${fmt(pb.y)}"/>${tick(pa)}${tick(pb)}</g>`;
+        if (l.t) {
+            const w = l.t.length * 7 + 8;
+            const mx = (pa.x + pb.x) / 2;
+            const my = (pa.y + pb.y) / 2;
+            out += `<rect x="${fmt(mx - w / 2)}" y="${fmt(my - 9)}" width="${w}" height="16" rx="3" fill="${COLORS.givenBg}" stroke="${COLORS.given}" stroke-width="0.8"/>`
+                + `<text x="${fmt(mx)}" y="${fmt(my + 3)}" text-anchor="middle" fill="${COLORS.given}" font-size="11" font-weight="bold">${esc(l.t)}</text>`;
+        }
+        return out;
+    }
+
+    /** BRAA lines are unlabeled (they would pile up at the fighters); the readout box carries the numbers. */
+    function drawRay(v, l) {
+        const pa = toPx(v, l.a[0], l.a[1]);
+        const pb = toPx(v, l.b[0], l.b[1]);
+        return `<line x1="${fmt(pa.x)}" y1="${fmt(pa.y)}" x2="${fmt(pb.x)}" y2="${fmt(pb.y)}" stroke="${COLORS.given}" stroke-opacity="0.55" stroke-width="1.2" stroke-dasharray="6 4"/>`;
+    }
+
+    /** The readout sits in whichever corner covers the fewest tracks (bottom-right holds the scale bar). */
+    function readoutBox(v, ms, symbols) {
+        if (!ms || !ms.rows || !ms.rows.length) return null;
+        const lines = [ms.title].concat(ms.rows);
+        const w = Math.max(...lines.map(t => t.length)) * 6.8 + 16;
+        const h = lines.length * 15 + 10;
+        const corners = [[v.width - w - 8, 8], [v.width - w - 8, v.height - h - 40], [8, v.height - h - 8], [50, 8]];
+        let best = null;
+        corners.forEach(([x, y]) => {
+            const box = { x, y, w, h };
+            const hits = symbols.filter(sb => overlaps(sb, box)).length;
+            if (!best || hits < best.hits) best = { box, hits };
+        });
+        return Object.assign(best.box, { lines });
+    }
+
+    function drawReadout(box) {
+        if (!box) return '';
+        const { x, y, w, h, lines } = box;
+        return `<g font-size="11"><rect x="${fmt(x)}" y="${y}" width="${fmt(w)}" height="${h}" rx="4" fill="${COLORS.givenBg}" stroke="${COLORS.given}" stroke-width="0.8"/>`
+            + lines.map((t, i) => `<text x="${fmt(x + 8)}" y="${y + 18 + i * 15}" fill="${COLORS.given}" xml:space="preserve"${i === 0 ? ' font-weight="bold"' : ''}>${esc(t)}</text>`).join('')
+            + '</g>';
+    }
+
     /**
+     * opts.measurements (default true) draws the card's given measurements.
      * @returns {{ svg: string, view: object }} — `view` maps pixels back to nm for the measure tool.
      */
     function render(card, opts = {}) {
@@ -190,20 +251,27 @@ const CardRender = (function () {
         const height = opts.height || 560;
         const viewName = opts.view === 'raid' ? 'raid' : 'scope';
         const v = fitView(card, viewName, width, height);
-        const leads = card.tracks.filter(t => !t.w);
+        // Leads carry tags; a wingman does only when the card names it (a BRAA call to RAPTOR12).
+        const leads = card.tracks.filter(t => !t.w || t.c);
         const symbols = card.tracks.map(t => {
             const p = toPx(v, t.e, t.n);
             return { x: p.x - 7, y: p.y - 7, w: 14, h: 14 };
         });
+        const given = opts.measurements !== false && !!card.ms;
+        const dims = given ? card.ms.lines.filter(l => l.t) : [];
+        const readout = given ? readoutBox(v, card.ms, symbols) : null;
+        const givenBoxes = dims.map(l => labelBox(v, l)).concat(readout ? [readout] : []);
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" `
             + `font-family="Consolas, 'Courier New', monospace" role="img" aria-label="Scope snapshot">`
             + `<rect width="${width}" height="${height}" fill="${COLORS.bg}"/>`
             + drawGrid(v)
             + drawThreatAxis(v, card)
             + drawBullseye(v)
+            + (given ? card.ms.lines.filter(l => !l.t).map(l => drawRay(v, l)).join('') : '')
             + card.tracks.map(t => drawTrail(v, t)).join('')
             + card.tracks.map(t => drawSymbol(v, t)).join('')
-            + (opts.tags === false ? '' : drawTags(v, leads, symbols))
+            + (opts.tags === false ? '' : drawTags(v, leads, symbols.concat(given ? givenBoxes : [])))
+            + (given ? dims.map(l => drawDimension(v, l)).join('') + drawReadout(readout) : '')
             + drawNorthArrow(v)
             + drawScaleBar(v)
             + '<g class="measure-layer"></g>'

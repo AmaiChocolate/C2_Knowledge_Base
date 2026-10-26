@@ -61,7 +61,8 @@
                     <button type="button" data-view="scope" class="active" title="BULLSEYE, fighters and the raid (V)">Full scope</button>
                     <button type="button" data-view="raid" title="Zoom to the hostiles to count contacts (V)">Raid close-up</button>
                 </div>
-                <button type="button" id="btnMeasure" title="Click two points to read bearing / range">Measure</button>
+                <button type="button" id="btnGiven" title="Show or hide the measurements drawn on the scope (M)">Measurements</button>
+                <button type="button" id="btnMeasure" title="Optional: click two points to read bearing / range yourself">Measure tool</button>
                 <button type="button" id="btnSave" title="Save this snapshot as a PNG image">Save image</button>
             </div>
             <div id="scope" class="scope"></div>
@@ -70,6 +71,7 @@
                 <span class="sym friendly">●</span> Friendly fighters
                 <span class="sym">⋯</span> Radar plots (last ~30 s)
                 <span class="sym axis">- -</span> Threat axis
+                <span class="sym given">├┤</span> Measurements
                 · Tags: callsign, BULLSEYE brg/rng, altitude
             </p>
 
@@ -98,7 +100,7 @@
             </section>
         </main>
 
-        <p class="footnote">Keys: <kbd>Space</kbd> flip · <kbd>1</kbd> got it · <kbd>2</kbd> missed · <kbd>←</kbd>/<kbd>→</kbd> prev / skip · <kbd>V</kbd> view.
+        <p class="footnote">Keys: <kbd>Space</kbd> flip · <kbd>1</kbd> got it · <kbd>2</kbd> missed · <kbd>←</kbd>/<kbd>→</kbd> prev / skip · <kbd>V</kbd> view · <kbd>M</kbd> measurements.
             Answers come from the Picture Trainer engine and the rules in <code>kb/03_Notes_And_Insights/Picture_Call_Logic.md</code>.</p>
     </div>
 
