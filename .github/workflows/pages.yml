@@ -1,4 +1,4 @@
-name: Deploy Picture Trainer to GitHub Pages
+name: Deploy Picture Trainer and Flash Cards to GitHub Pages
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - 'picture_trainer/**'
       - 'simulator/**'
+      - 'flashcards/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -34,15 +35,26 @@ jobs:
       - name: Run simulator tests
         run: node simulator/tests/run_tests.js
 
+      - name: Check flash cards match the trainer
+        run: node flashcards/build/build_cards.js --check
+
+      # The trainer stays at the site root; the flash cards live at /flashcards/.
+      - name: Assemble site
+        run: |
+          mkdir _site
+          cp -r picture_trainer/. _site/
+          mkdir _site/flashcards
+          cp -r flashcards/index.html flashcards/style.css flashcards/cards_data.js flashcards/src _site/flashcards/
+
       # Pages serves files with a 10-minute cache, so a browser can pair a new
       # index.html with old scripts. Stamp local asset URLs with the commit.
       - name: Cache-bust local scripts and styles
-        run: sed -i -E 's#(src|href)="((src/[^"]+\.js)|style\.css)"#\1="\2?v=${{ github.sha }}"#' picture_trainer/index.html
+        run: sed -i -E 's#(src|href)="((src/[^"]+\.js)|style\.css|cards_data\.js)"#\1="\2?v=${{ github.sha }}"#' _site/index.html _site/flashcards/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: picture_trainer
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
