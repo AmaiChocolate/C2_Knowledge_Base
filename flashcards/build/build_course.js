@@ -6,9 +6,9 @@
  *     node flashcards/build/build_course.js --check   # fail if course_data.js is stale or a question is bad
  *
  * Each module has stages that take support away step by step:
- *   guided — multiple choice, measurements drawn on the scope
- *   build  — type the pieces of the call (graded with the trainer's tolerances)
- *   solo   — make the whole call, measurements off, then self-mark against the answer
+ *   guided: multiple choice, measurements drawn on the scope
+ *   build : type the pieces of the call (graded with the trainer's tolerances)
+ *   solo  : make the whole call, measurements off, then self-mark against the answer
  * Wrong options and "spot the error" calls are the correct call with one rule broken,
  * so every distractor teaches a specific rule.
  */
@@ -109,7 +109,7 @@ function breakers(ctx) {
     const f = ctx.fields || {};
     return [
         text => (/BULLSEYE /.test(text) ? {
-            text: text.replace('BULLSEYE ', 'BULLS '), why: 'BULLSEYE is never shortened to BULLS — it gets heard as BRAA.'
+            text: text.replace('BULLSEYE ', 'BULLS '), why: 'BULLSEYE is never shortened to BULLS because it gets heard as BRAA.'
         } : null),
         text => {
             const m = text.match(/\b([A-Z]+(?:-[A-Z]+)? THOUSAND)\b/);
@@ -165,7 +165,7 @@ function brokenCalls(text, ctx, rng) {
     return shuffle(rng, breakers(ctx)).map(b => b(text)).filter(r => r && r.text !== text);
 }
 
-/** "Which is the correct call?" — the right call and three with one rule broken each. */
+/** "Which is the correct call?": the right call and three with one rule broken each. */
 function fullCallChoice(rng, base, text, ctx) {
     const broken = brokenCalls(text, ctx, rng);
     if (broken.length < 2) return null;
@@ -175,7 +175,7 @@ function fullCallChoice(rng, base, text, ctx) {
     return q;
 }
 
-/** "One part of this call is wrong" — the student picks the part. */
+/** "One part of this call is wrong": the student picks the part. */
 function errorSpot(rng, base, text, ctx) {
     const broken = brokenCalls(text, ctx, rng);
     const right = splitCall(text);
@@ -244,7 +244,7 @@ function buildM0() {
 
         choice(rng, Object.assign(base('guided', 'alt'), {
             prompt: `What altitude is ${L.callsign} at?`,
-            why: `Read the end of ${L.callsign}'s tag: ${tag(L)}  ${altK(L)}k — ${words(altK(L))} THOUSAND feet.`
+            why: `Read the end of ${L.callsign}'s tag: ${tag(L)}  ${altK(L)}k, meaning ${words(altK(L))} THOUSAND feet.`
         }), `${altK(L)},000 ft`, [...leads.filter(x => x !== L).map(x => `${altK(x)},000 ft`), `${altK(L) + 3},000 ft`, `${altK(L) - 4},000 ft`, `${altK(L) + 7},000 ft`]);
 
         const brg = Math.round(L.bearing) % 360;
@@ -279,7 +279,7 @@ function buildM0() {
         if (blue && leads.length >= 2 && rng() < 0.5) {
             choice(rng, Object.assign(base('guided', 'friend'), {
                 prompt: 'Which callsign is a friendly fighter?',
-                why: `${blue.callsign} is a green circle — friendly. Red diamonds are hostile.`
+                why: `${blue.callsign} is a green circle, so friendly. Red diamonds are hostile.`
             }), blue.callsign, leads.map(x => x.callsign));
         }
 
@@ -352,11 +352,11 @@ function buildM2() {
                 why: 'An orbiting group: CAP replaces the track.'
             }), 'CAP', ['TRACK EAST', 'ORBIT', 'HOT']);
         }
-        const strength = g.count === 1 ? 'Nothing — one contact is assumed' : g.count === 2 ? 'TWO CONTACTS' : 'HEAVY';
+        const strength = g.count === 1 ? 'Nothing (one contact is assumed)' : g.count === 2 ? 'TWO CONTACTS' : 'HEAVY';
         choice(rng, Object.assign(base('guided', 'strength'), {
             prompt: 'Which strength fill-in goes at the end of this call?', view: 'raid',
             why: `The group has ${g.count} contact${g.count > 1 ? 's' : ''}. One is assumed; two is TWO CONTACTS; three or more is HEAVY.`
-        }), strength, ['Nothing — one contact is assumed', 'TWO CONTACTS', 'HEAVY', 'PAIR']);
+        }), strength, ['Nothing (one contact is assumed)', 'TWO CONTACTS', 'HEAVY', 'PAIR']);
 
         const a0 = key.anchors[0];
         add(Object.assign(base('build', 'fields'), {
@@ -364,7 +364,7 @@ function buildM2() {
             fields: [
                 anchorField(key, 'Group BULLSEYE'),
                 { k: 'track', kind: 'select', label: 'Track', options: CARDINALS.map(c => `TRACK ${c}`).concat(['CAP']), v: isCap ? 'CAP' : `TRACK ${trackCardinal}` },
-                { k: 'strength', kind: 'select', label: 'Strength', options: ['(none — one contact)', 'TWO CONTACTS', 'HEAVY'], v: g.count === 1 ? '(none — one contact)' : g.count === 2 ? 'TWO CONTACTS' : 'HEAVY' }
+                { k: 'strength', kind: 'select', label: 'Strength', options: ['(none: one contact)', 'TWO CONTACTS', 'HEAVY'], v: g.count === 1 ? '(none: one contact)' : g.count === 2 ? 'TWO CONTACTS' : 'HEAVY' }
             ],
             why: `BULLSEYE ${pad3(a0.bearing)}/${a0.range}, ${a0.altitudeK}k (±${TOL.bearingDeg}° / ±${isCap ? TOL.capRangeNm : TOL.rangeNm} nm / ±${TOL.altitudeK}k).`
         }));
@@ -469,7 +469,7 @@ function buildM3() {
         const dim = f.width != null ? f.width : f.depth;
         choice(rng, Object.assign(base('guided', 'label'), {
             prompt: 'Two groups. Which label?',
-            why: `Compare the brackets: ${label === 'AZIMUTH' ? 'wider than deep — AZIMUTH' : 'deeper than wide — RANGE'}.`
+            why: `Compare the brackets: ${label === 'AZIMUTH' ? 'wider than deep, so AZIMUTH' : 'deeper than wide, so RANGE'}.`
         }), label, ['AZIMUTH', 'RANGE', 'WALL', 'LADDER'], { ordered: (a, b) => ['AZIMUTH', 'RANGE', 'WALL', 'LADDER'].indexOf(a) - ['AZIMUTH', 'RANGE', 'WALL', 'LADDER'].indexOf(b) });
 
         const side = `${orient.crossNames.pos} GROUP and ${orient.crossNames.neg} GROUP`;
@@ -497,7 +497,7 @@ function buildM3() {
             why: label === 'RANGE'
                 ? 'RANGE: only the LEAD GROUP is anchored; the trail group takes its position from the lead and the range.'
                 : `AZIMUTH: both are anchored only when more than ${R.anchorAzimuthNm} nm apart. These are ${dim} nm apart.`
-        }), anchored === 2 ? both : first, [both, first, `Only ${named[1].name}`, 'Neither — the label is enough']);
+        }), anchored === 2 ? both : first, [both, first, `Only ${named[1].name}`, 'Neither, the label is enough']);
     });
 }
 
@@ -587,7 +587,7 @@ const course = {
     scenes,
     questions
 };
-const text = '/* Generated by flashcards/build/build_course.js — do not edit. */\n'
+const text = '/* Generated by flashcards/build/build_course.js. Do not edit. */\n'
     + `window.WD_COURSE = ${JSON.stringify(course)};\n`;
 const summary = `${questions.length} questions, ${Object.keys(scenes).length} scenes (`
     + Object.keys(bank).sort().map(k => `${k} ${bank[k]}`).join(', ') + ')';

@@ -1,6 +1,6 @@
 # ALSSA Picture Call Trainer
 
-Standalone browser drill for **WD / ABM** picture calls — Parrot Sour-style animated hostile and friendly tracks. No BVR AI, missiles, or TPS-75 feed simulation (see [`../simulator/`](../simulator/) for that).
+Standalone browser drill for **WD / ABM** picture calls: Parrot Sour-style animated hostile and friendly tracks. No BVR AI, missiles, or TPS-75 feed simulation (see [`../simulator/`](../simulator/) for that).
 
 ## Quick start
 
@@ -25,13 +25,13 @@ Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Box, Cap, Leading 
 | Data trail | Motion history dots |
 | Radar plots | Staggered snapshot markers (~4 s) |
 | Callsigns | Track tags on / off (a selected track keeps its tag) |
-| Contact count | Group strength on the lead's tag (`BANDIT1 x2`) — off by default; otherwise zoom in to count contacts (wingmen sit < 2 nm from lead) |
+| Contact count | Group strength on the lead's tag (`BANDIT1 x2`): off by default; otherwise zoom in to count contacts (wingmen sit < 2 nm from lead) |
 | Anim speed | 0.5× – 4× (sim time only) |
 | E/W vs N/S | Threat axis + blue CAP placement |
 
 ## How answers are produced
 
-Truth moves, so the answer is computed **from the scope as it is at the moment you reveal or submit** — pause first if you are still measuring.
+Truth moves, so the answer is computed **from the scope as it is at the moment you reveal or submit**: pause first if you are still measuring.
 
 `PictureGenerator` works in the threat-axis frame (WIDE = across the axis, DEEP = along it) and applies the rules in [`Picture_Call_Logic.md`](../kb/03_Notes_And_Insights/Picture_Call_Logic.md): 3 nm groups, the 5 nm depth rule (WALL vs CHAMPAGNE / VIC), 10 nm azimuth anchoring, LEADING EDGE + waves, packages. Every threshold lives in `PICTURE_RULES` at the top of `src/picture_logic.js`; the wave (25 nm) and package (40 nm) breaks are trainer assumptions because the real values are mission-planned.
 
@@ -50,8 +50,8 @@ Field compare against the live answer key:
 | Group / wave / leading-edge / package counts | exact (leave blank when not applicable) |
 | Label | exact word (blank for single group or no traditional label) |
 | Wide / deep | ±3 nm |
-| Bullseye or BRAA bearing / range | ±5° / ±3 nm (±5 nm for a CAP) — any group in the called picture is accepted as the anchor |
-| Altitude | ±1 thousand ft of the anchored group — digits or words |
+| Bullseye or BRAA bearing / range | ±5° / ±3 nm (±5 nm for a CAP): any group in the called picture is accepted as the anchor |
+| Altitude | ±1 thousand ft of the anchored group: digits or words |
 | Track / aspect | word match (`EAST`, `CAP`, `HOT`, `FLANK …`) |
 | Maneuver group / aspect | the name from your picture; HOT / FLANK / BEAM / DRAG |
 | Maneuver direction | any cardinal within 30° of the new heading (`N` / `NORTH`); blank for HOT and SPLIT |
@@ -67,11 +67,11 @@ Not modelled yet: OPENING / CLOSING, ECHELON, altitude STACKs, altitude maneuver
 node picture_trainer/tests/run_tests.js
 ```
 
-No dependencies. Sweeps every category × variation × orientation headlessly and checks that the answer matches what the generator built, survives 90 s of ingress unchanged, and that a perfect submission scores 100%. Run it after touching anything in `src/` — the GitHub Pages workflow runs it before deploying.
+No dependencies. Sweeps every category × variation × orientation headlessly and checks that the answer matches what the generator built, survives 90 s of ingress unchanged, and that a perfect submission scores 100%. Run it after touching anything in `src/`: the GitHub Pages workflow runs it before deploying.
 
 ## Blue air
 
-Four-ship package (2× PAIR) on CAP racetracks — always visible (green circle). Hostiles = red diamond with **bullseye brg/rng** data tags (lead only; click a wingman to see its tag).
+Four-ship package (2× PAIR) on CAP racetracks: always visible (green circle). Hostiles = red diamond with **bullseye brg/rng** data tags (lead only; click a wingman to see its tag).
 
 ## Knowledge base
 
@@ -97,5 +97,5 @@ Four-ship package (2× PAIR) on CAP racetracks — always visible (green circle)
 
 ### Extending
 
-- **New formation / category** — add a layout to `Layouts` in `formation_generator.js`, a `case` in `generateScenario`, an entry in `SCENARIO_CATEGORIES`, and an expectation in `tests/run_tests.js`.
-- **New drill type** — emit a new answer-key `family` from `PictureGenerator`, list its fields in `ANSWER_FAMILIES` (`grading.js`) and add a hint in `app.js`; the form builds itself from those.
+- **New formation / category**: add a layout to `Layouts` in `formation_generator.js`, a `case` in `generateScenario`, an entry in `SCENARIO_CATEGORIES`, and an expectation in `tests/run_tests.js`.
+- **New drill type**: emit a new answer-key `family` from `PictureGenerator`, list its fields in `ANSWER_FAMILIES` (`grading.js`) and add a hint in `app.js`; the form builds itself from those.

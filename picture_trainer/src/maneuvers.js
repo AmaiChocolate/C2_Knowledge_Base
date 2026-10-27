@@ -6,7 +6,7 @@
  * maneuver ("NORTH GROUP, FLANK NORTH") instead of building a new picture.
  *
  * The director picks a named group, turns it to a HOT / FLANK / BEAM / DRAG heading
- * relative to the friendly fighters — or splits a contact off it — waits for the
+ * relative to the friendly fighters, or splits a contact off it, waits for the
  * student to call it, then may schedule another. Everything runs on sim time from a
  * per-scenario seed.
  */
@@ -32,7 +32,7 @@ class ManeuverDirector {
         this.reset({ seed: 1, mode: 'none' }, false);
     }
 
-    /** Maneuvers apply to standard pictures only — not to the BRAA / EA drills. */
+    /** Maneuvers apply to standard pictures only: not to the BRAA / EA drills. */
     reset(meta, enabled = true) {
         this.allowed = !!meta && meta.mode == null;
         this.enabled = enabled;

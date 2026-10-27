@@ -1,5 +1,5 @@
 /**
- * Track kinematics — turn-rate integration + CAP/orbit/formation steering.
+ * Track kinematics: turn-rate integration + CAP/orbit/formation steering.
  * Ported from BC3 Scope Trainer physics (no BVR AI).
  */
 const TrackKinematics = {

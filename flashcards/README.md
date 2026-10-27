@@ -51,7 +51,7 @@ Every course scenario uses the E/W threat axis (west threat, raids tracking east
 | 2 Single group | SINGLE GROUP off BULLSEYE; BOGEY DOPE in BRAA from any fighter |
 | 3 Two groups | AZIMUTH vs RANGE, names, dimension, which groups are anchored |
 | 4 Three or more | WALL, LADDER, CHAMPAGNE, VIC: the 5 nm rule, voiced dimensions, group names |
-| 5–9 | Planned: BOX / waves / packages, maneuvers, fighter requests, DCA flow (commit, targeting, threat — from the BC3 sim), checkride mix |
+| 5–9 | Planned: BOX / waves / packages, maneuvers, fighter requests, DCA flow (commit, targeting, threat, from the BC3 sim), checkride mix |
 
 Wrong options and "spot the error" calls are the correct call with one rule broken (BULLS for BULLSEYE, HIGH for an altitude, the wrong label, count, track, aspect, strength or dimension), so each explanation names the rule.
 

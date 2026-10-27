@@ -1,5 +1,5 @@
 /**
- * Threat-axis orientation — E/W (west ingress) vs N/S (north ingress) —
+ * Threat-axis orientation: E/W (west ingress) vs N/S (north ingress) -
  * plus the shared bullseye / threat-axis geometry every other module uses.
  *
  * Frames:

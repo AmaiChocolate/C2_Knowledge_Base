@@ -1,6 +1,6 @@
 /**
  * Flash-card deck UI: filter, shuffle, flip, mark got / missed.
- * Each card is drawn once as a still SVG (CardRender) — nothing animates.
+ * Each card is drawn once as a still SVG (CardRender): nothing animates.
  */
 (function () {
     const DECK = window.FLASHCARD_DECK;

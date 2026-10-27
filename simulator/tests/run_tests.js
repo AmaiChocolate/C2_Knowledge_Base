@@ -1,5 +1,5 @@
 /**
- * Headless checks for the BC3 Scope Trainer — no dependencies:
+ * Headless checks for the BC3 Scope Trainer: no dependencies:
  *
  *     node simulator/tests/run_tests.js
  *
@@ -170,7 +170,7 @@ function fly(id, seconds, dt) {
     check(r.blueLost <= 1, id, `${r.blueLost} blue fighters lost`);
     check(!r.sim.tracks().find(t => t.type === 'tanker').isSplashed, id, 'tanker lost');
 
-    // Missile economy: no hosing — at most three AIM-120s per kill.
+    // Missile economy: no hosing, at most three AIM-120s per kill.
     const blueShots = count(ev, 'fox3', e => e.weapon == null) + count(ev, 'fox_from_meld');
     check(blueShots <= 3 * Math.max(1, r.redLost), id, `${blueShots} AIM-120s for ${r.redLost} kills`);
 
@@ -280,7 +280,7 @@ function perfectStudent(key) {
 
     const d = wd.debrief();
     const fighters = sim.tracks().filter(t => t.type === 'fighter');
-    check(d.sections.picture.score >= 95, 'wd-working', `picture ${d.sections.picture.score} — ${JSON.stringify(d.sections.picture.items.map(i => i.verdict + (i.misses || []).join(';')))}`);
+    check(d.sections.picture.score >= 95, 'wd-working', `picture ${d.sections.picture.score}: ${JSON.stringify(d.sections.picture.items.map(i => i.verdict + (i.misses || []).join(';')))}`);
     check(d.sections.commit.items.length === 2 && d.sections.commit.score === 100, 'wd-working', `commit ${JSON.stringify(d.sections.commit.items)}`);
     check(d.sections.targeting.items.length === 4 && d.sections.targeting.score === 100, 'wd-working', `targeting ${JSON.stringify(d.sections.targeting.items)}`);
     check(d.overall >= 85, 'wd-working', `working WD scored ${d.overall}%`);

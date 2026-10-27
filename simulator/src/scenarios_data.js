@@ -69,7 +69,7 @@ function flankerWave(track, formation, waveId, dormant) {
 window.SCENARIO_BANK = {
   "sc-01-single-commit": buildDcaScenario(
     "sc-01-single-commit",
-    "NTTR E–W — Single Group Commit",
+    "NTTR E–W: Single Group Commit",
     "normal",
     [
       f35(
@@ -121,7 +121,7 @@ window.SCENARIO_BANK = {
   ),
   "sc-02-wall-ladder": buildDcaScenario(
     "sc-02-wall-ladder",
-    "NTTR E–W — WALL / LADDER Picture",
+    "NTTR E–W: WALL / LADDER Picture",
     "normal",
     [
       f35(
@@ -192,7 +192,7 @@ window.SCENARIO_BANK = {
   ),
   "sc-03-degraded-radar": buildDcaScenario(
     "sc-03-degraded-radar",
-    "NTTR E–W — Degraded Radar Feed",
+    "NTTR E–W: Degraded Radar Feed",
     "degraded",
     [
       f35(

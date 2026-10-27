@@ -1,5 +1,5 @@
 /**
- * 15 variations per category — seed = categoryHash + variationIndex.
+ * 15 variations per category: seed = categoryHash + variationIndex.
  */
 const SCENARIO_CATEGORIES = [
     { id: 'random', label: 'Random Picture' },

@@ -1,5 +1,5 @@
 /**
- * Brevity & systems trainer — aligned with KB / MQF study figures
+ * Brevity & systems trainer: aligned with KB / MQF study figures
  */
 
 class BrevityTrainer {

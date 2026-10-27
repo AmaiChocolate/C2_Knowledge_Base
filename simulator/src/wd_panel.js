@@ -1,5 +1,5 @@
 /**
- * WD seat panel — comm buttons, call forms, comm log, and the scored debrief with replay.
+ * WD seat panel: comm buttons, call forms, comm log, and the scored debrief with replay.
  * All grading lives in wd_seat.js; this file is only the DOM.
  */
 (function () {
@@ -95,7 +95,7 @@
     function openPicture() {
         const answer = seat.openPicture();
         const family = answer && answer.answerKey ? answer.answerKey.family : 'picture';
-        openForm('PICTURE — leave blank what does not apply', ANSWER_FAMILIES[family] || ANSWER_FAMILIES.picture, '',
+        openForm('PICTURE: leave blank what does not apply', ANSWER_FAMILIES[family] || ANSWER_FAMILIES.picture, '',
             student => seat.submitPicture(student));
     }
 
@@ -107,7 +107,7 @@
         }
         const blues = seat.blueFighters();
         const pick = `<label>To fighter <select name="blueId">${blues.map(b => `<option value="${esc(b.id)}">${esc(b.callsign)}</option>`).join('')}</select></label>`;
-        openForm(`THREAT ${group.name} — BRAA from the fighter you choose`, ANSWER_FAMILIES.braa, pick,
+        openForm(`THREAT ${group.name}: BRAA from the fighter you choose`, ANSWER_FAMILIES.braa, pick,
             (student) => seat.submitThreat(student.blueId, selectedGroup() || group, student));
     }
 
@@ -119,14 +119,14 @@
         const d = seat.debrief();
         seat.scope.paused = true;
         const titles = { picture: 'Pictures', commit: 'Commit', targeting: 'Targeting', threat: 'Threat calls', outcome: 'Outcome' };
-        let html = `<h3>WD debrief — ${d.overall == null ? 'nothing graded' : `${d.overall}%`}</h3>`
+        let html = `<h3>WD debrief: ${d.overall == null ? 'nothing graded' : `${d.overall}%`}</h3>`
             + `<p>${clock(d.durationSec)} flown. Click a row to jump the scope to that moment; drag the slider to replay.</p>`
             + `<input type="range" id="wdScrub" min="0" max="${Math.floor(d.durationSec)}" value="${Math.floor(d.durationSec)}" step="2">`
             + '<p id="wdScrubLabel" class="wd-truth"></p>';
         Object.keys(titles).forEach((k) => {
             const sec = d.sections[k];
             const auto = (k === 'commit' && d.auto.commit) || (k === 'targeting' && d.auto.targeting);
-            html += `<h4>${titles[k]} — ${auto ? 'auto (not graded)' : (sec.score == null ? 'nothing to grade' : `<span class="${cls(sec.score)}">${Math.round(sec.score)}%</span>`)}`
+            html += `<h4>${titles[k]}: ${auto ? 'auto (not graded)' : (sec.score == null ? 'nothing to grade' : `<span class="${cls(sec.score)}">${Math.round(sec.score)}%</span>`)}`
                 + ` <span class="wd-truth">weight ${d.standards.weights[k]}</span></h4>`;
             if (!sec.items.length) return;
             html += '<table>' + sec.items.map(i => (

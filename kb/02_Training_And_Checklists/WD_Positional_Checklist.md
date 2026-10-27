@@ -22,6 +22,6 @@
 - [ ] Tanker/HVAA protect cues
 
 ## Debrief
-- [ ] Missed groups, late commits, bad BRAA — timeline if using sim logger
+- [ ] Missed groups, late commits, bad BRAA: timeline if using sim logger
 
 Related: [[../03_Notes_And_Insights/DCA_Mission_Timeline|DCA timeline]] · [[../03_Notes_And_Insights/Picture_Call_Logic|Picture]]

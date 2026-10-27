@@ -400,7 +400,7 @@ function detectWaves(groups, waveThreshold = 25) {
 ```javascript
 function generateWavePicture(waves, bullseye) {
     const totalGroups = waves.flat().length;
-    let pictureCall = `"TANGO, ${totalGroups} GROUPS, ${waves.length} WAVES. `;
+    let pictureCall = `"WARRIOR, ${totalGroups} GROUPS, ${waves.length} WAVES. `;
     
     waves.forEach((wave, idx) => {
         const waveNum = idx + 1;

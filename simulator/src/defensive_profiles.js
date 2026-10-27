@@ -1,5 +1,5 @@
 /**
- * Platform defensive + ordnance profiles — unclassified training proxies.
+ * Platform defensive + ordnance profiles: unclassified training proxies.
  * See kb/03_Notes_And_Insights/F35_Defensive_Profile.md and Flanker_Adversary_Profile.md
  */
 const DEFENSIVE_PROFILES = {
@@ -13,7 +13,7 @@ const DEFENSIVE_PROFILES = {
         chaffRequiresActive: true,
         ecmStrength: 0.35,
         ecmAssistOnly: true,
-        // One 3s cloud is enough if notch holds — blues survive terminal R-77 more often
+        // One 3s cloud is enough if notch holds: blues survive terminal R-77 more often
         arhDefeatSecActive: 2.5,
         arhDefeatSecEcm: 5.0,
         maxLeadBleedSec: 4.0,
@@ -56,7 +56,7 @@ const DEFENSIVE_PROFILES = {
         chaffRequiresActive: true,
         ecmStrength: 0.15,
         ecmAssistOnly: true,
-        // Needs ~2 overlapping 2.5s clouds (5s) — single burst cannot defeat AIM-120
+        // Needs ~2 overlapping 2.5s clouds (5s): single burst cannot defeat AIM-120
         arhDefeatSecActive: 5.0,
         arhDefeatSecEcm: 8.0,
         maxLeadBleedSec: 4.0,
@@ -81,7 +81,7 @@ const DEFENSIVE_PROFILES = {
 };
 
 /**
- * Missile fly-out proxies — the single source for both the missile model
+ * Missile fly-out proxies: the single source for both the missile model
  * (ScopeEngine.spawnMissile) and the pilots' launch / defend decisions.
  */
 const MISSILE_PROFILES = {
@@ -120,8 +120,8 @@ function missileNoEscapeNm(missile, target, turnDeg, flightSec) {
 
 /**
  * Launch envelope against a target at `targetAspectDeg` (0 = nose on the shooter).
- *   raeroNm — reaches a target that keeps doing what it is doing
- *   rneNm   — reaches a target that turns away and runs the moment it is fired on
+ *   raeroNm: reaches a target that keeps doing what it is doing
+ *   rneNm  : reaches a target that turns away and runs the moment it is fired on
  * 10% of flight time is held back for lead and turn losses.
  */
 function missileEnvelope(type, target, targetAspectDeg) {
@@ -180,7 +180,7 @@ function ensureAircraftStores(track) {
     initAircraftStores(track);
 }
 
-/** Full reset — scenario load only. */
+/** Full reset: scenario load only. */
 function initAircraftStores(track) {
     const p = getDefensiveProfile(track);
     const base = p.ordnance || { FOX3: 0, R77: 0, R27: 0 };

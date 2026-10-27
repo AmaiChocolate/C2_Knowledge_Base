@@ -1,5 +1,5 @@
 /**
- * Symbology — always-visible tactical markers (milsymbol optional polish)
+ * Symbology: always-visible tactical markers (milsymbol optional polish)
  */
 
 class SymbologyRenderer {

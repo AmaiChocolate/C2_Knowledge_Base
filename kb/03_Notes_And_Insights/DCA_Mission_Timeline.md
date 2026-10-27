@@ -7,7 +7,7 @@
 ## Standard sim overlay (training)
 North-threat DCA used by the BC3 Scope Trainer (unclassified geometry):
 - CAP NORTH-L **350/100**, CAP NORTH-R **010/100**
-- **MLL 130nm** (drawn); fighter **MELD 70 / COMMIT 50** from that fighter (**logic only — not drawn**; BVR DCA proxy so commit precedes HVAA/DAL threat)
+- **MLL 130nm** (drawn); fighter **MELD 70 / COMMIT 50** from that fighter (**logic only: not drawn**; BVR DCA proxy so commit precedes HVAA/DAL threat)
 - DAL **180/5**; tanker SHELL **180/55** racetrack with **SLIDE 25 / SCRAM 15** around HVAA
 - Optional/debug off by default: bulls meld/commit/retro rings, EMCON, BMA
 - Red air spawns **north of MLL (~170–180)**, track SOUTH
@@ -87,7 +87,7 @@ Case studies: [[../04_Scenarios_And_CaseStudies/sc-01-single-commit|sc-01]] · [
 
 12. **Broadcast Picture Call**
     - Format: `"CALLSIGN, [# GROUPS], GROUP [BRAA], [ALTITUDE], TRACK [DIRECTION], [HOSTILITY]"`
-    - Example: `"TANGO, TEN GROUPS, GROUP ROCK 250/45, THIRTY-FIVE THOUSAND, TRACK EAST, HOSTILE"`
+    - Example: `"WARRIOR, TEN GROUPS, GROUP ROCK 250/45, THIRTY-FIVE THOUSAND, TRACK EAST, HOSTILE"`
     - Update as picture changes (new groups, splits, merges)
 
 ### Commit Decision (Critical Decision Point)

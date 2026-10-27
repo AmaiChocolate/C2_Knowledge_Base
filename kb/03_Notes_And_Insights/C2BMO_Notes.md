@@ -6,7 +6,7 @@
 ## Focus
 - Translate ATO/ACO/SPINS intent into crew contracts the WD can execute.
 - Hold the “why” when ABMs/WDs argue picture vs commit timing.
-- Multi-domain: see [[../01_Doctrine/ALSSA_ACC_MultiDomainOps/01_Integration_Overview|ALSSA overview]] — CRC as integrator, not isolated radar shop.
+- Multi-domain: see [[../01_Doctrine/ALSSA_ACC_MultiDomainOps/01_Integration_Overview|ALSSA overview]], CRC as integrator, not isolated radar shop.
 
 ## Mentorship loop
 1. Watch WD run `sc-02-wall-ladder` in the sim.

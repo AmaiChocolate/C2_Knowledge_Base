@@ -1,5 +1,5 @@
 /**
- * Pilot AI — blue BVR + Su-30 Flanker-class red BVR (unclassified training proxies)
+ * Pilot AI: blue BVR + Su-30 Flanker-class red BVR (unclassified training proxies)
  * Blue: CAP → MELD → COMMITTED → WEZ/FOX3 → CRANK → SKOSH → CAP recover
  * Red:  INGRESS (formation) → COMMITTED → WEZ (R77/R27) → CRANK → SKOSH → REATTACK / PUSH_HVAA
  */
@@ -174,7 +174,7 @@ class PilotAI {
         const sim = this.scope.simTimeSec != null ? this.scope.simTimeSec : Date.now() / 1000;
 
         // Doctrine: the only things that beat a missile here are outrunning it or, once it
-        // is active, an unbroken notch inside chaff range — so choose between those two.
+        // is active, an unbroken notch inside chaff range: so choose between those two.
         //   SARH            → NOTCH (breaks the shooter's illumination)
         //   ARH, escapable  → OUT   (turn tail and outrun it; saves chaff)
         //   ARH, otherwise  → NOTCH, then BEAM + chaff from pitbull
@@ -208,7 +208,7 @@ class PilotAI {
             track.targetHeading = turn(left) <= turn(right) ? left : right;
             track.speed = track.cruiseSpeed || track.speed || 450;
         }
-        // Chaff: terminal phase only (pitbull/ACTIVE + inside deploy range) — not on support NOTCH
+        // Chaff: terminal phase only (pitbull/ACTIVE + inside deploy range), not on support NOTCH
         const pitbull = track.inboundActive || track.inboundPitbull || m.state === 'ACTIVE';
         const chaffDeployNm = profile.chaffDeployNm != null
             ? profile.chaffDeployNm
@@ -455,7 +455,7 @@ class PilotAI {
 
     /**
      * Package SORT: ceil(N/maxPer) flight leads; max 3 contacts each; rest CAP reserve.
-     * ALSSA TARGETED ownership — no 4-ship pile-on onto a small picture.
+     * ALSSA TARGETED ownership: no 4-ship pile-on onto a small picture.
      */
     buildBlueSortPlan(forceRebuild = false) {
         const hostiles = this.aliveHostileFighters()
@@ -688,7 +688,7 @@ class PilotAI {
     }
 
     /**
-     * Sparse SORT pick — only assigned shooters (or released wings) get contacts.
+     * Sparse SORT pick: only assigned shooters (or released wings) get contacts.
      * No fallback pile-on onto already-owned hostiles.
      */
     pickBlueTarget(track) {
@@ -787,7 +787,7 @@ class PilotAI {
         if (range < foxMin) return { ok: false, reason: 'inside_min_range' };
         if (range > foxMax) return { ok: false, reason: 'outside_wez' };
 
-        // ARH (AIM-120): range + shooter ATA only. Rear-aspect / stern chase is valid —
+        // ARH (AIM-120): range + shooter ATA only. Rear-aspect / stern chase is valid -
         // do not require HOT/FLANK target aspect (that blocked trail shots).
         const aspect = this.getTargetAspect(track, target);
 
@@ -801,7 +801,7 @@ class PilotAI {
         if (this.hasLiveMissileOnTarget(track.id, target.id)) {
             return { ok: false, reason: 'missile_in_flight' };
         }
-        // Another blue already has a missile on this contact — do not double-shoot.
+        // Another blue already has a missile on this contact: do not double-shoot.
         const friendlyShot = (this.scope.missiles || []).some(m =>
             m.isAlive && m.isAlive() && !m.shooterHostile
             && String(m.targetId) === String(target.id)
@@ -899,7 +899,7 @@ class PilotAI {
         return this.scope.fighterCommitNm != null ? this.scope.fighterCommitNm : 50;
     }
 
-    /** Hard ceiling for blue pursuit — meld + buffer (default 75 nm). */
+    /** Hard ceiling for blue pursuit: meld + buffer (default 75 nm). */
     pursuitAbortNm(track) {
         return this.meldNm(track) + this.pursuitAbortBufferNm;
     }
@@ -1100,7 +1100,7 @@ class PilotAI {
         return track.ordnance ? (track.ordnance.FOX3 || 0) : 0;
     }
 
-    /** Hold CAP when Winchester/low ammo — but SORT shooters still react to new waves. */
+    /** Hold CAP when Winchester/low ammo: but SORT shooters still react to new waves. */
     shouldHoldRecommit(track) {
         if (track.tacticalState !== 'CAP') return false;
         const hostiles = this.aliveHostileFighters();
@@ -1108,7 +1108,7 @@ class PilotAI {
 
         const remaining = this.blueMissilesRemaining(track);
 
-        // Assigned shooters must meld/commit (or WVR) against owned contacts — do not
+        // Assigned shooters must meld/commit (or WVR) against owned contacts: do not
         // sit on station while a later wave closes inside the meld ring.
         if (this.isSortAssignedShooter(track)) {
             const ownedIds = this.ownedHostileIds(track);
@@ -1273,7 +1273,7 @@ class PilotAI {
         return best;
     }
 
-    /** Steer blue home — never bare east (90) with no return plan. */
+    /** Steer blue home: never bare east (90) with no return plan. */
     blueHomeHeading(track) {
         const station = this.resolveCapStation(track);
         if (station) {
@@ -1295,7 +1295,7 @@ class PilotAI {
 
     /**
      * Red search / reorient heading after lost SA.
-     * Bare ingress 90 (east) is only for the initial push — not after overshoot.
+     * Bare ingress 90 (east) is only for the initial push: not after overshoot.
      */
     redSearchHeading(track) {
         const perceived = this.pickRedTarget(track);
@@ -1310,7 +1310,7 @@ class PilotAI {
         ) {
             return track.lastTargetBearing;
         }
-        // Blue CAP / fighters centroid (training reorient — keeps package on picture)
+        // Blue CAP / fighters centroid (training reorient: keeps package on picture)
         const blues = this.worldTracks().filter(t =>
             !t.hostile && t.type === 'fighter' && !t.isSplashed
         );
@@ -1337,7 +1337,7 @@ class PilotAI {
     }
 
     shouldUseRedIngressHeading(track) {
-        // After first commit / lost lock — never resume mindless 090 drone
+        // After first commit / lost lock: never resume mindless 090 drone
         if (track.hadRedCommit) return false;
         const r = track.range || 0;
         const brg = ((track.bearing || 0) % 360 + 360) % 360;
@@ -1346,13 +1346,13 @@ class PilotAI {
         // Western sector, still approaching CAP belt
         const westSector = brg >= 200 && brg <= 340;
         if (westSector && r > 55) return true;
-        // Inside/through the picture with no SA — search, don't continue east
+        // Inside/through the picture with no SA: search, don't continue east
         return false;
     }
 
     holdCap(track) {
         if (track.formation && track.formation.role === 'WING') {
-            // Unreleased wing: hold CAP station / formation — do not chase lead into the fight
+            // Unreleased wing: hold CAP station / formation, do not chase lead into the fight
             if (!track.sortReleased && !track.forceSortEngage) {
                 if (this.isBlueFormationHoldState(track)) {
                     this.holdBlueFormation(track);
@@ -1589,7 +1589,7 @@ class PilotAI {
 
         track.speed = Math.min((track.cruiseSpeed || 420) + 200, 900);
 
-        // Shoot when nose-on (ATA gate), then crank — pure pursuit until employment cone
+        // Shoot when nose-on (ATA gate), then crank: pure pursuit until employment cone
         this.maybeEnterTargeted(track, target, braa);
 
         const emp = this.blueEmploymentProfile(track);
@@ -1868,7 +1868,7 @@ class PilotAI {
     }
 
     /**
-     * Red target pick — fighters/HVAA only from perceivedTracks (VLO honesty).
+     * Red target pick: fighters/HVAA only from perceivedTracks (VLO honesty).
      * World tanker fallback only for PUSH_HVAA when nothing is perceived.
      */
     pickRedTarget(track) {
@@ -1909,7 +1909,7 @@ class PilotAI {
             return hvaa.slice().sort((a, b) => this.braa(track, a).range - this.braa(track, b).range)[0];
         }
 
-        // No god-mode fighter fallback — VLO means unseen blues stay unseen.
+        // No god-mode fighter fallback: VLO means unseen blues stay unseen.
         // Tanker-only world fallback for PUSH_HVAA when radar is empty.
         return world.find(t => !t.hostile && t.type === 'tanker' && !t.isSplashed) || null;
     }

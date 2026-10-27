@@ -10,7 +10,7 @@
 /**
  * Thresholds the labels hang on. The first four come from the ALSSA comm standard;
  * wave / package bounding distances are set in mission planning in the real world,
- * so the values here are trainer assumptions — tune them in one place.
+ * so the values here are trainer assumptions: tune them in one place.
  */
 const PICTURE_RULES = {
     groupNm: 3,
@@ -27,7 +27,7 @@ const ORDINALS = ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVEN
 
 class PictureGenerator {
     constructor(opts = {}) {
-        this.callsign = opts.callsign || 'TANGO';
+        this.callsign = opts.callsign || 'WARRIOR';
         this.rules = Object.assign({}, PICTURE_RULES, opts.rules || {});
         this.formationTypes = {
             AZIMUTH: 'AZIMUTH',
@@ -43,7 +43,7 @@ class PictureGenerator {
 
     /**
      * @param groups  hostile groups from TrackClusterer
-     * @param bullseye unused — positions are already bullseye-relative
+     * @param bullseye unused: positions are already bullseye-relative
      * @param meta    { orientation | orient, mode, blues, requesterId }
      */
     generatePicture(groups, bullseye, meta = {}) {
@@ -145,7 +145,7 @@ class PictureGenerator {
 
     /**
      * A named group has changed track after the picture: call it by the name it already
-     * has with the new aspect — never re-label the picture.
+     * has with the new aspect: never re-label the picture.
      * @param fighterRef point the aspect is measured from (the friendly fighters)
      */
     generateManeuverCall(group, maneuver, name, fighterRef) {
@@ -168,7 +168,7 @@ class PictureGenerator {
     /**
      * A named group has split: name it, then give each resulting group by its new name
      * with BULLSEYE, altitude, track and declaration. Either piece is a valid anchor.
-     * @param pieces [{ group, name }] — the two groups the split left
+     * @param pieces [{ group, name }]: the two groups the split left
      */
     generateSplitCall(parentName, pieces) {
         const parts = pieces.map(({ group: g, name }) => [
@@ -230,7 +230,7 @@ class PictureGenerator {
         const aspect = this.aspect(threat, blue);
         return {
             text: `"${blue.callsign}, THREAT GROUP ${alssaBraa(braa)}, ${alssaFormatAltitude(threat.centroid.altitude)}, ${aspect}, HOSTILE"`,
-            prompt: `Pop-up group meets THREAT criteria — call it to the closest fighter.`,
+            prompt: `Pop-up group meets THREAT criteria. Call it to the closest fighter.`,
             groups,
             formation: null,
             answerKey: this.buildBraaKey(braa, threat, aspect, blue)

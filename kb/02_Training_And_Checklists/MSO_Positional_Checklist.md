@@ -13,7 +13,7 @@
 - [ ] Open BC3 → set **Scope Profile** next
 - [ ] Bullseye / reference set
 - [ ] Verify TPS-75 feed healthy (range/alt picture makes sense vs brief)
-- [ ] Note EP/EA status with EPT — translate impact to WD/ABM
+- [ ] Note EP/EA status with EPT: translate impact to WD/ABM
 
 ## During vul
 - [ ] Monitor track continuity / dropouts

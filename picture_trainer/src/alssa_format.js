@@ -61,7 +61,7 @@ function alssaAltitudeK(altitudeFt) {
     return Math.round(Number(altitudeFt) / 1000);
 }
 
-/** Altitude is voiced to the nearest thousand feet — never as HIGH / MEDIUM / LOW. */
+/** Altitude is voiced to the nearest thousand feet: never as HIGH / MEDIUM / LOW. */
 function alssaFormatAltitude(altitudeFt) {
     return `${alssaNumberToWords(Math.max(1, alssaAltitudeK(altitudeFt)))} THOUSAND`;
 }

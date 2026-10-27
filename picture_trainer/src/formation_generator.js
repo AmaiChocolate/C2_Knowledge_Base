@@ -22,8 +22,8 @@ function randInt(rng, min, max) {
 
 /**
  * Formation layouts are built in the threat-axis frame, in nm:
- *   back  — distance behind the formation's front (0 = closest to the fighters)
- *   cross — offset across the threat axis
+ *   back : distance behind the formation's front (0 = closest to the fighters)
+ *   cross: offset across the threat axis
  * Group centres stay at least 7 nm apart so wingmen (slotted < 2 nm from lead)
  * can never bridge two groups under the 3 nm rule, and every dimension is chosen
  * to land clearly on one side of the PICTURE_RULES thresholds.
@@ -242,7 +242,7 @@ function generatePackages(rng) {
     ];
 }
 
-/** Picture of the Day — the harder presentations. */
+/** Picture of the Day: the harder presentations. */
 function generatePotd(rng) {
     const kind = pick(rng, ['leading_edge', 'three_waves', 'packages', 'weighted', 'box', 'ladder5', 'wall5']);
     if (kind === 'leading_edge') return stackWaves(rng, [pick(rng, TRADITIONAL), 'wall', 'wall']);

@@ -40,7 +40,7 @@
 - No visual ID
 - Does not meet hostile criteria yet
 
-**Example**: `"TANGO, PICTURE, THREE GROUPS, NORTH GROUP BULLSEYE 090/25, HIGH, TRACK WEST, BOGEY"`
+**Example**: `"WARRIOR, PICTURE, THREE GROUPS, NORTH GROUP BULLSEYE 090/25, HIGH, TRACK WEST, BOGEY"`
 
 ---
 

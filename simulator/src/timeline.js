@@ -16,10 +16,10 @@ class MissionTimeline {
 
     log(type, detail = {}) {
         const t = this.startedAt ? Date.now() - this.startedAt : 0;
-        // simT: sim seconds since mission start (set simClock to the scope's clock) —
+        // simT: sim seconds since mission start (set simClock to the scope's clock) -
         // unlike wall-clock `t` it is comparable across time-compression settings.
         const simT = this.simClock ? Math.round((this.simClock() - (this.simStart || 0)) * 10) / 10 : null;
-        // A detail field called `type` (the weapon) must not overwrite the event type —
+        // A detail field called `type` (the weapon) must not overwrite the event type -
         // it used to turn every splash / pitbull / defeat into an event named "FOX3".
         const { type: weapon, ...rest } = detail;
         const event = { t, simT, type, ...rest, at: new Date().toISOString() };
@@ -79,7 +79,7 @@ class MissionTimeline {
         const pictures = this.events.filter(e => e.type === 'picture').length;
         const commits = this.events.filter(e => e.type === 'commit').length;
         const decls = this.events.filter(e => e.type === 'declaration').length;
-        // Blue AIM-120 launches only — red R-77 launches share the event name but carry `weapon`.
+        // Blue AIM-120 launches only: red R-77 launches share the event name but carry `weapon`.
         const fox = this.events.filter(e => e.type === 'fox3' && e.weapon == null).length;
         const skosh = this.events.filter(e => e.type === 'skosh').length;
         const splashEvents = this.events.filter(e => e.type === 'splash');

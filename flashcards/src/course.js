@@ -1,5 +1,5 @@
 /**
- * WD from Zero — course runner.
+ * WD from Zero: course runner.
  *
  * Modules unlock in order. Each module's stages take support away step by step
  * (guided → build → solo); a stage is passed with PASS_SCORE of RUN_LENGTH in one run.
@@ -229,7 +229,7 @@
         const m = modules[mi];
         const s = m.stages[si];
         const pool = bank[stageKey(m, s)] || [];
-        startRun({ kind: 'stage', mi, si, title: `Module ${mi} · ${m.title} — ${s.title}`, questions: pickQuestions(pool, RUN_LENGTH) });
+        startRun({ kind: 'stage', mi, si, title: `Module ${mi} · ${m.title}: ${s.title}`, questions: pickQuestions(pool, RUN_LENGTH) });
     }
 
     function startReview() {
@@ -339,7 +339,7 @@
         }
         if (q.t === 'call') {
             return `<label class="call-input">Say it out loud or type it (optional)
-                <textarea rows="3" placeholder="TANGO, …"></textarea></label>
+                <textarea rows="3" placeholder="WARRIOR, …"></textarea></label>
                 <div class="btn-row"><button type="button" class="primary" data-act="reveal">Show the answer</button></div>`;
         }
         return '';
@@ -364,7 +364,7 @@
     function fieldInput(f) {
         const id = `f-${f.k}`;
         if (f.kind === 'select') {
-            return `<label>${esc(f.label)}<select id="${id}" name="${f.k}"><option value="">—</option>${f.options.map(o => `<option>${esc(o)}</option>`).join('')}</select></label>`;
+            return `<label>${esc(f.label)}<select id="${id}" name="${f.k}"><option value="">-</option>${f.options.map(o => `<option>${esc(o)}</option>`).join('')}</select></label>`;
         }
         if (f.kind === 'anchor') {
             return `<fieldset class="anchor"><legend>${esc(f.label)}</legend>
@@ -393,7 +393,7 @@
         return q.fields.map(f => {
             if (f.kind === 'select') {
                 const got = data.get(f.k) || '';
-                return { label: f.label, ok: got === f.v, expect: f.v, got: got || '—' };
+                return { label: f.label, ok: got === f.v, expect: f.v, got: got || '-' };
             }
             if (f.kind === 'anchor') {
                 const b = parseNum(data.get(`${f.k}.b`));
@@ -415,7 +415,7 @@
             return {
                 label: f.label, ok: !Number.isNaN(n) && ok,
                 expect: f.kind === 'bearing' ? pad3(f.v) : String(f.v),
-                got: raw || '—', tol: f.tol ? `±${f.tol}` : ''
+                got: raw || '-', tol: f.tol ? `±${f.tol}` : ''
             };
         });
     }
@@ -474,7 +474,7 @@
         const typed = (app.querySelector('#answerArea textarea') || {}).value || '';
         app.querySelector('#answerArea').innerHTML = `${typed.trim() ? `<p class="muted">You said:</p><div class="call-text answer-call mine">${esc(typed)}</div>` : ''}
             <p class="muted">The call:</p>${callHtml(q.call)}
-            <p>Did you get every piece — groups, label, dimensions, BULLSEYE / BRAA, altitude, track, declaration, fill-ins?</p>
+            <p>Did you get every piece: groups, label, dimensions, BULLSEYE / BRAA, altitude, track, declaration, fill-ins?</p>
             <div class="btn-row"><button type="button" class="good" data-act="self" data-ok="1">Got it all <kbd>1</kbd></button>
             <button type="button" class="bad" data-act="self" data-ok="0">Missed something <kbd>2</kbd></button></div>`;
         state.revealed = true;
@@ -511,7 +511,7 @@
             if (pass) rec.passed = true;
             progress.stages[key] = rec;
             saveProgress();
-            headline += pass ? ' — stage passed' : ` — ${PASS_SCORE} needed to pass`;
+            headline += pass ? ': stage passed' : `. ${PASS_SCORE} needed to pass.`;
             const ns = state.si + 1 < m.stages.length ? [state.mi, state.si + 1] : state.mi + 1 < modules.length ? [state.mi + 1, 0] : null;
             if (pass && ns) {
                 nextBtn = ns[1] === 0
@@ -524,7 +524,7 @@
         app.innerHTML = `<section class="panel result">
             <h2>${esc(state.title)}</h2>
             <p class="score">${headline}</p>
-            ${missed.length ? `<h3>Missed — these come back in Review due</h3><ul class="missed">${missed.map(q => `<li><b>${esc(q.prompt)}</b>${q.why ? `<br><span class="muted">${esc(q.why)}</span>` : ''}</li>`).join('')}</ul>` : '<p>Clean run.</p>'}
+            ${missed.length ? `<h3>Missed (these come back in Review due)</h3><ul class="missed">${missed.map(q => `<li><b>${esc(q.prompt)}</b>${q.why ? `<br><span class="muted">${esc(q.why)}</span>` : ''}</li>`).join('')}</ul>` : '<p>Clean run.</p>'}
             <div class="btn-row">${nextBtn}<button type="button" data-act="home">Back to course</button></div>
         </section>`;
         window.scrollTo(0, 0);

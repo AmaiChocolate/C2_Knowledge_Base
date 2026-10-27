@@ -6,9 +6,9 @@
 ## Phase 1: Check-In and Authentication
 
 ### Fighter Check-In
-**Fighter**: `"TANGO, RAPTOR 11, flight of 2, Checking in"`
+**Fighter**: `"WARRIOR, RAPTOR 11, flight of 2, Checking in"`
 
-**WD Acknowledgment**: `"RAPTOR 11, TANGO, copy 2"`
+**WD Acknowledgment**: `"RAPTOR 11, WARRIOR, copy 2"`
 
 ---
 
@@ -136,7 +136,7 @@ If equipment is degraded:
 ---
 
 ### Return to CAP
-**Fighter** (after refuel): `"TANGO, RAPTOR 11, back on station"`
+**Fighter** (after refuel): `"WARRIOR, RAPTOR 11, back on station"`
 
 **WD**: `"RAPTOR 11, copy, PICTURE CLEAN"`
 
