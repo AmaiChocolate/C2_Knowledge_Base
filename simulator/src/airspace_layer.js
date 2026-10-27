@@ -76,7 +76,7 @@ class AirspaceLayer {
                 });
                 this._labelExtentCorners(ctx, g.coordinates[0], inv);
             } else if ((kind === 'moa' || kind === 'sector') && g.type === 'Polygon') {
-                // Figure A.3-1 magenta MOA — stroke only
+                // Figure A.3-1 magenta MOA: stroke only
                 this._strokePolygon(ctx, g.coordinates, {
                     stroke: 'rgba(255, 100, 200, 0.75)',
                     width: 1.3 * inv
@@ -89,7 +89,7 @@ class AirspaceLayer {
                     });
                 }
             } else if (kind === 'restricted' && g.type === 'Polygon') {
-                // Figure A.3-1 light-blue restricted — CRT cyan stroke only
+                // Figure A.3-1 light-blue restricted: CRT cyan stroke only
                 this._strokePolygon(ctx, g.coordinates, {
                     stroke: 'rgba(80, 200, 255, 0.7)',
                     width: 1.4 * inv
@@ -115,7 +115,7 @@ class AirspaceLayer {
                     fontPx: 8
                 });
             } else if (kind === 'roz' && g.type === 'Polygon') {
-                // Chart 4808A — only fill
+                // Chart 4808A: only fill
                 this._fillStrokePolygon(ctx, g.coordinates, {
                     fill: 'rgba(100, 160, 220, 0.2)',
                     stroke: 'rgba(120, 200, 255, 0.95)',
@@ -158,7 +158,7 @@ class AirspaceLayer {
                 this._strokePolygon(ctx, g.coordinates, { stroke: 'rgba(255, 100, 200, 0.5)', width: 1.0 * inv });
                 ctx.restore();
             } else if (kind === 'label' && g.type === 'Point') {
-                // Sub-area with no published boundary — name only, position approximate
+                // Sub-area with no published boundary: name only, position approximate
                 if (showLabels && this.viewScale >= 0.85) {
                     const p = this.projection.latLonToXY(g.coordinates[1], g.coordinates[0]);
                     ctx.font = `italic ${9 * inv}px "Courier New", monospace`;

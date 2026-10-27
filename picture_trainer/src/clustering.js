@@ -1,5 +1,5 @@
 /**
- * DBSCAN — 3 NM group rule (ALSSA).
+ * DBSCAN: 3 NM group rule (ALSSA).
  */
 class TrackClusterer {
     constructor(epsilon = 3, minPoints = 1) {
@@ -66,7 +66,7 @@ class TrackClusterer {
     }
 
     createGroup(tracks) {
-        // Average in east/north space — averaging raw bearings breaks across 360/000.
+        // Average in east/north space: averaging raw bearings breaks across 360/000.
         let e = 0;
         let n = 0;
         let alt = 0;

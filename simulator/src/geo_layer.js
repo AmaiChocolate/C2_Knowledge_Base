@@ -64,7 +64,7 @@ class GeoLayer {
             } else if (kind === 'airfield' && g.type === 'Point') {
                 this._drawAirfield(ctx, g.coordinates, f.properties, dim);
             }
-            // bullseye marker skipped — scope already draws bulls
+            // bullseye marker skipped: scope already draws bulls
         }
 
         ctx.restore();

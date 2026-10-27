@@ -1,5 +1,5 @@
 /**
- * Picture Call Trainer — app wiring.
+ * Picture Call Trainer: app wiring.
  */
 (function () {
     const state = {
@@ -11,7 +11,7 @@
         formFamily: null
     };
 
-    const pictureGen = new PictureGenerator({ callsign: 'TANGO' });
+    const pictureGen = new PictureGenerator({ callsign: 'WARRIOR' });
     const clusterer = new TrackClusterer(PICTURE_RULES.groupNm, 1);
     const grader = new PictureGrader(pictureGen, clusterer);
 
@@ -38,12 +38,12 @@
     };
 
     const MODE_HINTS = {
-        picture: 'ALSSA picture — total groups, label and dimensions, anchor BULLSEYE, altitude, track. Leave fields blank when they do not apply.',
-        packages: 'Packages — number of packages, azimuth separation, and the BULLSEYE of either package.',
-        braa: 'Respond in BRAA format from the named fighter — not bullseye.',
-        music: 'MUSIC — anchor the named group off BULLSEYE with altitude and track.',
-        strobe: 'STROBE — range and altitude of the closest group along the fighter\'s strobe bearing (±30°).',
-        maneuver: 'Maneuver — the picture is called, so do not re-label it. Name the group as you called it, then HOT / FLANK / BEAM / DRAG and the cardinal it is now tracking. For a SPLIT, give the BULLSEYE of either new group.'
+        picture: 'ALSSA picture: total groups, label and dimensions, anchor BULLSEYE, altitude, track. Leave fields blank when they do not apply.',
+        packages: 'Packages: number of packages, azimuth separation, and the BULLSEYE of either package.',
+        braa: 'Respond in BRAA format from the named fighter, not bullseye.',
+        music: 'MUSIC: anchor the named group off BULLSEYE with altitude and track.',
+        strobe: 'STROBE: range and altitude of the closest group along the fighter\'s strobe bearing (±30°).',
+        maneuver: 'Maneuver: the picture is called, so do not re-label it. Name the group as you called it, then HOT / FLANK / BEAM / DRAG and the cardinal it is now tracking. For a SPLIT, give the BULLSEYE of either new group.'
     };
 
     function initCategoryPicker() {
@@ -173,12 +173,12 @@
     function maneuverStatus() {
         if (maneuvers.phase === 'picture') return null;
         if (maneuvers.phase === 'done') {
-            return maneuvers.called ? 'All maneuvers called — load the next scenario.' : 'No group could maneuver clear of the others this run.';
+            return maneuvers.called ? 'All maneuvers called. Load the next scenario.' : 'No group could maneuver clear of the others this run.';
         }
         const n = `${maneuvers.called + 1} of ${maneuvers.planned}`;
         return maneuvers.pending(scope.tracks)
-            ? `Maneuver ${n}: a group has changed track — call it.`
-            : `Picture called — watch for maneuvers (${n}).`;
+            ? `Maneuver ${n}: a group has changed track. Call it.`
+            : `Picture called. Watch for maneuvers (${n}).`;
     }
 
     function hideReveal() {
@@ -193,7 +193,7 @@
         const answer = currentAnswer();
         const family = answer.answerKey && answer.answerKey.family;
         els.revealPanel.innerHTML = `<p class="call-text">${escapeHtml(answer.text)}</p>`
-            + (maneuvers.phase !== 'picture' ? '' : '<p class="muted">Answer is for the scope as it is right now — pause first if you are still measuring.</p>');
+            + (maneuvers.phase !== 'picture' ? '' : '<p class="muted">Answer is for the scope as it is right now. Pause first if you are still measuring.</p>');
         if (maneuvers.phase === 'picture') commitPicture(answer);
         else if (family === 'maneuver') maneuverCalled();
     }

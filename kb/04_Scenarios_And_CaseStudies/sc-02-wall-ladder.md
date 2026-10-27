@@ -1,4 +1,4 @@
-# sc-02 — DCA WALL / LADDER Picture
+# sc-02: DCA WALL / LADDER Picture
 
 **Scenario ID:** `sc-02-wall-ladder`  
 **Last Reviewed:** 2026-08-22  

@@ -1,5 +1,5 @@
 /**
- * Grading — builds the answer from live scope truth and compares the student form to it.
+ * Grading: builds the answer from live scope truth and compares the student form to it.
  *
  * An answer key is { family, fields, anchors?, tolerances }. `family` selects which
  * form fields are shown and graded (ANSWER_FAMILIES); adding a drill type means adding
@@ -67,8 +67,8 @@ class PictureGrader {
         const m = director.pending(tracks);
         if (!m) {
             const text = director.phase === 'done'
-                ? 'All maneuvers called — load the next scenario.'
-                : 'No maneuver yet — the groups are still flying as called.';
+                ? 'All maneuvers called. Load the next scenario.'
+                : 'No maneuver yet. The groups are still flying as called.';
             return { text, prompt: null, groups: [], formation: null, answerKey: null };
         }
         const groupOf = id => this.clusterer.groupByTruth(tracks.filter(t => t.hostile && !t.isDormant && t.groupId === id))[0];
@@ -173,7 +173,7 @@ class PictureGrader {
     }
 
     /**
-     * Any cardinal whose centre is within the direction tolerance of the true heading —
+     * Any cardinal whose centre is within the direction tolerance of the true heading -
      * a group on 250 may be called WEST or SOUTHWEST. Blank when there is no direction (HOT).
      */
     cardinalMatches(got, expected, heading, tolerance) {

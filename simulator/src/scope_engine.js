@@ -18,7 +18,7 @@ class ScopeEngine {
         this.radar = typeof RadarModel !== 'undefined' ? new RadarModel() : null;
         this.selectedTrack = null;
         this.showGrid = true;
-        this.showBMA = false; // optional — off by default (less mid-scope clutter)
+        this.showBMA = false; // optional: off by default (less mid-scope clutter)
         this.showCAP = true;
         this.showSafePassage = false;
         this.showDAL = true;
@@ -27,7 +27,7 @@ class ScopeEngine {
         this.showHvaaCircles = true;
         this.showGeography = true;
         this.showAirspace = true;
-        this.showRangeRings = false; // bulls is a reference — no PPI rings from bulls
+        this.showRangeRings = false; // bulls is a reference: no PPI rings from bulls
 
         // Theater geo (true north, equirectangular around bulls)
         this.bullseyeGeo = { lat: 38.0, lon: -115.0 };
@@ -107,7 +107,7 @@ class ScopeEngine {
 
         // Simulation state
         this.lastUpdateTime = Date.now();
-        // Accumulated sim seconds (respects timeScale) — CM / defend timers use this
+        // Accumulated sim seconds (respects timeScale): CM / defend timers use this
         this.simTimeSec = 0;
 
         this.init();
@@ -153,7 +153,7 @@ class ScopeEngine {
     }
 
     /**
-     * Pointer-capture pan/zoom — left-drag pans, wheel zooms, click selects.
+     * Pointer-capture pan/zoom: left-drag pans, wheel zooms, click selects.
      * Previous handlers required Alt/middle button; that felt broken.
      */
     bindPointerNav() {
@@ -619,7 +619,7 @@ class ScopeEngine {
 
     /**
      * Left-hand racetrack about the anchor centre. The outbound leg (along legHeading)
-     * flies the right-hand lane — for an AAR anchor that is the published IP→CP track —
+     * flies the right-hand lane: for an AAR anchor that is the published IP→CP track -
      * and the return leg flies the left-hand lane, laneHalfNm either side of centre.
      */
     updateOrbitLogic(track, dt) {
@@ -663,7 +663,7 @@ class ScopeEngine {
         track.targetHeading = hdg;
     }
 
-    /** Live tanker (or HVAA) for an orbit anchor — skips splashed tracks. */
+    /** Live tanker (or HVAA) for an orbit anchor: skips splashed tracks. */
     findOrbitTrack(anchor) {
         const alive = (t) => !t.isSplashed;
         const truth = (this.truthTracks || []).filter(alive);
@@ -678,7 +678,7 @@ class ScopeEngine {
         return truth.find(t => !t.hostile && t.type === anchor.type) || null;
     }
 
-    /** WVR gun kill — splash target and return timeline detail. */
+    /** WVR gun kill: splash target and return timeline detail. */
     applyGunKill(shooter, target) {
         if (!shooter || !target || target.isSplashed) return null;
         target.isSplashed = true;
@@ -735,7 +735,7 @@ class ScopeEngine {
         this.drawScaleBar();
     }
 
-    /** Screen-space nm scale bar — the same px/nm every layer is drawn with. */
+    /** Screen-space nm scale bar: the same px/nm every layer is drawn with. */
     drawScaleBar() {
         const pxPerNm = this.scale * this.viewScale;
         const nm = [1, 2, 5, 10, 20, 50, 100, 200, 500].find(n => n * pxPerNm >= 90) || 500;
@@ -1078,7 +1078,7 @@ class ScopeEngine {
     }
 
     drawRangeRings() {
-        // Primary PPI rings — thin green, labeled in NM (outer rings when zoomed out for AOR)
+        // Primary PPI rings: thin green, labeled in NM (outer rings when zoomed out for AOR)
         let ringsNm = [25, 50, 75, 100, 125, 150, 175];
         if (this.viewScale < 0.85) ringsNm = ringsNm.concat([200, 250, 300]);
         if (this.viewScale < 0.55) ringsNm = ringsNm.concat([400, 500, 600]);
@@ -1172,7 +1172,7 @@ class ScopeEngine {
             this.ctx.lineTo(pos.x, pos.y + 5 * inv);
             this.ctx.stroke();
 
-            // The CAP leg as flown (east-west, to scale) — the marker above is only a symbol.
+            // The CAP leg as flown (east-west, to scale): the marker above is only a symbol.
             const half = ((this.pilotAI && this.pilotAI.capLegHalfNm) || 10) * this.scale;
             const lane = 1.5 * this.scale;
             this.ctx.save();
@@ -1223,7 +1223,7 @@ class ScopeEngine {
 
     drawTracks() {
         this.tracks.forEach(track => {
-            // Scope shows radar feed tracks — do NOT hide hostiles behind fighter perception
+            // Scope shows radar feed tracks: do NOT hide hostiles behind fighter perception
             const pos = this.bearingRangeToXY(track.bearing, track.range);
 
             if (track.history && track.history.length > 1) {
@@ -1563,7 +1563,7 @@ class ScopeEngine {
 
             // Label
             const st = m.state === 'SUPPORT' ? 'SUP' : (m.state === 'ACTIVE' ? 'ACT' : m.state);
-            const rtt = Number.isFinite(m.rangeToTarget) ? Math.round(m.rangeToTarget) : '—';
+            const rtt = Number.isFinite(m.rangeToTarget) ? Math.round(m.rangeToTarget) : '-';
             this.ctx.fillStyle = color;
             this.ctx.font = `bold ${9 * inv}px monospace`;
             this.ctx.textAlign = 'left';

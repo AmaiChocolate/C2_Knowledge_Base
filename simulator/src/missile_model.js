@@ -91,7 +91,7 @@ class MissileModel {
         return aspect >= min && aspect <= max;
     }
 
-    /** Sim clock (seconds) — preferred so timeScale does not stretch wall-clock CM. */
+    /** Sim clock (seconds): preferred so timeScale does not stretch wall-clock CM. */
     simNow(scope) {
         if (scope && scope.simTimeSec != null) return scope.simTimeSec;
         return Date.now() / 1000;
@@ -113,7 +113,7 @@ class MissileModel {
 
     /**
      * Evaluate defender notch/chaff/ECM defeat before hit check.
-     * SUPPORT midcourse: datalink still closes — notch must NOT poison lead from 25 nm.
+     * SUPPORT midcourse: datalink still closes, notch must NOT poison lead from 25 nm.
      * ACTIVE terminal: notch + chaff can defeat; mild lead bleed only inside CM envelope.
      */
     evaluateDefeat(scope, target, dt) {
@@ -194,7 +194,7 @@ class MissileModel {
                 this.defeatTimer = Math.max(0, this.defeatTimer - dt * 0.5);
             }
 
-            // Terminal-only lead bleed — never during SUPPORT midcourse
+            // Terminal-only lead bleed: never during SUPPORT midcourse
             if (inNotch && this.rangeToTarget <= effNm * 1.25) {
                 const ecmBleed = (profile.ecmStrength || 0) > 0.1 && !chaff ? 0.12 : 0.08;
                 const maxLead = profile.maxLeadBleedSec != null ? profile.maxLeadBleedSec : 4.0;

@@ -57,7 +57,7 @@
     }
   ],
   "id": "sc-03-degraded-radar",
-  "name": "NTTR E–W — Degraded Radar Feed",
+  "name": "NTTR E–W: Degraded Radar Feed",
   "radarMode": "degraded",
   "tracks": [
     {

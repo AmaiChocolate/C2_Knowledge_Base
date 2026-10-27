@@ -20,12 +20,12 @@ Start here. Follow a [[Role_Paths|role path]], then drill systems → doctrine �
 - Run DCA timeline: check-in → picture → commit → sort → terminate → debrief.
 - Practice in [[../../simulator/README|BC3 Scope Trainer]] scenarios `sc-01`–`sc-03`.
 - Drill picture labels and dimensions in [[../../picture_trainer/README|ALSSA Picture Call Trainer]] (animated formations, graded + reveal modes).
-- Starting from nothing: the **WD from Zero** course in [[../../flashcards/README|flashcards/]] (`course.html`) — lesson, guided, build-the-call and solo stages per module, spaced review.
+- Starting from nothing: the **WD from Zero** course in [[../../flashcards/README|flashcards/]] (`course.html`): lesson, guided, build-the-call and solo stages per module, spaced review.
 
 ### ABM (Air Battle Manager)
 - Own sector/force SA, contracts with MC/other WDs, commit authority discipline.
 - Integrate ROE/ID matrix declarations with WD picture and MSO systems status.
-- Lead brief/debrief loops (AF Form 4146 concepts — knowledge only until digitized).
+- Lead brief/debrief loops (AF Form 4146 concepts: knowledge only until digitized).
 
 ### C2BMO (C2 Battle Management Officer / supervisory C2)
 - Align CRC execution to JFACC/CFACC guidance (ATO/ACO/SPINS intent).
@@ -51,4 +51,4 @@ Scenario IDs are shared: `sc-01-single-commit`, `sc-02-wall-ladder`, `sc-03-degr
 
 - [[Systems_Index]]
 - [[Doctrine_Home]]
-- External MQF app: `D:\MQF_dev` — [[MQF_Study_Link]]
+- External MQF app: `D:\MQF_dev`, [[MQF_Study_Link]]

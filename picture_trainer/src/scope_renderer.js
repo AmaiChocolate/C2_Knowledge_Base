@@ -1,5 +1,5 @@
 /**
- * Picture Trainer scope — render, pan/zoom, measure.
+ * Picture Trainer scope: render, pan/zoom, measure.
  */
 class ScopeRenderer {
     constructor(canvasId) {

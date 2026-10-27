@@ -1,9 +1,9 @@
 /**
- * Draws one flash card's scope as a still SVG string — no canvas, no animation loop.
+ * Draws one flash card's scope as a still SVG string: no canvas, no animation loop.
  *
  * Positions on a card are nm east / north of BULLSEYE. Two views:
- *   'scope' — BULLSEYE, the friendly fighters and the raid together
- *   'raid'  — zoomed to the hostiles, close enough to count contacts
+ *   'scope': BULLSEYE, the friendly fighters and the raid together
+ *   'raid' : zoomed to the hostiles, close enough to count contacts
  * Symbols, tags and text stay a fixed pixel size; only distances scale.
  */
 const CardRender = (function () {
@@ -244,7 +244,7 @@ const CardRender = (function () {
 
     /**
      * opts.measurements (default true) draws the card's given measurements.
-     * @returns {{ svg: string, view: object }} — `view` maps pixels back to nm for the measure tool.
+     * @returns {{ svg: string, view: object }}, `view` maps pixels back to nm for the measure tool.
      */
     function render(card, opts = {}) {
         const width = opts.width || 800;

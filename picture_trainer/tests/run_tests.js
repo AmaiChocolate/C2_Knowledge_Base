@@ -1,5 +1,5 @@
 /**
- * Headless checks for the Picture Trainer — no dependencies:
+ * Headless checks for the Picture Trainer: no dependencies:
  *
  *     node picture_trainer/tests/run_tests.js
  *
@@ -58,7 +58,7 @@ function check(cond, where, msg) {
     if (!cond) failures.push(`${where}: ${msg}`);
 }
 
-const gen = new T.PictureGenerator({ callsign: 'TANGO' });
+const gen = new T.PictureGenerator({ callsign: 'WARRIOR' });
 const clusterer = new T.TrackClusterer(T.PICTURE_RULES.groupNm, 1);
 const grader = new T.PictureGrader(gen, clusterer);
 
@@ -68,7 +68,7 @@ const EXPECTED_LABEL = {
     champagne: 'CHAMPAGNE', vic: 'VIC', box: 'BOX'
 };
 
-/** A submission built straight from the key — must always score 100%. */
+/** A submission built straight from the key: must always score 100%. */
 function perfectStudent(key) {
     const s = Object.assign({}, key.fields);
     if (key.anchors && key.family === 'maneuver') {
@@ -157,18 +157,18 @@ function simulate(scenario, seconds) {
                 check(key.fields.groupCount === scenario.hostileGroupCount, where, `group count ${key.fields.groupCount}`);
             }
             if (EXPECTED_LABEL[cat.id]) {
-                check(key.fields.label === EXPECTED_LABEL[cat.id], where, `label ${key.fields.label} — ${answer.text}`);
+                check(key.fields.label === EXPECTED_LABEL[cat.id], where, `label ${key.fields.label}: ${answer.text}`);
                 check(key.fields.waveCount == null, where, 'single formation split into waves');
             }
             if (cat.id === 'waves' || cat.id === 'leading_edge') {
-                check(key.fields.waveCount >= 2, where, `expected waves — ${answer.text}`);
+                check(key.fields.waveCount >= 2, where, `expected waves: ${answer.text}`);
                 check(/LEADING EDGE/.test(answer.text), where, 'wave picture lacks LEADING EDGE');
             }
             if (cat.id === 'cap') {
-                check(key.fields.track === 'CAP' && /CAP, HOSTILE/.test(answer.text), where, `cap — ${answer.text}`);
+                check(key.fields.track === 'CAP' && /CAP, HOSTILE/.test(answer.text), where, `cap: ${answer.text}`);
             }
             if (cat.id === 'packages') {
-                check(key.family === 'packages' && key.fields.packageCount === 2, where, `packages — ${answer.text}`);
+                check(key.family === 'packages' && key.fields.packageCount === 2, where, `packages: ${answer.text}`);
                 check(key.anchors[0].bearing !== key.anchors[1].bearing || key.anchors[0].range !== key.anchors[1].range,
                     where, 'both packages anchored at the same point');
             }
@@ -178,7 +178,7 @@ function simulate(scenario, seconds) {
                 check(key.fields.aspect === 'HOT', where, `threat pointed at fighter should be HOT, got ${key.fields.aspect}`);
             }
             if (cat.id === 'ea_bogey') {
-                check(['braa', 'music', 'strobe'].includes(key.family) && !!answer.prompt, where, `ea/bogey — ${answer.text}`);
+                check(['braa', 'music', 'strobe'].includes(key.family) && !!answer.prompt, where, `ea/bogey: ${answer.text}`);
             }
             (key.anchors || []).forEach(a => check(a.bearing >= 0 && a.bearing < 360, where, `anchor bearing ${a.bearing}`));
 

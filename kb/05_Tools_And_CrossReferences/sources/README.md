@@ -10,6 +10,6 @@ Plain-text extracts from unclassified ACC / crew-aid PDFs for search and note dr
 
 Prefer `*_utf8.txt` over `*_text.txt`. Full PDFs: **`D:\ACC Refs`** (not committed).
 
-`extract_pdf.py` — local helper to re-extract if sources update.
+`extract_pdf.py`: local helper to re-extract if sources update.
 
-**Last reviewed:** 2026-08-13 — extracts are raw OCR/text dumps; paraphrase into doctrine notes, do not paste wholesale into finished notes.
+**Last reviewed:** 2026-08-13: extracts are raw OCR/text dumps; paraphrase into doctrine notes, do not paste wholesale into finished notes.

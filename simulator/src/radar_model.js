@@ -1,5 +1,5 @@
 /**
- * AN/TPS-75 radar feed model (logic only — no console UI).
+ * AN/TPS-75 radar feed model (logic only: no console UI).
  * Truth tracks in → what the BC3 scope displays out.
  */
 class RadarModel {

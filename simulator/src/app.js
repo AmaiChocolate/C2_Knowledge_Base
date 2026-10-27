@@ -1,5 +1,5 @@
 /**
- * BC3 Scope Trainer — UI wiring
+ * BC3 Scope Trainer: UI wiring
  */
 
 let scope;
@@ -701,7 +701,7 @@ function nearestHostile(track) {
     return best;
 }
 
-/** Per-fighter meld/commit vs a threat (logic only — not drawn). */
+/** Per-fighter meld/commit vs a threat (logic only: not drawn). */
 function fighterMeldCommitStatus(fighter, threat) {
     if (!fighter || !threat) return null;
     const r = scope.calculateBRAA(fighter.bearing, fighter.range, threat.bearing, threat.range).range;
@@ -776,7 +776,7 @@ function updateTrackInfo(track) {
             ? scope.truthTracks.find(t => String(t.id) === String(truth.assignedTargetId))
             : null;
         const stLabel = truth.tacticalState || (truth.hostile ? 'INGRESS' : 'CAP');
-        const capName = truth.capStation ? truth.capStation.name : '—';
+        const capName = truth.capStation ? truth.capStation.name : '-';
         const hdgAim = (truth.targetHeading != null && Math.abs(truth.targetHeading - (truth.heading || 0)) > 2)
             ? ` → aim ${Math.round(truth.targetHeading)}°`
             : '';
@@ -821,7 +821,7 @@ function updateTrackInfo(track) {
         ${aspectHtml}
         ${meldCommitHtml}
         <p><strong>ALTITUDE:</strong> ${(track.altitude / 1000).toFixed(0)},000 ft</p>
-        <p><strong>HDG/SPD:</strong> ${Math.round(track.heading || 0)}° / ${track.speed || '—'} kts</p>
+        <p><strong>HDG/SPD:</strong> ${Math.round(track.heading || 0)}° / ${track.speed || '-'} kts</p>
         <p><strong>STATUS:</strong> ${track.declaration || (track.hostile ? 'HOSTILE' : (track.affiliation === 'unknown' ? 'BOGEY' : 'FRIENDLY'))}</p>
         <p><strong>TAGS:</strong> ${track.isLeaker ? '<span style="color:red;">LEAKER</span>' : 'NONE'}${track.stale ? ' STALE' : ''}${truth.isSplashed ? ' SPLASH' : ''}</p>
         <hr style="border-color: #00ff00; margin: 10px 0;">
@@ -835,7 +835,7 @@ function updateTrackInfo(track) {
 }
 
 function formatBraa(braa) {
-    if (!braa) return '—';
+    if (!braa) return '-';
     if (braa.text) return braa.text;
     return `${braa.bearing}/${braa.range}/${braa.altitude || '?'} ${braa.aspect || ''}`.trim();
 }
@@ -920,7 +920,7 @@ window.selectTrack = selectTrack;
 function updatePictureSuggestion() {
     const suggestionDiv = document.getElementById('pictureSuggestion');
     if (scope.wdSeat && scope.wdSeat.enabled) {
-        suggestionDiv.innerHTML = '<p><em>Hidden while the WD seat is on — you make the call.</em></p>';
+        suggestionDiv.innerHTML = '<p><em>Hidden while the WD seat is on: you make the call.</em></p>';
         return;
     }
     const hostileTracks = scope.tracks.filter(t => t.hostile);
@@ -966,7 +966,7 @@ function updateTacticalState() {
         });
         h.isThreat = isThreat;
 
-        // Leaker / HVAA threat: scram around live tanker (or DAL) — not bulls commit ring
+        // Leaker / HVAA threat: scram around live tanker (or DAL), not bulls commit ring
         let isLeaker = false;
         if (liveTanker) {
             const toTanker = scope.calculateBRAA(

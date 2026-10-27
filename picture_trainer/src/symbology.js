@@ -1,5 +1,5 @@
 /**
- * Symbology — aligned with BC3 Scope Trainer (milsymbol optional polish)
+ * Symbology: aligned with BC3 Scope Trainer (milsymbol optional polish)
  */
 
 class SymbologyRenderer {
@@ -16,7 +16,7 @@ class SymbologyRenderer {
     /**
      * Core marker always drawn so tracks never disappear. Kept small: wingmen sit
      * under 2 nm from lead, so contacts only separate on the scope when each one
-     * covers a few pixels — zoom in to count them.
+     * covers a few pixels: zoom in to count them.
      */
     drawCoreMarker(ctx, track, selected) {
         const color = track.hostile ? '#ff3344' : (track.affiliation === 'unknown' || track.declaration === 'BOGEY' ? '#ffee33' : '#33ff88');

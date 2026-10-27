@@ -55,7 +55,7 @@ function loadTrainer() {
 
 const T = loadTrainer();
 const R = T.PICTURE_RULES;
-const grader = new T.PictureGrader(new T.PictureGenerator({ callsign: 'TANGO' }), new T.TrackClusterer(R.groupNm, 1));
+const grader = new T.PictureGrader(new T.PictureGenerator({ callsign: 'WARRIOR' }), new T.TrackClusterer(R.groupNm, 1));
 const round1 = x => Math.round(x * 10) / 10;
 /** Records a radar-plot trail for every visible track while the run flies. */
 class PlotRecorder {
@@ -119,9 +119,9 @@ function snapshotTracks(tracks, recorder, tagFriendlyWings) {
 // Flash cards drill the call, not the ruler work, so each card carries the
 // measurements a controller would read off the scope, taken with the answer
 // engine's own geometry so the numbers agree with the key:
-//   pictures  — WIDE / DEEP brackets per formation, wave and package separation
-//   BRAA / EA — bearing / range from the fighter(s) to the groups
-//   maneuvers — each group's heading and angle off the fighters (sets the aspect)
+//   pictures : WIDE / DEEP brackets per formation, wave and package separation
+//   BRAA / EA: bearing / range from the fighter(s) to the groups
+//   maneuvers: each group's heading and angle off the fighters (sets the aspect)
 
 const gen = grader.pictureGen;
 const BRACKET_OFFSET_NM = 4;
@@ -273,7 +273,7 @@ function writeOrCheck(out, text, summary, buildCmd) {
     if (process.argv.includes('--check')) {
         const current = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : '';
         if (current !== text) {
-            console.error(`${rel} is out of date — run: ${buildCmd}`);
+            console.error(`${rel} is out of date. Run: ${buildCmd}`);
             process.exit(1);
         }
         console.log(`${rel} is current: ${summary}`);

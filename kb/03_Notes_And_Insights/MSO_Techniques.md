@@ -9,9 +9,9 @@
 
 ## EMCON awareness
 - Know planned enabled freqs (max 16 for TPS-75 EMCON planning study figure).
-- Understand that EMCON choices shrink what BC3 shows — coordinate with ABM before surprise dropouts.
+- Understand that EMCON choices shrink what BC3 shows: coordinate with ABM before surprise dropouts.
 
 ## Dual-hat SA
-- Watch for WD tunnel vision on one group while feed drops a second wave — call it.
+- Watch for WD tunnel vision on one group while feed drops a second wave: call it.
 
 Related: [[WD_Techniques]] · [[../07_Systems/TPS75_Radar_Feed|TPS-75]]

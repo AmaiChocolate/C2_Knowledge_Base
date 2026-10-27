@@ -1,4 +1,4 @@
-# sc-03 — DCA Degraded Radar Feed
+# sc-03: DCA Degraded Radar Feed
 
 **Scenario ID:** `sc-03-degraded-radar`  
 **Last Reviewed:** 2026-08-22  
@@ -27,6 +27,6 @@ Near wave may paint intermittently under degraded feed; far wave often dropped/s
 ## Debrief prompts
 - Which groups were truth-only vs displayed?
 - Did WD still protect DAL/HVAA with incomplete outer picture?
-- Wave 2 ingress under degraded feed — did you miss dormant-to-active transition?
+- Wave 2 ingress under degraded feed: did you miss dormant-to-active transition?
 
 Related: [[../07_Systems/TPS75_Radar_Feed|TPS75_Radar_Feed]]

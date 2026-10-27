@@ -1,5 +1,5 @@
 /**
- * Staged red ingress waves — hybrid release (time delay or prior wave destroyed).
+ * Staged red ingress waves: hybrid release (time delay or prior wave destroyed).
  */
 const WaveManager = {
     initScenario(scope, waves) {
@@ -8,7 +8,7 @@ const WaveManager = {
         scope.scenarioStartSimSec = scope.simTimeSec || 0;
     },
 
-    /** Sim seconds since the scenario loaded — wave timing must follow time compression. */
+    /** Sim seconds since the scenario loaded: wave timing must follow time compression. */
     getElapsedSec(scope) {
         return (scope.simTimeSec || 0) - (scope.scenarioStartSimSec || 0);
     },
@@ -57,7 +57,7 @@ const WaveManager = {
         const tl = scope.timeline;
         const label = wave.label || `WAVE ${wave.id}`;
         const form = wave.formation || '';
-        const text = `${label} WAVE — ${form} (${tracks.length} groups)`.trim();
+        const text = `${label} WAVE: ${form} (${tracks.length} groups)`.trim();
         if (tl && typeof tl.log === 'function') {
             tl.log('wave_release', {
                 waveId: wave.id,

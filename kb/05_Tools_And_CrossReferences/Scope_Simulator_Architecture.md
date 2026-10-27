@@ -1,6 +1,6 @@
 # 2D Tactical Scope Simulator - Technical Architecture
 
-**Last Reviewed:** 2026-08-13 — **framing update**  
+**Last Reviewed:** 2026-08-13: **framing update**  
 Product identity: **BC3 tactical scope** trainer. Heritage notes mentioned AN/TYQ-23 OM/TDF; do not treat that as the user-facing product name. **AN/TPS-75** is modeled as the **radar track feed** only (no radar console panels).
 
 ## Overview

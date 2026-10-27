@@ -1,5 +1,5 @@
 /**
- * Smooth track animation — BC3-style kinematics with deterministic sim time.
+ * Smooth track animation: BC3-style kinematics with deterministic sim time.
  */
 class AnimationEngine {
     constructor(scope) {
@@ -48,7 +48,7 @@ class AnimationEngine {
         });
     }
 
-    /** Stop line for an ingressing track — pulled in once the picture is called and maneuvers start. */
+    /** Stop line for an ingressing track: pulled in once the picture is called and maneuvers start. */
     stopLineOf(track) {
         const base = track.ingressStopNm != null ? track.ingressStopNm : 55;
         return this.maneuvers ? this.maneuvers.stopLineOf(track) : base;

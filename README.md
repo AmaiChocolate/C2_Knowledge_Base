@@ -21,9 +21,9 @@ Flash cards (no animation, for slow machines): **https://\<your-github-username\
 
 WD from Zero course (guided, graded, step by step): **https://\<your-github-username\>.github.io/C2_Knowledge_Base/flashcards/course.html**.
 
-(Pushes to `main` that touch `picture_trainer/` or `simulator/` run both test suites — `node picture_trainer/tests/run_tests.js` and `node simulator/tests/run_tests.js` — plus the flash-card and course `--check` builds, and then auto-deploy the Picture Trainer and flash cards via `.github/workflows/pages.yml`.)
+(Pushes to `main` that touch `picture_trainer/` or `simulator/` run both test suites, `node picture_trainer/tests/run_tests.js` and `node simulator/tests/run_tests.js`, plus the flash-card and course `--check` builds, and then auto-deploy the Picture Trainer and flash cards via `.github/workflows/pages.yml`.)
 
-Prior work archived at `C:\Users\Renla\ABM_Knowledge_System` — do not delete until you confirm this merge.
+Prior work archived at `C:\Users\Renla\ABM_Knowledge_System`: do not delete until you confirm this merge.
 
 ## Knowledge base (Obsidian)
 

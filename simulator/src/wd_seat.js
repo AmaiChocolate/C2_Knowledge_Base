@@ -1,5 +1,5 @@
 /**
- * WD seat — puts the trainee in the loop and grades what they do (no DOM here; the
+ * WD seat: puts the trainee in the loop and grades what they do (no DOM here; the
  * panel lives in wd_panel.js, and tests drive this class directly).
  *
  * With the seat enabled, blue fighters wait on the Weapons Director for:
@@ -13,7 +13,7 @@
  */
 
 /**
- * Grading standards. Commit and targeting ranges are mission-planned in the real world —
+ * Grading standards. Commit and targeting ranges are mission-planned in the real world -
  * these are training defaults; change them here (or per scenario via `wdStandards`).
  */
 const WD_STANDARDS = {
@@ -130,7 +130,7 @@ class WdSeat {
         const r = this.nearestHostileNm(lead);
         if (r <= this.standards.selfCommitNm) {
             this.commits[id] = { simT: this.now(), rangeNm: r, verdict: 'fighter-initiated', callsign: lead.callsign };
-            this.say(lead.callsign, `${lead.callsign} COMMITTING — hostile inside ${this.standards.selfCommitNm}, no commit from control`);
+            this.say(lead.callsign, `${lead.callsign} COMMITTING: hostile inside ${this.standards.selfCommitNm}, no commit from control`);
             return true;
         }
         return false;
@@ -165,7 +165,7 @@ class WdSeat {
                     return;
                 }
                 this.fighterSorted[id] = this.now();
-                this.say(lead.callsign, `${lead.callsign} SORTING — no targeting from control`);
+                this.say(lead.callsign, `${lead.callsign} SORTING: no targeting from control`);
             }
             // Fighter-sorted: take whatever nobody has been targeted on (nearest first).
             const free = hostiles.filter(h => !taken.has(String(h.id)));
@@ -268,7 +268,7 @@ class WdSeat {
             student
         };
         this.pictures.push(record);
-        this.say('WD', `PICTURE call — graded ${record.score}%`);
+        this.say('WD', `PICTURE call: graded ${record.score}%`);
         return record;
     }
 
@@ -300,7 +300,7 @@ class WdSeat {
             .forEach((t) => { t.calledT = this.now(); t.score = result.score; });
         const record = { simT: this.now(), blue: blue.callsign, group: group.name, score: result.score, details: result.details, key };
         (this.threatCalls = this.threatCalls || []).push(record);
-        this.say('WD', `${blue.callsign}, THREAT ${group.name} — graded ${result.score}%`);
+        this.say('WD', `${blue.callsign}, THREAT ${group.name}: graded ${result.score}%`);
         return record;
     }
 
@@ -418,7 +418,7 @@ class WdSeat {
                     commitItems.push({
                         simT: c ? c.simT : this.commitDue[id],
                         what: lead.callsign,
-                        verdict: c && isFinite(c.rangeNm) ? `${verdict} — nearest hostile ${Math.round(c.rangeNm)} nm` : verdict,
+                        verdict: c && isFinite(c.rangeNm) ? `${verdict}, nearest hostile ${Math.round(c.rangeNm)} nm` : verdict,
                         score: c ? commitScore[c.verdict] : 0
                     });
                 });
@@ -433,7 +433,7 @@ class WdSeat {
                 if (h.inRangeT == null && h.targetedT == null) return;
                 let verdict = 'targeted in time';
                 let score = 100;
-                if (h.targetedT == null) { verdict = 'never targeted — fighters sorted themselves'; score = 0; }
+                if (h.targetedT == null) { verdict = 'never targeted: fighters sorted themselves'; score = 0; }
                 else if (h.inRangeT != null && h.targetedT > h.inRangeT) {
                     verdict = `targeted ${Math.round(h.targetedT - h.inRangeT)} s after reaching ${S.targetingRangeNm} nm`;
                     score = 50;

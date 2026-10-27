@@ -1,13 +1,13 @@
 # F-35 Defensive Profile (Training Proxy)
 
 **Last Reviewed:** 2026-08-22  
-**Updated:** 2026-10-13 — shot-range and defensive doctrine changed in the simulator (see marked rows); **needs your re-review**  
+**Updated:** 2026-10-13: shot-range and defensive doctrine changed in the simulator (see marked rows); **needs your re-review**  
 **Tags:** `#f35` `#defensive` `#bvr` `#training`  
 **Related:** [[Flanker_Adversary_Profile]] · [[../05_Tools_And_CrossReferences/AI_Pilot_Architecture|AI Pilot Architecture]]
 
 ## Purpose
 
-Unclassified **F-35** BVR defensive training geometry for blue fighters (RAPTOR/VIPER) in the scope trainer. Not classified Pk or sensor performance — open numbers for WD timeline practice.
+Unclassified **F-35** BVR defensive training geometry for blue fighters (RAPTOR/VIPER) in the scope trainer. Not classified Pk or sensor performance: open numbers for WD timeline practice.
 
 ## Sensors (proxy)
 
@@ -23,10 +23,10 @@ Unclassified **F-35** BVR defensive training geometry for blue fighters (RAPTOR/
 | Parameter | Value |
 |-----------|-------|
 | TAC RANGE (TARGETED) | **60 nm** |
-| FOX min / max | **8 / 40 nm** — 40 is the cap; the actual launch range is computed each tick (below) |
-| Launch range *(updated)* | No-escape range + **25 %** of the way to max aero range (`shotAggression`). ≈ **30 nm** on a hot Flanker, ≈ **20 nm** on a cold one — a target that turns away pulls the range in instead of soaking up missiles |
+| FOX min / max | **8 / 40 nm**: 40 is the cap; the actual launch range is computed each tick (below) |
+| Launch range *(updated)* | No-escape range + **25 %** of the way to max aero range (`shotAggression`). ≈ **30 nm** on a hot Flanker, ≈ **20 nm** on a cold one: a target that turns away pulls the range in instead of soaking up missiles |
 | Deconfliction *(updated)* | One blue missile per contact at a time, across the whole package |
-| FOX aspect gate | None for ARH — stern/trail shots allowed (ATA + range only) |
+| FOX aspect gate | None for ARH: stern/trail shots allowed (ATA + range only) |
 | FOX ATA gate | Shooter nose ≤**40°** of LOS (no beam/cold launches) |
 | FOX min / guns | Inside **8 nm** → no FOX3; convert to **MERGE/guns** even with AIM-120 remaining |
 | Post-shot crank | F-pole ±**50°** after FOX (not before) |
@@ -35,7 +35,7 @@ Unclassified **F-35** BVR defensive training geometry for blue fighters (RAPTOR/
 | TARGETED through commit | Persists (not cleared on commit) |
 | Min missiles for recommit | **2** (hold CAP / `wave_hold` if Winchester or outnumbered) |
 | SORT / TARGETED | Flight lead owns up to **3** contacts; `ceil(N/3)` leads commit; other flight CAP reserve |
-| SORT stability *(updated)* | Ownership is sticky — a lead keeps its contacts until one side dies |
+| SORT stability *(updated)* | Ownership is sticky: a lead keeps its contacts until one side dies |
 | Wing engage *(updated)* | Reserve at CAP; released on **two or more contacts in the element's lane** (wing takes the one lead is not on), leaker, lead Winchester, or lead defensive / down |
 
 ## Ordnance (DCA load)
@@ -44,9 +44,9 @@ Unclassified **F-35** BVR defensive training geometry for blue fighters (RAPTOR/
 |----|----------------|
 | Chaff bundles | **4** per sortie |
 | Chaff duration | ~**3 s** per dispense (terminal only); re-dispense allowed within **0.5 s** of expiry (overlap) |
-| Chaff deploy | **PITBULL/ACTIVE** and inside **~14 nm** — BEAM/BREAK/**COLD**, and **NOTCH once ACTIVE** |
+| Chaff deploy | **PITBULL/ACTIVE** and inside **~14 nm**: BEAM/BREAK/**COLD**, and **NOTCH once ACTIVE** |
 | Chaff defeat | Only effective inside **12 nm** when missile is **ACTIVE**; timer **resets** if cloud drops |
-| ECM | **Assist-only** vs ARH — notch bleed without chaff; **does not** solo-defeat AIM-120 / R-77 |
+| ECM | **Assist-only** vs ARH: notch bleed without chaff; **does not** solo-defeat AIM-120 / R-77 |
 | Red detect vs F-35 | Flanker **~40 nm** (VLO training proxy; tanker still ~90 nm) |
 
 ## Ordnance (DCA load)
@@ -59,7 +59,7 @@ When AIM-120 count reaches zero, fighter logs **Winchester** and holds CAP (`wav
 
 ## Countermeasures
 
-*(Updated)* The sim only lets a missile be beaten two ways — outrun it, or hold an unbroken notch inside chaff range once it is active — so the defence chooses between exactly those:
+*(Updated)* The sim only lets a missile be beaten two ways: outrun it, or hold an unbroken notch inside chaff range once it is active. The defence chooses between exactly those:
 
 1. **SARH (R-27)** → **NOTCH**: beam the missile; ~2 s breaks the shot.
 2. **ARH that can still be outrun** → **OUT**: turn tail and run at break speed. Decided from the missile's remaining flight time against own turn + dash; saves chaff.
@@ -73,9 +73,9 @@ Multiple bundles may be expended: a new dispense is allowed when the cloud expir
 
 | Threat | Defeat condition |
 |--------|------------------|
-| FOX3 / R-77 (ARH) SUPPORT | Notch widens lead only — **no defeat** |
+| FOX3 / R-77 (ARH) SUPPORT | Notch widens lead only: **no defeat** |
 | FOX3 / R-77 (ARH) ACTIVE | Inside chaff range: **unbroken** notch + chaff ~**2.5 s** (F-35) / **5.0 s** (Su-30) |
-| FOX3 / R-77 (ARH) ACTIVE + ECM only | Notch + ECM **bleed lead only** — **no solo defeat** (`ecmAssistOnly`) |
+| FOX3 / R-77 (ARH) ACTIVE + ECM only | Notch + ECM **bleed lead only**: **no solo defeat** (`ecmAssistOnly`) |
 | R-27 / FOX1 (SARH) | Sustained notch ~**2.0 s** (no chaff required) |
 
 Chaff effective inside ~**12 nm** (F-35) / **8 nm** (Su-30). Su-30 must overlap ~2 chaff clouds to defeat AIM-120; a single 2.5 s burst is not enough. Dropping the cloud **resets** the ARH defeat timer.
@@ -84,8 +84,8 @@ Offensive post-shot SKOSH (crank after blue fires) is separate from defensive **
 
 ## WD calls (reference)
 
-- **SKOSH / PITBULL** — missile active on friendly (timeline `pitbull` event)
-- **NOTCH** — beam perpendicular to threat
-- **OUT** — turn tail to kinematically defeat the missile
+- **SKOSH / PITBULL**: missile active on friendly (timeline `pitbull` event)
+- **NOTCH**: beam perpendicular to threat
+- **OUT**: turn tail to kinematically defeat the missile
 
 *Sources: Tactical_Range_Calls.md, AI_Pilot_Architecture.md, simulator `defensive_profiles.js`*

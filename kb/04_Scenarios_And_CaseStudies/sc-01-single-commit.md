@@ -1,4 +1,4 @@
-# sc-01 — DCA Single Group Commit
+# sc-01: DCA Single Group Commit
 
 **Scenario ID:** `sc-01-single-commit`  
 **Last Reviewed:** 2026-08-22  

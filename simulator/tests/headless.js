@@ -1,5 +1,5 @@
 /**
- * Headless BC3 Scope Trainer — loads the real browser scripts into a VM with a stub
+ * Headless BC3 Scope Trainer: loads the real browser scripts into a VM with a stub
  * DOM so engagements can be run to completion on the sim clock, deterministically.
  *
  *     const { loadSimulator } = require('./headless');

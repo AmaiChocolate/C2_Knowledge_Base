@@ -20,11 +20,11 @@ Blue fighters (`pilot_ai.js`) run this BVR timeline (fighter **meld 80 / commit 
 | **CRANK** | After FOX | ±50° F-pole (`crankSide` L/R); no re-shot until SKOSH |
 | **SKOSH** | Pitbull / missile end | Beam/cold; reattack if ≤ **recommit (50 nm)** else CAP recover |
 
-**Package SORT (sparse commit):** `ceil(N/3)` flight leads engage; max **3 contacts per shooter** (F-35 multi-target proxy). Example: 3 Su-30s → **one** lead (closer to picture) owns all three; the other flight stays CAP reserve. Wings do **not** auto-follow into meld/commit — release only on leaker / lead Winchester / lead DEFEND-or-down with coverage still needed (`wing_commit` with `*_release` phase). Timeline: `sort_assign`, `sort_retarget`, `untargeted`. ALSSA TARGETED = group ownership, not 1v1 pile-on.
+**Package SORT (sparse commit):** `ceil(N/3)` flight leads engage; max **3 contacts per shooter** (F-35 multi-target proxy). Example: 3 Su-30s → **one** lead (closer to picture) owns all three; the other flight stays CAP reserve. Wings do **not** auto-follow into meld/commit: release only on leaker / lead Winchester / lead DEFEND-or-down with coverage still needed (`wing_commit` with `*_release` phase). Timeline: `sort_assign`, `sort_retarget`, `untargeted`. ALSSA TARGETED = group ownership, not 1v1 pile-on.
 
 **ALSSA employment gates:** `targeted` before `fox3`, shooter **ATA ≤ 40°** (nose on), FOX envelope **8–40 nm**, no FOX from CRANK/SKOSH. Target HOT/FLANK aspect is **not** required for AIM-120 (stern chase allowed). Inside FOX min with bandit still alive → **MERGE/guns** even if AIM-120s remain. `fox_hold` logged when geometry blocks shot (`ata_hold`, `inside_min_range`, etc.). **Shoot-then-crank:** pure pursuit until ATA passes, FOX, then F-pole crank (±50°).
 
-**Ammo / wave doctrine:** `wave_hold` when Winchester or `<2` missiles and more hostiles than remaining missiles — hold CAP until wave cleared.
+**Ammo / wave doctrine:** `wave_hold` when Winchester or `<2` missiles and more hostiles than remaining missiles: hold CAP until wave cleared.
 
 **Blue PAIR wingmen:** `RAPTOR12` / `VIPER22` hold ≤ **5 nm** of flight lead during **CAP** (`holdBlueFormation`). Formation releases when lead enters MELD or combat states; wings then run full BVR state machine.
 
@@ -45,7 +45,7 @@ Timeline logs `wave_release` with ACC formation label (WALL / LADDER / PAIR). Wa
 
 See [[../03_Notes_And_Insights/Flanker_Adversary_Profile|Flanker_Adversary_Profile]]. Hostiles perceive blue fighters at **~40 nm** (F-35 VLO proxy) / HVAA at **~90 nm**, hold WALL/LADDER/PAIR on **INGRESS**, commit at **55 nm** (effective ~40 nm vs F-35 once perceived), shoot **R-77 @ 22** / **R-27 @ 32**, crank ±45°, then reattack or **PUSH_HVAA**.
 
-**Perception honesty:** red commit and shot require the target in `perceivedTracks` — no god-mode fighter fallback. Unseen F-35s stay unseen until within VLO detect range (~40 nm).
+**Perception honesty:** red commit and shot require the target in `perceivedTracks`: no god-mode fighter fallback. Unseen F-35s stay unseen until within VLO detect range (~40 nm).
 
 **ARH defeat:** ECM is assist-only. Flankers need **unbroken notch + chaff ~5.0 s** (≈2 overlapping clouds) to defeat AIM-120; a single chaff burst is not enough.
 
