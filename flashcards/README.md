@@ -17,7 +17,7 @@ The back of each card gives the correct call one sentence per line, the key valu
 
 ## Using it
 
-- **Filters**: category, pictures and/or maneuvers, threat axis, shuffled or in order.
+- **Filters**: category, pictures and/or maneuvers, threat axis (E/W by default; N/S cards are still there), shuffled or in order.
 - **Full scope / Raid close-up** (`V`): the close-up zooms on the hostiles so you can count contacts (wingmen sit under 2 nm from lead).
 - **Measurements** (`M`, on by default): the numbers you would otherwise measure are already drawn on the scope, so the card drills the call, not the ruler work:
   - pictures: WIDE and DEEP brackets for each formation (or wave), wave SEPARATION, and package AZIMUTH separation
@@ -42,7 +42,7 @@ Radar plots behind each track show the last ~30 s of movement. Read a CAP's orbi
 | **Build the call** | Type the pieces: BULLSEYE / BRAA bearing and range, altitude, label, WIDE / DEEP, track, aspect; or put a call in order | the Picture Trainer's tolerances (±5° / ±3 nm / ±1k, ±3 nm dimensions) |
 | **Solo** | Make the whole call, measurements off | self-marked against the answer |
 
-A stage is passed at 9 of 10 in one run. Passing a module's last stage opens the next one (or tick *Unlock every stage*). Every answer feeds a Leitner schedule, so missed questions come back in **Review due** after 0, 1, 3, 7 and 14 days. Progress stays in the browser when it allows storage, and **Export / Import progress** moves it between machines.
+Every course scenario uses the E/W threat axis (west threat, raids tracking east). A stage is passed at 9 of 10 in one run. Passing a module's last stage opens the next one (or tick *Unlock every stage*). Every answer feeds a Leitner schedule, so missed questions come back in **Review due** after 0, 1, 3, 7 and 14 days. Progress stays in the browser when it allows storage, and **Export / Import progress** moves it between machines.
 
 | Module | Content |
 |--------|---------|

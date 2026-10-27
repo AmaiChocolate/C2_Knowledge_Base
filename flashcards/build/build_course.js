@@ -214,9 +214,11 @@ function anchorField(key, label) {
 // ------------------------------------------------------------- scenario runs
 
 const PICTURE_CATS = ['azimuth', 'range', 'wall', 'ladder', 'champagne', 'vic', 'cap', 'random'];
+// One threat axis for the whole course: west threat, raids tracking east.
+const COURSE_AXIS = 'EW';
 
 function eachRun(categories, variations, fn) {
-    categories.forEach(cat => ['EW', 'NS'].forEach(o => {
+    categories.forEach(cat => [COURSE_AXIS].forEach(o => {
         for (let v = 1; v <= variations; v++) {
             const run = startRun(cat, v, o);
             fly(run.anim, run.recorder, SNAPSHOT.pictureAtSec);
@@ -231,7 +233,7 @@ function eachRun(categories, variations, fn) {
 // ------------------------------------------------------------------ module 0
 
 function buildM0() {
-    eachRun(PICTURE_CATS, 4, ({ run, tracks, groups, rng, id }) => {
+    eachRun(PICTURE_CATS, 8, ({ run, tracks, groups, rng, id }) => {
         const sc = addScene(`m0-${id}`, run.orient, tracks, run.recorder, null, false);
         const leads = groups.map(g => g.lead);
         const tag = t => T.alssaBearingRange(t);
@@ -315,7 +317,7 @@ function buildM1() {
 // ------------------------------------------------------------------ module 2
 
 function buildM2() {
-    eachRun(PICTURE_CATS, 5, ({ o, run, tracks, groups, rng, id }) => {
+    eachRun(PICTURE_CATS, 10, ({ o, run, tracks, groups, rng, id }) => {
         const blues = tracks.filter(t => !t.hostile);
         const ordered = shuffle(rng, groups);
         const meta = { mode: null };

@@ -28,7 +28,7 @@ const MODULES = [
         goal: 'Read symbols, tags, track direction and contacts; count groups with the 3 nm rule.',
         stages: ['guided', 'check'],
         lesson: [
-            { p: 'Every card is a still of the scope. Before you can call a picture you have to read it.' },
+            { p: 'Every card is a still of the scope. Before you can call a picture you have to read it. Throughout the course the threat comes from the west and raids track east.' },
             { h: 'Symbols' },
             { ul: [
                 'Red diamond — hostile track. Green circle — friendly fighter.',
@@ -125,11 +125,11 @@ const MODULES = [
             { h: 'AZIMUTH — wider than deep' },
             { call: 'TANGO, TWO GROUPS AZIMUTH TWENTY, TRACK EAST. NORTH GROUP BULLSEYE 285/92, THIRTY-TWO THOUSAND, HOSTILE. SOUTH GROUP BULLSEYE 265/90, THIRTY THOUSAND, HOSTILE.' },
             { ul: [
-                'Groups are named by side across the axis: NORTH / SOUTH GROUP (EAST / WEST with a north threat).',
+                'Groups are named by side across the threat axis: NORTH / SOUTH GROUP.',
                 'Both are anchored (given a BULLSEYE) only when they are more than 10 nm apart; otherwise only the first.'
             ] },
             { h: 'RANGE — deeper than wide' },
-            { call: 'TANGO, TWO GROUPS RANGE TWENTY, TRACK SOUTH. LEAD GROUP BULLSEYE 005/85, TWENTY-FIVE THOUSAND, HOSTILE. TRAIL GROUP, TWENTY-EIGHT THOUSAND, HOSTILE.' },
+            { call: 'TANGO, TWO GROUPS RANGE TWENTY, TRACK EAST. LEAD GROUP BULLSEYE 270/85, TWENTY-FIVE THOUSAND, HOSTILE. TRAIL GROUP, TWENTY-EIGHT THOUSAND, HOSTILE.' },
             { ul: [
                 'LEAD GROUP (closest to the fighters) gets the BULLSEYE; TRAIL GROUP takes its position from the lead and the range.'
             ] },
@@ -242,7 +242,7 @@ const M1_ORDER = [
         why: 'Answer to the fighter, in BRAA from the fighter, with aspect instead of track.' },
     { q: 'Build this two-group picture.', parts: ['TANGO', 'TWO GROUPS AZIMUTH TWENTY', 'TRACK EAST', 'NORTH GROUP BULLSEYE 285/92, THIRTY-TWO THOUSAND, HOSTILE', 'SOUTH GROUP BULLSEYE 265/90, THIRTY THOUSAND, HOSTILE'],
         why: 'Total groups and label with its dimension, a common track once, then each group.' },
-    { q: 'Build this range picture.', parts: ['TANGO', 'TWO GROUPS RANGE TWENTY', 'TRACK SOUTH', 'LEAD GROUP BULLSEYE 005/85, TWENTY-FIVE THOUSAND, HOSTILE', 'TRAIL GROUP, TWENTY-EIGHT THOUSAND, HOSTILE'],
+    { q: 'Build this range picture.', parts: ['TANGO', 'TWO GROUPS RANGE TWENTY', 'TRACK EAST', 'LEAD GROUP BULLSEYE 270/85, TWENTY-FIVE THOUSAND, HOSTILE', 'TRAIL GROUP, TWENTY-EIGHT THOUSAND, HOSTILE'],
         why: 'The lead group (closest to the fighters) is anchored; the trail group takes its position from the lead.' }
 ];
 
