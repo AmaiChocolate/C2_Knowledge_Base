@@ -1,0 +1,412 @@
+.course-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.course-header nav a {
+    white-space: nowrap;
+}
+
+.course-header nav a,
+.crumb a {
+    color: var(--accent);
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.small {
+    font-size: 12px;
+}
+
+.review-banner {
+    border-color: #8a6d1f;
+    background: #221c0b;
+    color: #ffe9a8;
+    font-size: 13px;
+}
+
+.warn {
+    border-color: var(--bad);
+    color: #ffb3bd;
+}
+
+.review-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.module-head {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.module-num {
+    flex: 0 0 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.module.locked {
+    opacity: 0.55;
+}
+
+.module.done .module-num {
+    background: #0f5a32;
+}
+
+.badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    vertical-align: middle;
+}
+
+.badge.good {
+    background: #14532d;
+    color: #b6ffd0;
+}
+
+.stage-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.stage {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 130px;
+}
+
+.stage small {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.stage.passed {
+    border-color: var(--good);
+}
+
+.stage.passed small {
+    color: #8ff0b6;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+button:disabled:hover {
+    border-color: var(--line);
+}
+
+.upcoming ol {
+    margin-left: 22px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.tools .btn-row,
+.btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.tools textarea,
+.call-input textarea {
+    width: 100%;
+    margin-top: 6px;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.lesson h3 {
+    color: var(--accent);
+    font-size: 15px;
+    margin: 14px 0 6px;
+}
+
+.lesson p,
+.lesson ul {
+    margin-bottom: 8px;
+}
+
+.lesson ul {
+    margin-left: 20px;
+}
+
+.lesson li + li {
+    margin-top: 3px;
+}
+
+.goal {
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.lesson-call {
+    white-space: pre-wrap;
+    background: #06180d;
+    border: 1px solid #0b3a1f;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #b6ffd0;
+    margin: 6px 0 10px;
+}
+
+.note {
+    border-left: 3px solid #5ad1ff;
+    padding-left: 8px;
+    color: #bfe9ff;
+}
+
+.crumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.run-head {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.run .progress div {
+    height: 100%;
+    background: var(--accent);
+}
+
+.choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.choices.long {
+    grid-template-columns: 1fr;
+}
+
+.choice {
+    text-align: left;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 10px;
+}
+
+.choices.long .choice span {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.choice.right,
+.chip.right {
+    border-color: var(--good);
+    background: #14532d;
+}
+
+.choice.wrong,
+.chip.wrong {
+    border-color: var(--bad);
+    background: #5a1620;
+}
+
+.chips,
+.order-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.order-line {
+    min-height: 44px;
+    padding: 8px;
+    border: 1px dashed var(--line);
+    border-radius: 6px;
+}
+
+.chip {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.chip.placed {
+    border-color: var(--accent);
+}
+
+.fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+    align-items: end;
+}
+
+.fields label,
+.anchor label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.fields input,
+.fields select {
+    font: inherit;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+}
+
+.fields .anchor,
+.fields .btn-row {
+    grid-column: 1 / -1;
+}
+
+.anchor {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.anchor legend {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 0 4px;
+}
+
+.call-input {
+    display: block;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.feedback {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+}
+
+.feedback.ok {
+    border-color: var(--good);
+    background: #0b2616;
+}
+
+.feedback.bad {
+    border-color: var(--bad);
+    background: #2a0e13;
+}
+
+.feedback h3 {
+    margin-bottom: 6px;
+}
+
+.feedback p + p,
+.feedback .answer-call {
+    margin-top: 6px;
+}
+
+.answer-call.mine {
+    color: var(--text);
+    background: var(--panel-2);
+}
+
+.grade {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 6px 0;
+}
+
+.grade th,
+.grade td {
+    text-align: left;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--line);
+}
+
+.grade tr.ok td:first-child {
+    color: #8ff0b6;
+}
+
+.grade tr.bad td:first-child {
+    color: #ff8f9d;
+}
+
+.score {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 6px 0 10px;
+}
+
+.missed {
+    margin-left: 18px;
+    font-size: 14px;
+}
+
+.missed li + li {
+    margin-top: 6px;
+}
+
+.result h3 {
+    font-size: 15px;
+    margin: 10px 0 6px;
+}
+
+@media (max-width: 600px) {
+    .anchor {
+        grid-template-columns: 1fr;
+    }
+
+    .course-header {
+        flex-direction: column;
+    }
+}
+
+#answerArea button:disabled {
+    opacity: 0.7;
+}
+
+#answerArea button.right:disabled,
+#answerArea button.wrong:disabled {
+    opacity: 1;
+}
