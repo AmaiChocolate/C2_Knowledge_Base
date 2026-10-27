@@ -2,7 +2,8 @@
  * WD from Zero: course runner.
  *
  * Modules unlock in order. Each module's stages take support away step by step
- * (guided → build → solo); a stage is passed with PASS_SCORE of RUN_LENGTH in one run.
+ * (guided → build → solo); a stage is passed with PASS_SCORE of RUN_LENGTH in one run
+ * (a stage may set its own `len` and `pass`, as the checkride does).
  * Every answer also feeds a Leitner schedule, so missed questions come back in
  * "Review due" sessions after 0, 1, 3, 7 and 14 days.
  *
@@ -26,6 +27,13 @@
         (bank[`${q.m}.${q.s}`] = bank[`${q.m}.${q.s}`] || []).push(q);
     });
     const byId = new Map(COURSE.questions.map(q => [q.id, q]));
+    // The build stores a scene's call, earlier calls and request once; questions on it share them.
+    COURSE.questions.forEach(q => {
+        const sc = q.sc && scenes[q.sc];
+        if (sc) ['call', 'ctx', 'req', 'info'].forEach(k => { if (q[k] === undefined && sc[k] !== undefined) q[k] = sc[k]; });
+    });
+    const runLength = s => s.len || RUN_LENGTH;
+    const passScore = s => s.pass || PASS_SCORE;
 
     // ---------------------------------------------------------------- progress
 
@@ -130,7 +138,8 @@
         html.push(`<section class="panel review-banner">
             <strong>Instructor review needed.</strong> Lessons and module 1 are paraphrased from
             <code>${esc(COURSE.reviewSource)}</code>, which is marked "needs your re-review". Scope questions come from the
-            Picture Trainer's answer engine. Check the content against the ALSSA publication before relying on it.
+            Picture Trainer's answer engine. Module 8 grades commit, targeting and THREAT timing with the BC3 Scope Trainer's
+            training defaults, not your unit's criteria. Check the content against the ALSSA publication before relying on it.
         </section>`);
         if (!storageOk) {
             html.push('<section class="panel warn">This browser is not saving progress. Use <b>Export progress</b> before you close the page.</section>');
@@ -156,15 +165,17 @@
                     ${m.stages.map((s, si) => {
                         const rec = stageRec(stageKey(m, s));
                         const can = stageOpen(mi, si);
-                        const tag = rec.passed ? `✓ ${rec.best}/${RUN_LENGTH}` : rec.best != null ? `best ${rec.best}/${RUN_LENGTH}` : can ? 'open' : 'locked';
+                        const tag = rec.passed ? `✓ ${rec.best}/${runLength(s)}` : rec.best != null ? `best ${rec.best}/${runLength(s)}` : can ? 'open' : 'locked';
                         return `<button type="button" class="stage ${rec.passed ? 'passed' : ''}" data-act="stage" data-m="${mi}" data-s="${si}" ${can ? '' : 'disabled'} title="${esc(s.blurb)}">
                             <span>${si + 1}. ${esc(s.title)}</span><small>${tag}</small></button>`;
                     }).join('')}
                 </div>
             </section>`);
         });
-        html.push(`<section class="panel upcoming"><h2>Coming next</h2><ol start="${modules.length}">
-            ${COURSE.upcoming.map(u => `<li>${esc(u.title)}</li>`).join('')}</ol></section>`);
+        if (COURSE.upcoming.length) {
+            html.push(`<section class="panel upcoming"><h2>Coming next</h2><ol start="${modules.length}">
+                ${COURSE.upcoming.map(u => `<li>${esc(u.title)}</li>`).join('')}</ol></section>`);
+        }
         html.push(`<section class="panel tools">
             <label class="toggle"><input type="checkbox" data-act="unlock" ${progress.unlockAll ? 'checked' : ''}> Unlock every stage (instructors, or to test out)</label>
             <div class="btn-row">
@@ -172,7 +183,7 @@
                 <button type="button" data-act="import">Import progress</button>
                 <button type="button" data-act="reset">Reset progress</button>
             </div>
-            <p class="muted">A stage is passed at ${PASS_SCORE} of ${RUN_LENGTH} in one run (85%). Passing a module's last stage opens the next module.</p>
+            <p class="muted">A stage is passed at ${PASS_SCORE} of ${RUN_LENGTH} in one run (85%; the checkride is 17 of 20). Passing a module's last stage opens the next module.</p>
             <div id="transfer"></div>
         </section>`);
         app.innerHTML = html.join('');
@@ -229,7 +240,7 @@
         const m = modules[mi];
         const s = m.stages[si];
         const pool = bank[stageKey(m, s)] || [];
-        startRun({ kind: 'stage', mi, si, title: `Module ${mi} · ${m.title}: ${s.title}`, questions: pickQuestions(pool, RUN_LENGTH) });
+        startRun({ kind: 'stage', mi, si, title: `Module ${mi} · ${m.title}: ${s.title}`, questions: pickQuestions(pool, runLength(s)) });
     }
 
     function startReview() {
@@ -262,7 +273,9 @@
                 <span>Question ${state.index + 1} of ${state.questions.length} · ${score} right</span>
             </div>
             <div class="progress"><div style="width:${(state.index / state.questions.length) * 100}%"></div></div>
+            ${q.info ? `<p class="info">${esc(q.info)}</p>` : ''}
             ${q.req ? `<p class="call-text prompt">"${esc(q.req)}"</p>` : ''}
+            ${q.ctx ? `<details class="context" open><summary>Already called</summary><ol>${q.ctx.map(c => `<li>${esc(c)}</li>`).join('')}</ol></details>` : ''}
             <p class="card-task">${esc(q.prompt)}</p>
             ${scene ? scopeTools(scene) : ''}
             <div id="answerArea">${answerWidget(q)}</div>
@@ -507,11 +520,11 @@
             const rec = Object.assign({ runs: 0 }, progress.stages[key]);
             rec.runs += 1;
             rec.best = Math.max(rec.best || 0, right);
-            const pass = right >= PASS_SCORE && total >= RUN_LENGTH;
+            const pass = right >= passScore(s) && total >= runLength(s);
             if (pass) rec.passed = true;
             progress.stages[key] = rec;
             saveProgress();
-            headline += pass ? ': stage passed' : `. ${PASS_SCORE} needed to pass.`;
+            headline += pass ? ': stage passed' : `. ${passScore(s)} needed to pass.`;
             const ns = state.si + 1 < m.stages.length ? [state.mi, state.si + 1] : state.mi + 1 < modules.length ? [state.mi + 1, 0] : null;
             if (pass && ns) {
                 nextBtn = ns[1] === 0

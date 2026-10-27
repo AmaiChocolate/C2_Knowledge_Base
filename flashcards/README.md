@@ -42,7 +42,7 @@ Radar plots behind each track show the last ~30 s of movement; an orbiting (CAP)
 | **Build the call** | Type the pieces: BULLSEYE / BRAA bearing and range, altitude, label, WIDE / DEEP, track, aspect; or put a call in order | the Picture Trainer's tolerances (±5° / ±3 nm / ±1k, ±3 nm dimensions) |
 | **Solo** | Make the whole call, measurements off | self-marked against the answer |
 
-Every course scenario uses the E/W threat axis (west threat, raids tracking east). A stage is passed at 9 of 10 in one run. Passing a module's last stage opens the next one (or tick *Unlock every stage*). Every answer feeds a Leitner schedule, so missed questions come back in **Review due** after 0, 1, 3, 7 and 14 days. Progress stays in the browser when it allows storage, and **Export / Import progress** moves it between machines.
+Every course scenario uses the E/W threat axis (west threat, raids tracking east). A stage is passed at 9 of 10 in one run (the checkride: 17 of 20). Passing a module's last stage opens the next one (or tick *Unlock every stage*). Every answer feeds a Leitner schedule, so missed questions come back in **Review due** after 0, 1, 3, 7 and 14 days. Progress stays in the browser when it allows storage, and **Export / Import progress** moves it between machines.
 
 | Module | Content |
 |--------|---------|
@@ -51,7 +51,11 @@ Every course scenario uses the E/W threat axis (west threat, raids tracking east
 | 2 Single group | SINGLE GROUP off BULLSEYE; BOGEY DOPE in BRAA from any fighter |
 | 3 Two groups | AZIMUTH vs RANGE, names, dimension, which groups are anchored |
 | 4 Three or more | WALL, LADDER, CHAMPAGNE, VIC: the 5 nm rule, voiced dimensions, group names |
-| 5–9 | Planned: BOX / waves / packages, maneuvers, fighter requests, DCA flow (commit, targeting, threat, from the BC3 sim), checkride mix |
+| 5 BOX, LEADING EDGE, WAVES, PACKAGES | BOX names and dimensions; total groups, wave count, leading-edge label, SEPARATION; package count, separation and names |
+| 6 Aspect and maneuvers | After the picture is called: which group turned, HOT / FLANK / BEAM / DRAG from its angle off the fighters, direction, SPLIT and the new names; earlier calls shown on the card |
+| 7 Fighter requests | THREAT (which fighter, BRAA, aspect); BOGEY DOPE, MUSIC and STROBE asked by any fighter on ordinary pictures |
+| 8 DCA flow | Stills from the BC3 Scope Trainer (`sc-01`, `sc-02`) flown with the WD seat on: hold or COMMIT, which group to target first, whether a THREAT call is due and to whom, and "what do you call now?" Graded with the trainer's `WD_STANDARDS` (commit 95 to 50 nm, target before 45 nm, THREAT inside 15 nm), which are training defaults |
+| 9 Checkride | 20 build and solo questions drawn from modules 2 to 8, measurements off; pass at 17 |
 
 Wrong options and "spot the error" calls are the correct call with one rule broken (BULLS for BULLSEYE, HIGH for an altitude, the wrong label, count, track, aspect, strength or dimension), so each explanation names the rule.
 
@@ -59,12 +63,12 @@ Wrong options and "spot the error" calls are the correct call with one rule brok
 
 ## Rebuilding
 
-The cards come from the Picture Trainer's own scenario generator and answer engine, so they always match it. After changing anything in `picture_trainer/src/`:
+The cards come from the Picture Trainer's own scenario generator and answer engine, so they always match it. After changing anything in `picture_trainer/src/` (or `simulator/src/`, for course module 8):
 
 ```bash
 node flashcards/build/build_cards.js          # rewrites flashcards/cards_data.js (~30 s)
 node flashcards/build/build_cards.js --check  # what CI runs: fails if cards_data.js is stale or a card is bad
-node flashcards/build/build_course.js         # rewrites flashcards/course_data.js (~10 s)
+node flashcards/build/build_course.js         # rewrites flashcards/course_data.js (~1 min)
 node flashcards/build/build_course.js --check
 ```
 
@@ -74,7 +78,11 @@ The build flies each scenario headlessly, takes the picture card 32 s into the i
 |------|------|
 | `build/harness.js` | Shared: loads the trainer headlessly, flies scenarios, snapshots tracks, computes drawn measurements |
 | `build/build_cards.js` | Generates `cards_data.js` from `picture_trainer/src` |
-| `build/build_course.js` | Generates `course_data.js`: scope questions for modules 0, 2–4 and the rule-breaking distractors |
+| `build/build_course.js` | Generates `course_data.js`: runs every module builder, validates, stores each still's shared call once |
+| `build/course_lib.js` | Course question types, scenes, the rule-breaking distractors, scenario runs on the E/W axis |
+| `build/course_basic.js` | Modules 0 to 4 |
+| `build/course_more.js` | Modules 5, 6, 7 and the checkride (9) |
+| `build/course_dca.js` | Module 8, flown in the BC3 Scope Trainer headlessly (`simulator/tests/headless.js`) |
 | `build/course_content.js` | Hand-written course content: module list, lessons, module 1 questions (each cites its KB source) |
 | `cards_data.js` | The deck (generated, committed so the page works without a build step) |
 | `src/card_render.js` | Draws a card's scope as an SVG string; measure helpers |
