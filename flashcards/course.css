@@ -410,3 +410,11 @@ button:disabled:hover {
 #answerArea button.wrong:disabled {
     opacity: 1;
 }
+
+.info {
+    font-size: 13px;
+    color: #bfe9ff;
+    border-left: 3px solid #5ad1ff;
+    padding-left: 8px;
+    margin-bottom: 8px;
+}
