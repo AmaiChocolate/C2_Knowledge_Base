@@ -21,7 +21,9 @@ const SNAPSHOT = {
     plotsKept: 8,           // trail length (8 x 4 s = 32 s of history)
     settleSec: 20,          // a maneuver card is taken this long after the turn becomes visible
     settleMaxSec: 60,
-    stepSec: 0.1
+    stepSec: 0.1,
+    orbitPrerollSec: 360,   // CAPs fly this long before the run, so their plots show a whole lap
+    orbitPlotsKept: 90      // 90 x 4 s = 6 min of plots for an orbiting group
 };
 
 function loadTrainer() {
@@ -72,7 +74,7 @@ class PlotRecorder {
             const en = T.Geo.bullsToEN(t);
             const trail = this.trails.get(t.id) || [];
             trail.push([round1(en.e), round1(en.n)]);
-            if (trail.length > SNAPSHOT.plotsKept) trail.shift();
+            if (trail.length > (isOrbiting(t) ? SNAPSHOT.orbitPlotsKept : SNAPSHOT.plotsKept)) trail.shift();
             this.trails.set(t.id, trail);
         });
     }
@@ -108,9 +110,42 @@ function snapshotTracks(tracks, recorder, tagFriendlyWings) {
             s.b = T.alssaBearingRange(t);
             s.a = Math.round(t.altitude / 1000);
         }
-        const trail = t.formationAnchor ? null : recorder.trails.get(t.id);
+        let trail = t.formationAnchor ? null : recorder.trails.get(t.id);
+        // An orbit keeps a whole lap of plots; every other one is plenty to read the racetrack.
+        if (trail && isOrbiting(t)) trail = trail.filter((_, i) => (trail.length - 1 - i) % 2 === 0);
         if (trail && trail.length > 1) s.tr = trail.slice(0, -1);
         return s;
+    });
+}
+
+const isOrbiting = t => t.hostile && !t.formationAnchor && !!(t.orbitAnchor || t.isCapOrbit);
+
+/**
+ * A CAP racetrack takes minutes to fly, so ~30 s of plots only shows a straight
+ * stretch and the group reads as tracking NE / NW. Before the run starts, fly each
+ * orbiting group on its own for a few minutes and start the run from there, with
+ * that flight as its plot history. The group's answer does not move: a CAP is
+ * anchored at its orbit point, not at where the lead happens to be.
+ */
+function prerollOrbits(tracks, recorder) {
+    tracks.filter(t => !t.isDormant && isOrbiting(t)).forEach(lead => {
+        const group = tracks.filter(t => t === lead || t.formationAnchor === lead.id);
+        const clones = group.map(t => JSON.parse(JSON.stringify(t)));
+        const scope = new T.ScopeRenderer('tacScope');
+        const anim = new T.AnimationEngine(scope);
+        anim.fixedStep = SNAPSHOT.stepSec;
+        scope.tracks = clones;
+        anim.reset(clones, null);
+        const copy = clones[group.indexOf(lead)];
+        const trail = [];
+        const steps = Math.round(SNAPSHOT.plotEverySec / SNAPSHOT.stepSec);
+        for (let sec = 0; sec < SNAPSHOT.orbitPrerollSec; sec += SNAPSHOT.plotEverySec) {
+            for (let i = 0; i < steps; i++) anim.fixedUpdate(SNAPSHOT.stepSec);
+            const en = T.Geo.bullsToEN(copy);
+            trail.push([round1(en.e), round1(en.n)]);
+        }
+        group.forEach((t, i) => Object.assign(t, clones[i], { history: [], radarPlots: [] }));
+        recorder.trails.set(lead.id, trail.slice(-SNAPSHOT.orbitPlotsKept));
     });
 }
 
@@ -263,6 +298,7 @@ function startRun(categoryId, variation, orientation) {
     anim.reset(scope.tracks, scenario.motionScript);
     director.reset(scenario.meta, true);
     const recorder = new PlotRecorder();
+    prerollOrbits(scope.tracks, recorder);
     recorder.sample(scope.tracks, 0);
     return { scenario, scope, anim, director, recorder, orient: T.getOrientation(orientation) };
 }

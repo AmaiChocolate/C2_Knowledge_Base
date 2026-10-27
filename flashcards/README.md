@@ -30,7 +30,7 @@ The back of each card gives the correct call one sentence per line, the key valu
 - **Got it / Missed it** (`1` / `2`): at the end, *Review the ones I missed* replays only those. The missed list is also kept in this browser (if it allows storage), so **Missed cards only** brings them back next time.
 - `Space` flips, `←` / `→` go back or skip.
 
-Radar plots behind each track show the last ~30 s of movement. Read a CAP's orbit and a maneuvering group's turn from them.
+Radar plots behind each track show the last ~30 s of movement; an orbiting (CAP) group shows a whole lap of its racetrack. Read the orbit and a maneuvering group's turn from them.
 
 ## WD from Zero course
 
