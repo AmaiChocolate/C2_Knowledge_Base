@@ -48,6 +48,10 @@ h2 {
     margin-bottom: 8px;
 }
 
+.subtitle a {
+    color: var(--accent);
+}
+
 .subtitle,
 .footnote,
 .legend,

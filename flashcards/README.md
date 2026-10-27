@@ -1,4 +1,4 @@
-# Picture Call Flash Cards
+# Picture Call Flash Cards and WD from Zero
 
 Still-image version of the [Picture Trainer](../picture_trainer/) for machines too slow to run it (NIPR workstations play the animated scope like a slideshow). Each card is one scope snapshot: make the call, flip the card, then mark it got or missed.
 
@@ -32,6 +32,31 @@ The back of each card gives the correct call one sentence per line, the key valu
 
 Radar plots behind each track show the last ~30 s of movement. Read a CAP's orbit and a maneuvering group's turn from them.
 
+## WD from Zero course
+
+`course.html` is a guided course for someone starting from nothing. Each module opens with a one-screen lesson, then practice that takes support away a stage at a time:
+
+| Stage | What it asks | Graded by |
+|-------|--------------|-----------|
+| **Guided** | Multiple choice and "spot the error" on a scope snapshot, measurements drawn | the answer |
+| **Build the call** | Type the pieces: BULLSEYE / BRAA bearing and range, altitude, label, WIDE / DEEP, track, aspect; or put a call in order | the Picture Trainer's tolerances (±5° / ±3 nm / ±1k, ±3 nm dimensions) |
+| **Solo** | Make the whole call, measurements off | self-marked against the answer |
+
+A stage is passed at 9 of 10 in one run. Passing a module's last stage opens the next one (or tick *Unlock every stage*). Every answer feeds a Leitner schedule, so missed questions come back in **Review due** after 0, 1, 3, 7 and 14 days. Progress stays in the browser when it allows storage, and **Export / Import progress** moves it between machines.
+
+| Module | Content |
+|--------|---------|
+| 0 Reading the scope | Symbols, tags, track direction, contacts, the 3 nm rule |
+| 1 Brevity and call format | Core-information order, BULLSEYE vs BRAA, altitude, track / aspect, declarations, fill-ins (hand-written) |
+| 2 Single group | SINGLE GROUP off BULLSEYE; BOGEY DOPE in BRAA from any fighter |
+| 3 Two groups | AZIMUTH vs RANGE, names, dimension, which groups are anchored |
+| 4 Three or more | WALL, LADDER, CHAMPAGNE, VIC: the 5 nm rule, voiced dimensions, group names |
+| 5–9 | Planned: BOX / waves / packages, maneuvers, fighter requests, DCA flow (commit, targeting, threat — from the BC3 sim), checkride mix |
+
+Wrong options and "spot the error" calls are the correct call with one rule broken (BULLS for BULLSEYE, HIGH for an altitude, the wrong label, count, track, aspect, strength or dimension), so each explanation names the rule.
+
+**Content review.** Lessons and module 1 are paraphrased from `kb/03_Notes_And_Insights/Picture_Call_Logic.md`, which is marked "needs your re-review"; the course shows a banner saying so and each written question cites its source. The "Research Document" notes (`Tactical_Range_Calls.md`, `ROE_Declarations.md`) disagree with the ALSSA note and are not used.
+
 ## Rebuilding
 
 The cards come from the Picture Trainer's own scenario generator and answer engine, so they always match it. After changing anything in `picture_trainer/src/`:
@@ -39,13 +64,20 @@ The cards come from the Picture Trainer's own scenario generator and answer engi
 ```bash
 node flashcards/build/build_cards.js          # rewrites flashcards/cards_data.js (~30 s)
 node flashcards/build/build_cards.js --check  # what CI runs: fails if cards_data.js is stale or a card is bad
+node flashcards/build/build_course.js         # rewrites flashcards/course_data.js (~10 s)
+node flashcards/build/build_course.js --check
 ```
 
 The build flies each scenario headlessly, takes the picture card 32 s into the ingress, "calls" it, and keeps flying. Each maneuver becomes a card about 20 s after the turn shows. Timings are in `SNAPSHOT` at the top of the build script, the study notes on the back in `TIPS`, and the drawn measurements in the *measurements* section of the build script.
 
 | File | Role |
 |------|------|
+| `build/harness.js` | Shared: loads the trainer headlessly, flies scenarios, snapshots tracks, computes drawn measurements |
 | `build/build_cards.js` | Generates `cards_data.js` from `picture_trainer/src` |
+| `build/build_course.js` | Generates `course_data.js`: scope questions for modules 0, 2–4 and the rule-breaking distractors |
+| `build/course_content.js` | Hand-written course content: module list, lessons, module 1 questions (each cites its KB source) |
 | `cards_data.js` | The deck (generated, committed so the page works without a build step) |
 | `src/card_render.js` | Draws a card's scope as an SVG string; measure helpers |
 | `src/deck.js` | Filters, shuffle, flip, got / missed, PNG export |
+| `course.html`, `course.css`, `src/course.js` | The course: lessons, question types, grading, unlocking, spaced review, export / import |
+| `course_data.js` | The course (generated, committed) |

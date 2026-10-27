@@ -35,8 +35,10 @@ jobs:
       - name: Run simulator tests
         run: node simulator/tests/run_tests.js
 
-      - name: Check flash cards match the trainer
-        run: node flashcards/build/build_cards.js --check
+      - name: Check flash cards and course match the trainer
+        run: |
+          node flashcards/build/build_cards.js --check
+          node flashcards/build/build_course.js --check
 
       # The trainer stays at the site root; the flash cards live at /flashcards/.
       - name: Assemble site
@@ -44,12 +46,13 @@ jobs:
           mkdir _site
           cp -r picture_trainer/. _site/
           mkdir _site/flashcards
-          cp -r flashcards/index.html flashcards/style.css flashcards/cards_data.js flashcards/src _site/flashcards/
+          cp -r flashcards/index.html flashcards/course.html flashcards/style.css flashcards/course.css \
+            flashcards/cards_data.js flashcards/course_data.js flashcards/src _site/flashcards/
 
       # Pages serves files with a 10-minute cache, so a browser can pair a new
       # index.html with old scripts. Stamp local asset URLs with the commit.
       - name: Cache-bust local scripts and styles
-        run: sed -i -E 's#(src|href)="((src/[^"]+\.js)|style\.css|cards_data\.js)"#\1="\2?v=${{ github.sha }}"#' _site/index.html _site/flashcards/index.html
+        run: sed -i -E 's#(src|href)="((src/[^"]+\.js)|[a-z]+\.css|[a-z_]+_data\.js)"#\1="\2?v=${{ github.sha }}"#' _site/index.html _site/flashcards/index.html _site/flashcards/course.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
