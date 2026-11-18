@@ -2,7 +2,7 @@
 
 **Last Reviewed:** 2026-08-13  
 **Tags:** `#flashcards` `#mso` `#mqf`  
-**Source:** Verified against `D:\MQF_dev` MSO answer key (promote, don’t fork)
+**Source:** Verified against the MQF_dev MSO answer key (promote, don’t fork)
 
 Q: After opening BC3 on your scope, what do you set up next?  
 A: **Scope Profile** (MSO #36: C)
@@ -19,4 +19,4 @@ A: **EPT** (MSO #39: A)
 Q: In this training project, what is the TPS-75 in the browser sim?  
 A: **Radar track feed into the BC3 scope**, no separate radar console UI
 
-Drill more in `D:\MQF_dev`. Link: [[../00_Home/MQF_Study_Link|MQF_Study_Link]]
+Drill more in the MQF_dev study app. Link: [[../00_Home/MQF_Study_Link|MQF_Study_Link]]

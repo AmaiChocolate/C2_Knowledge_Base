@@ -3,7 +3,7 @@
 **Last Reviewed:** 2026-08-13  
 **Tags:** `#mqf` `#evaluation`
 
-Closed-book study app lives at **`D:\MQF_dev`** (not forked into this repo).
+Closed-book study app is a separate local project, MQF_dev (not forked into this repo).
 
 | Bank | Use |
 |------|-----|

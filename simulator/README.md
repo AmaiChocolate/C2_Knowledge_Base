@@ -102,7 +102,7 @@ No dependencies. Loads the real scripts headlessly (`tests/headless.js`), then c
 
 ## Knowledge base
 Study notes: `../kb/00_Home/Mastery_Map.md`  
-MQF app (separate): `D:\MQF_dev`
+MQF app (separate): the MQF_dev study app
 
 ## Related trainer
 **Picture calls only (no BVR):** [`../picture_trainer/`](../picture_trainer/): Parrot Sour-style animated ALSSA formations with reveal + graded drill modes.
