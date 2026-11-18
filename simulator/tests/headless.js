@@ -49,7 +49,8 @@ function loadSimulator(opts = {}) {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const scripts = [...html.matchAll(/<script src="([^"?]+)[^"]*"><\/script>/g)]
         .map(m => m[1])
-        .filter(src => !/^https?:/.test(src));
+        // Skip remote scripts and the vendored milsymbol (optional symbol art, not needed headless).
+        .filter(src => !/^https?:/.test(src) && !/vendor\/milsymbol/.test(src));
 
     // Seeded Math.random so missile Pk rolls replay exactly.
     const seededMath = Object.create(Math);

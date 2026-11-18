@@ -80,7 +80,10 @@
     // Browser storage is a convenience only: the deck works the same without it.
     function loadMissed() {
         try {
-            return new Set(JSON.parse(localStorage.getItem(MISSED_KEY) || '[]'));
+            const ids = JSON.parse(localStorage.getItem(MISSED_KEY) || '[]');
+            // Stored data is untrusted: keep only ids of cards that exist.
+            const known = new Set(DECK.cards.map(c => c.id));
+            return new Set(Array.isArray(ids) ? ids.filter(id => typeof id === 'string' && known.has(id)) : []);
         } catch (_) {
             return new Set();
         }

@@ -23,6 +23,7 @@ window.addEventListener('DOMContentLoaded', () => {
     pictureGen = new PictureGenerator();
     aspectCalc = new AspectCalculator();
     trainer = new BrevityTrainer();
+    trainer.bindQuiz();
     scope.wdSeat = new WdSeat(scope, {
         pictureGen,
         clusterer,

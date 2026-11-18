@@ -33,6 +33,27 @@ class BrevityTrainer {
         };
     }
 
+    /**
+     * One delegated listener for the quiz buttons (no inline onclick handlers, so the page
+     * can run under a Content-Security-Policy without 'unsafe-inline').
+     */
+    bindQuiz() {
+        const container = document.getElementById('quizContainer');
+        if (!container || typeof container.addEventListener !== 'function' || this._quizBound) return;
+        this._quizBound = true;
+        container.addEventListener('click', (e) => {
+            const el = e.target && e.target.closest ? e.target.closest('[data-quiz],[data-answer],[data-next]') : null;
+            if (!el) return;
+            if (el.dataset.quiz) this.startQuiz(el.dataset.quiz);
+            else if (el.dataset.answer != null) this.checkAnswer(this.currentOptions[Number(el.dataset.answer)]);
+            else if (el.dataset.next != null) this.nextQuestion();
+        });
+    }
+
+    escape(text) {
+        return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     startQuiz(category) {
         let questions = [];
         if (category === 'mixed') {
@@ -69,12 +90,13 @@ class BrevityTrainer {
         const q = quiz.questions[quiz.currentIndex];
         const container = document.getElementById('quizContainer');
         const options = this.shuffle([...q.options]);
+        this.currentOptions = options;
         container.innerHTML = `
             <div class="quiz-question">
-                <p style="font-size: 16px; margin-bottom: 20px;"><strong>${q.q}</strong></p>
+                <p style="font-size: 16px; margin-bottom: 20px;"><strong>${this.escape(q.q)}</strong></p>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    ${options.map(opt => `
-                        <button onclick="trainer.checkAnswer(${JSON.stringify(opt)})" class="quiz-option">${opt}</button>
+                    ${options.map((opt, i) => `
+                        <button type="button" data-answer="${i}" class="quiz-option">${this.escape(opt)}</button>
                     `).join('')}
                 </div>
                 <p style="margin-top: 20px; color: #666; font-size: 11px;">Question ${quiz.currentIndex + 1} of ${quiz.questions.length}</p>
@@ -102,8 +124,8 @@ class BrevityTrainer {
                 <h2 style="color: ${isCorrect ? '#00ff00' : '#ff0000'}; margin-bottom: 15px;">
                     ${isCorrect ? 'CORRECT' : 'INCORRECT'}
                 </h2>
-                <p style="margin-bottom: 25px;">${isCorrect ? 'Good.' : `Correct answer:<br><strong>${correctAnswer}</strong>`}</p>
-                <button onclick="trainer.nextQuestion()" style="width: 100%;">Next</button>
+                <p style="margin-bottom: 25px;">${isCorrect ? 'Good.' : `Correct answer:<br><strong>${this.escape(correctAnswer)}</strong>`}</p>
+                <button type="button" data-next="1" style="width: 100%;">Next</button>
             </div>
         `;
     }
@@ -131,7 +153,7 @@ class BrevityTrainer {
                 <h3>Quiz Complete</h3>
                 <p style="font-size: 24px; margin: 20px 0;">${accuracy}%</p>
                 <p>${this.score.correct} / ${this.score.total}</p>
-                <button onclick="trainer.startQuiz('mixed')" style="margin-top: 20px;">Mixed again</button>
+                <button type="button" data-quiz="mixed" style="margin-top: 20px;">Mixed again</button>
             </div>
         `;
     }

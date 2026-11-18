@@ -6,5 +6,4 @@ kb/05_Tools_And_CrossReferences/sources/*_utf8.txt
 Thumbs.db
 *.log
 node_modules/
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
+**/.obsidian/workspace*.json

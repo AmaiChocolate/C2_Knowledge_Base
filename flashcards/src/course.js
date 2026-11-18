@@ -44,10 +44,38 @@
         return { v: 1, stages: {}, items: {}, unlockAll: false };
     }
 
+    /**
+     * Progress comes from browser storage or a pasted code, so treat it as untrusted:
+     * keep only known stage and question ids, and only numbers and booleans in them.
+     * Nothing from it reaches the page except these validated numbers.
+     */
+    function sanitizeProgress(data) {
+        const clean = emptyProgress();
+        if (!data || typeof data !== 'object') return clean;
+        const num = (v, max) => (Number.isFinite(v) && v >= 0 ? Math.min(Math.floor(v), max) : 0);
+        const stageKeys = new Set(modules.flatMap(m => m.stages.map(s => `${m.id}.${s.id}`)));
+        Object.keys(data.stages || {}).forEach(k => {
+            const r = data.stages[k];
+            if (!stageKeys.has(k) || !r || typeof r !== 'object') return;
+            clean.stages[k] = { runs: num(r.runs, 1e6), passed: r.passed === true };
+            if (r.best != null) clean.stages[k].best = num(r.best, 100);
+        });
+        Object.keys(data.items || {}).forEach(id => {
+            const it = data.items[id];
+            if (!byId.has(id) || !it || typeof it !== 'object') return;
+            clean.items[id] = {
+                box: num(it.box, BOX_DAYS.length), right: num(it.right, 1e6), wrong: num(it.wrong, 1e6),
+                due: num(it.due, 8.64e15), seen: num(it.seen, 8.64e15)
+            };
+        });
+        clean.unlockAll = data.unlockAll === true;
+        return clean;
+    }
+
     function loadProgress() {
         try {
             const raw = localStorage.getItem(STORE_KEY);
-            return raw ? Object.assign(emptyProgress(), JSON.parse(raw)) : emptyProgress();
+            return raw ? sanitizeProgress(JSON.parse(raw)) : emptyProgress();
         } catch (_) {
             storageOk = false;
             return emptyProgress();
@@ -165,7 +193,7 @@
                     ${m.stages.map((s, si) => {
                         const rec = stageRec(stageKey(m, s));
                         const can = stageOpen(mi, si);
-                        const tag = rec.passed ? `✓ ${rec.best}/${runLength(s)}` : rec.best != null ? `best ${rec.best}/${runLength(s)}` : can ? 'open' : 'locked';
+                        const tag = rec.passed ? `✓ ${esc(rec.best)}/${runLength(s)}` : rec.best != null ? `best ${esc(rec.best)}/${runLength(s)}` : can ? 'open' : 'locked';
                         return `<button type="button" class="stage ${rec.passed ? 'passed' : ''}" data-act="stage" data-m="${mi}" data-s="${si}" ${can ? '' : 'disabled'} title="${esc(s.blurb)}">
                             <span>${si + 1}. ${esc(s.title)}</span><small>${tag}</small></button>`;
                     }).join('')}
@@ -570,7 +598,7 @@
         try {
             const data = decode(document.getElementById('importCode').value);
             if (!data || typeof data.stages !== 'object' || typeof data.items !== 'object') throw new Error('not a progress code');
-            progress = Object.assign(emptyProgress(), data);
+            progress = sanitizeProgress(data);
             saveProgress();
             renderHome();
         } catch (e) {

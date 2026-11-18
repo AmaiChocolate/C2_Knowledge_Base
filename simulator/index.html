@@ -3,9 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BC3 Scope Trainer</title>
-    <link rel="stylesheet" href="style.css?v=57">
+    <link rel="stylesheet" href="style.css?v=58">
 </head>
 
 <body>
@@ -152,10 +153,10 @@
                     <div id="quizContainer" class="data-block">
                         <p>Select a category:</p>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-                            <button onclick="trainer.startQuiz('brevity')">Brevity</button>
-                            <button onclick="trainer.startQuiz('systems')">BC3 / TPS-75</button>
-                            <button onclick="trainer.startQuiz('tactics')">DCA / Picture</button>
-                            <button onclick="trainer.startQuiz('mixed')">Mixed</button>
+                            <button type="button" data-quiz="brevity">Brevity</button>
+                            <button type="button" data-quiz="systems">BC3 / TPS-75</button>
+                            <button type="button" data-quiz="tactics">DCA / Picture</button>
+                            <button type="button" data-quiz="mixed">Mixed</button>
                         </div>
                     </div>
                 </div>
@@ -173,31 +174,31 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/milsymbol@2.0.0/dist/milsymbol.js"></script>
-    <script src="src/symbology.js?v=57"></script>
+    <script src="vendor/milsymbol-2.0.0/milsymbol.js"></script>
+    <script src="src/symbology.js?v=58"></script>
     <!-- Picture engine is shared with the Picture Trainer (single source of truth). -->
-    <script src="../picture_trainer/src/orientation.js?v=57"></script>
-    <script src="../picture_trainer/src/clustering.js?v=57"></script>
-    <script src="../picture_trainer/src/alssa_format.js?v=57"></script>
-    <script src="../picture_trainer/src/picture_logic.js?v=57"></script>
-    <script src="src/aspect_calculator.js?v=57"></script>
-    <script src="src/radar_model.js?v=57"></script>
-    <script src="src/timeline.js?v=57"></script>
-    <script src="src/scenarios_data.js?v=57"></script>
-    <script src="src/geo_projection.js?v=57"></script>
-    <script src="src/geo_data.js?v=57"></script>
-    <script src="src/geo_layer.js?v=57"></script>
-    <script src="src/airspace_layer.js?v=57"></script>
-    <script src="src/defensive_profiles.js?v=57"></script>
-    <script src="src/missile_model.js?v=57"></script>
-    <script src="src/pilot_ai.js?v=57"></script>
-    <script src="src/wave_manager.js?v=57"></script>
-    <script src="../picture_trainer/src/grading.js?v=57"></script>
-    <script src="src/wd_seat.js?v=57"></script>
-    <script src="src/wd_panel.js?v=57"></script>
-    <script src="src/scope_engine.js?v=57"></script>
-    <script src="src/trainer.js?v=57"></script>
-    <script src="src/app.js?v=57"></script>
+    <script src="../picture_trainer/src/orientation.js?v=58"></script>
+    <script src="../picture_trainer/src/clustering.js?v=58"></script>
+    <script src="../picture_trainer/src/alssa_format.js?v=58"></script>
+    <script src="../picture_trainer/src/picture_logic.js?v=58"></script>
+    <script src="src/aspect_calculator.js?v=58"></script>
+    <script src="src/radar_model.js?v=58"></script>
+    <script src="src/timeline.js?v=58"></script>
+    <script src="src/scenarios_data.js?v=58"></script>
+    <script src="src/geo_projection.js?v=58"></script>
+    <script src="src/geo_data.js?v=58"></script>
+    <script src="src/geo_layer.js?v=58"></script>
+    <script src="src/airspace_layer.js?v=58"></script>
+    <script src="src/defensive_profiles.js?v=58"></script>
+    <script src="src/missile_model.js?v=58"></script>
+    <script src="src/pilot_ai.js?v=58"></script>
+    <script src="src/wave_manager.js?v=58"></script>
+    <script src="../picture_trainer/src/grading.js?v=58"></script>
+    <script src="src/wd_seat.js?v=58"></script>
+    <script src="src/wd_panel.js?v=58"></script>
+    <script src="src/scope_engine.js?v=58"></script>
+    <script src="src/trainer.js?v=58"></script>
+    <script src="src/app.js?v=58"></script>
 </body>
 
 </html>
