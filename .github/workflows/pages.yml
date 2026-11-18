@@ -55,7 +55,7 @@ jobs:
         run: sed -i -E 's#(src|href)="((src/[^"]+\.js)|[a-z]+\.css|[a-z_]+_data\.js)"#\1="\2?v=${{ github.sha }}"#' _site/index.html _site/flashcards/index.html _site/flashcards/course.html
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
 
