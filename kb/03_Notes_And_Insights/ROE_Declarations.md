@@ -1,6 +1,6 @@
 # ROE Declarations and Identification Criteria
 
-**Last Reviewed:** 2026-08-13  
+**Last Reviewed:** 2026-11-18: call formats corrected to ALSSA ACC, ATP 3-52.4 (09 OCT 2024) and marked **(ALSSA ACC)**. ACC lists the voice declarations (BOGEY, FRIENDLY, NEUTRAL, BANDIT, HOSTILE) and DECLARE responses (also FURBALL, UNABLE, CLEAN, VANISHED) but does not define them; the definitions below come from an unverified "Research Document" and should be checked against the brevity publication (ATP 1-02.1) and your theater ROE / SPINS. See [[../05_Tools_And_CrossReferences/ALSSA_ACC_2024_Review|ALSSA_ACC_2024_Review]].  
 **Tags:** `#roe` `#abm` `#wd`
 
 ## Declaration Types
@@ -16,8 +16,8 @@
   - POO (Point of Origin) - launched from known enemy territory
   - Visual ID (if available)
 
-**Example**: `"RAPTOR, DECLARE BULLSEYE 180/40"`
-**Response**: `"HOSTILE, BULLSEYE 180/40"`
+**Request** (ALSSA ACC V.7): `"DARKSTAR, VIPER 1, DECLARE BULLSEYE 2-3-0/12, TWELVE THOUSAND"`, or by name once the picture is labeled: `"CHALICE, HORNET 1, DECLARE EAST GROUP"`.
+**Response** (ALSSA ACC V.7.d): always BULLSEYE, altitude, track direction, declaration and fill-ins: `"DARKSTAR, NORTH GROUP BULLSEYE 2-3-0/12, TWELVE THOUSAND, TRACK EAST, HOSTILE"`.
 
 ---
 
@@ -40,7 +40,7 @@
 - No visual ID
 - Does not meet hostile criteria yet
 
-**Example**: `"WARRIOR, PICTURE, THREE GROUPS, NORTH GROUP BULLSEYE 090/25, HIGH, TRACK WEST, BOGEY"`
+**Example** (ALSSA ACC V.7.d): `"CHALICE, EAST GROUP BULLSEYE 2-7-3/27, TWENTY-TWO THOUSAND, TRACK EAST, BOGEY SPADES"`. Altitude is always a number, never HIGH (HIGH is only a fill-in above 40,000 ft).
 
 ---
 
@@ -69,8 +69,7 @@
 ### UNABLE
 **Definition**: Cannot provide a declaration due to insufficient data.
 
-**Example**: `"RAPTOR, DECLARE BULLSEYE 200/30"`
-**Response**: `"UNABLE, RECOMMEND VISUAL ID"`
+**Example**: `"DARKSTAR, RAPTOR 1, DECLARE BULLSEYE 2-0-0/30, TWENTY THOUSAND"` → `"DARKSTAR, UNABLE"` (UNABLE is a listed DECLARE response, ALSSA ACC V.7.d(2); any follow-on recommendation is unverified).
 
 ---
 

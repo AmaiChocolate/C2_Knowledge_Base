@@ -1,6 +1,6 @@
 # Tactical Range Calls and Intercept Maneuvers
 
-**Last Reviewed:** 2026-08-13  
+**Last Reviewed:** 2026-11-18: items that conflict with ALSSA ACC, ATP 3-52.4 (09 OCT 2024) are corrected and marked **(ALSSA ACC)**. Everything else here comes from an unverified "Research Document" and is not covered by ACC (brevity terms such as CUT, CRANK, NOTCH, BREAK belong to the multi-Service brevity publication, ATP 1-02.1): **treat it as unverified**. See [[../05_Tools_And_CrossReferences/ALSSA_ACC_2024_Review|ALSSA_ACC_2024_Review]].  
 **Tags:** `#wd` `#braa` `#brevity`
 
 ## Range Call Definitions
@@ -30,11 +30,11 @@ Tactical range calls provide pilots with situational awareness relative to the i
 ---
 
 ### BEAM
-**Definition**: Contact is stabilized at **70-110° aspect** relative to the fighter.
+**Definition** (ALSSA ACC IV.6.c, figure 1): an aspect band, **71–120° target aspect** (HOT 0–30°, FLANK 31–70°, BEAM 71–120°, DRAG 121–180°). With a BRAA call it is voiced with a cardinal: `BEAM NORTH`. It is an aspect, not a range call.
 
 **Significance**: Beam aspect maximizes Doppler shift for radar tracking but presents a difficult shot geometry.
 
-**WD Call**: `"BEAM, 12 MILES, TRACK EAST"`
+**ACC usage**: `"EAGLE 11, NORTH GROUP BRAA 2-1-0/28, THIRTY-EIGHT THOUSAND, BEAM NORTH, HOSTILE"`. A BRAA call uses aspect, never TRACK.
 
 **Closure Rate**: Beam-fired missiles close at approximately **1 NM every 3 seconds** (critical for timing).
 
@@ -73,7 +73,7 @@ Tactical range calls provide pilots with situational awareness relative to the i
 - **FOX 3**: Active radar-guided missile (e.g., AIM-120 AMRAAM)
 
 **Example**: 
-- Pilot: `"RAPTOR 1, FOX 3, BULLS 180/40"`
+- Pilot (ALSSA ACC V.8): `"RAPTOR 1, FOX 3 LEAD GROUP BULLSEYE 1-2-5/27, TWENTY-NINE THOUSAND, HOSTILE"`. BULLSEYE is never shortened to BULLS.
 - WD: `"RAPTOR 1, ROPE"` (continue radar support)
 
 ---
@@ -83,7 +83,7 @@ Tactical range calls provide pilots with situational awareness relative to the i
 
 **WD Observation**: Track fades from radar after missile impact.
 
-**WD Call**: `"SPLASH, ONE GROUP REMAINING BULLS 175/38"`
+**WD Call**: (unverified) never shorten BULLSEYE: `BULLSEYE 175/38`.
 
 ---
 
@@ -104,11 +104,11 @@ Tactical range calls provide pilots with situational awareness relative to the i
 ## Defensive Calls
 
 ### THREAT
-**Definition**: Directive call - hostile group within **pre-briefed range** (typically 5nm).
+**Definition** (ALSSA ACC V.17): made when a fighter will pierce the THREAT range to an UNTARGETED group, completed no later than threat range. THREAT criteria are briefed; the default is **35 nm, independent of aspect**. Cancelled once the fighter calls TARGETED.
 
-**Format**: `"THREAT, [CALLSIGN], [BRAA TO THREAT]"`
+**Format**: fighter call sign, group name, THREAT, BRAA (bearing, range), altitude, aspect, declaration, fill-ins. An undetected or unreported group is a THREAT GROUP. BULLSEYE (right after THREAT) when the fighter's position is unknown or several fighters are threatened; within 5 nm, cardinal direction and range.
 
-**Example**: `"THREAT, RAPTOR, BULLS 180/20, HIGH, TRACK HOT"`
+**Examples**: `"HEAT 31, ADDITIONAL GROUP THREAT, BRAA 1-2-5/35, THIRTY-FIVE THOUSAND, HOT, HOSTILE"` · `"RAMBO 2, THREAT GROUP BRAA 2-7-0/13, ONE THOUSAND, HOT, HOSTILE"` · `"BOLT 1, THREAT NORTH THREE, TEN THOUSAND, TRACK SOUTH, HOSTILE"`
 
 ---
 
@@ -122,7 +122,7 @@ Tactical range calls provide pilots with situational awareness relative to the i
 ---
 
 ### NOTCH
-**Definition**: Directive to maneuver **perpendicular** to threat radar (70-110° aspect).
+**Definition** (unverified): directive to maneuver **perpendicular** to the threat radar (about BEAM aspect, which ACC defines as 71–120° target aspect).
 
 **Purpose**: Exploit Doppler notch filter, hide in ground clutter.
 

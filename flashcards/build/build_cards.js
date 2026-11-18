@@ -15,30 +15,33 @@
 const path = require('path');
 const {
     ROOT, SNAPSHOT, T, R, grader, fly, snapshotTracks, startRun, writeOrCheck,
-    pictureMeasurements, maneuverMeasurements
+    pictureMeasurements, maneuverMeasurements, calledAs
 } = require('./harness');
 
 const OUT = path.join(ROOT, 'flashcards', 'cards_data.js');
 
-/** Study notes shown on the back of a card, keyed by label / drill / maneuver. */
+/** Study notes shown on the back of a card, keyed by label / drill / maneuver (ALSSA ACC, Oct 2024). */
 const TIPS = {
     'SINGLE GROUP': 'One known group: BULLSEYE, altitude, track, declaration.',
     AZIMUTH: 'Two groups wider than deep. Voice the azimuth; name them by cardinal (NORTH / SOUTH GROUP).',
     RANGE: 'Two groups deeper than wide. Voice the range; name them LEAD / TRAIL GROUP.',
     WALL: `Three or more groups abreast, depth ${R.depthRuleNm} nm or less. Voice WIDE; outer groups by cardinal, inner groups MIDDLE.`,
-    LADDER: 'Three or more groups in trail. Voice the total DEEP; LEAD, MIDDLE / SECOND, THIRD …, TRAIL.',
+    LADDER: 'Three or more groups in trail. Voice the total DEEP, then the SEPARATION from the LEAD GROUP to the next group. LEAD, MIDDLE (three) or SECOND, THIRD … (more), TRAIL.',
     CHAMPAGNE: `Two groups abreast in front, one in trail, deeper than ${R.depthRuleNm} nm. WIDE then DEEP.`,
     VIC: `One group in front, two abreast in trail, deeper than ${R.depthRuleNm} nm. DEEP then WIDE.`,
     BOX: 'Two groups abreast in front, two abreast behind. WIDE then DEEP.',
-    waves: `Total groups, then LEADING EDGE + its label. Each follow-on wave (more than ${R.waveGapNm} nm back in this trainer) gets its SEPARATION along the threat axis and its own label.`,
+    waves: `Total groups, then LEADING EDGE + its label. Each follow-on wave (more than ${R.waveGapNm} nm back in this trainer) is voiced with its separation along the threat axis and its own label: "SECOND WAVE FIFTEEN, THREE GROUP WALL".`,
     packages: `Groups more than ${R.packageGapNm} nm apart (trainer value) are PACKAGES: count and separation first, a BULLSEYE for each, then each package's own picture.`,
     CAP: 'An orbiting group: CAP replaces the track direction.',
     threat: 'THREAT calls go in BRAA from the threatened fighter: bearing / range, altitude, aspect, declaration.',
     braa: 'BOGEY DOPE is answered in BRAA from the requesting fighter, not BULLSEYE.',
     music: 'MUSIC: anchor the named group off BULLSEYE with altitude and track.',
-    strobe: `STROBE: range and altitude of the closest group within ${R.strobeCorrelationDeg}° of the fighter's strobe bearing.`,
+    strobe: `STROBE: range, altitude, aspect (HOT assumed, so only say it when not HOT), declaration and name of the closest group within ${R.strobeCorrelationDeg}° of the fighter's strobe bearing.`,
+    trackAssumed: 'Every group is HOT along the threat axis, so track is assumed: no TRACK in the picture.',
+    trackCommon: 'Every group shares a track that is not HOT: say it once, after the label.',
+    high: 'A group above 40,000 ft gets the HIGH fill-in after its declaration (never in place of the altitude).',
     maneuver: `The picture is already called: keep its group names, do not re-label. Aspect off the fighters: HOT within ${R.aspectDeg.hot}°, FLANK to ${R.aspectDeg.flank}°, BEAM to ${R.aspectDeg.beam}°, DRAG beyond. Then give the cardinal it is tracking.`,
-    SPLIT: 'Name the group that split, then each new group with BULLSEYE, altitude, track and declaration.'
+    arms: 'No SPLIT call: a group that divides is MANEUVER SPREAD (all still FLANK or HOT), RANGE (one still FLANK or HOT, one BEAM or DRAG) or AZIMUTH (all BEAM or DRAG), then each ARM by side with its aspect.'
 };
 
 function tipsFor(card, key) {
@@ -46,7 +49,7 @@ function tipsFor(card, key) {
     const f = key.fields;
     if (key.family === 'maneuver') {
         out.push(TIPS.maneuver);
-        if (f.maneuver === 'SPLIT') out.push(TIPS.SPLIT);
+        if (key.arms) out.push(TIPS.arms);
         return out;
     }
     if (card.cat === 'threat') return [TIPS.threat];
@@ -56,6 +59,9 @@ function tipsFor(card, key) {
     if (TIPS[f.label]) out.push(TIPS[f.label]);
     else if (f.groupCount === 1) out.push(TIPS['SINGLE GROUP']);
     if (f.track === 'CAP') out.push(TIPS.CAP);
+    else if (f.label && f.track == null) out.push(TIPS.trackAssumed);
+    else if (f.label && / TRACK [A-Z]+\. /.test(card.answer || '')) out.push(TIPS.trackCommon);
+    if (/, HIGH\b/.test(card.answer || '')) out.push(TIPS.high);
     return out;
 }
 
@@ -66,6 +72,7 @@ function keyFor(answer) {
         if (key.fields[k] != null && key.fields[k] !== '') fields[k] = key.fields[k];
     });
     const out = { family: key.family, fields };
+    if (key.arms) out.arms = key.arms;
     if (key.anchors) {
         out.anchors = key.anchors.map(a => {
             const o = { name: a.name, b: `${String(a.bearing).padStart(3, '0')}/${a.range}` };
@@ -119,14 +126,14 @@ function buildScenarioCards(cat, variation, orientation, stats) {
         for (let waited = 0; waited < SNAPSHOT.settleMaxSec; waited += 5) {
             if (waited >= SNAPSHOT.settleSec) {
                 answer = grader.buildManeuverAnswer(scope.tracks, director);
-                if (answer.answerKey && answer.answerKey.fields.maneuver === m.type) break;
+                if (calledAs(answer.answerKey, m)) break;
                 answer = null;
             }
             if (anim.paused) break;
             fly(anim, recorder, 5);
         }
         if (!answer) answer = grader.buildManeuverAnswer(scope.tracks, director);
-        if (!answer.answerKey || answer.answerKey.fields.maneuver !== m.type) {
+        if (!calledAs(answer.answerKey, m)) {
             stats.skippedManeuvers += 1;
             break;
         }

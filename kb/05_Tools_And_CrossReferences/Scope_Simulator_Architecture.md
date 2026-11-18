@@ -148,8 +148,8 @@ def calculate_formation(groups):
 
 **Example**:
 - Pilot (ASR): *"RAPTOR 11, Bogey Dope"*
-- Simulator (Logic): Calculates nearest hostile = BULLS 180/45
-- Simulator (TTS): *"RAPTOR 11, BULLS 180/45, HIGH, HOT"*
+- Simulator (Logic): Calculates nearest group = BRAA 180/45 from RAPTOR 11
+- Simulator (TTS): *"RAPTOR 11, NORTH GROUP BRAA 1-8-0/45, THIRTY-FIVE THOUSAND, HOT, HOSTILE"* (ALSSA ACC V.11: BRAA, numeric altitude, aspect, declaration)
 
 ---
 

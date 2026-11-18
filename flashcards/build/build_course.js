@@ -86,7 +86,7 @@ const course = {
         stages: m.stages.map(s => Object.assign({ id: s }, C.STAGES[s]))
     })),
     upcoming: C.UPCOMING,
-    reviewSource: C.PCL,
+    reviewSource: C.SRC,
     scenes,
     questions
 };

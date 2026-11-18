@@ -38,12 +38,12 @@
     };
 
     const MODE_HINTS = {
-        picture: 'ALSSA picture: total groups, label and dimensions, anchor BULLSEYE, altitude, track. Leave fields blank when they do not apply.',
+        picture: 'ALSSA picture: total groups, label and dimensions, anchor BULLSEYE, altitude, track. Leave fields blank when they do not apply; track is blank when every group is HOT along the threat axis (it is assumed).',
         packages: 'Packages: number of packages, azimuth separation, and the BULLSEYE of either package.',
         braa: 'Respond in BRAA format from the named fighter, not bullseye.',
         music: 'MUSIC: anchor the named group off BULLSEYE with altitude and track.',
         strobe: 'STROBE: range and altitude of the closest group along the fighter\'s strobe bearing (±30°).',
-        maneuver: 'Maneuver: the picture is called, so do not re-label it. Name the group as you called it, then HOT / FLANK / BEAM / DRAG and the cardinal it is now tracking. For a SPLIT, give the BULLSEYE of either new group.'
+        maneuver: 'Maneuver: the picture is called, so do not re-label it. Name the group as you called it, then HOT / FLANK / BEAM / DRAG and the cardinal it is now tracking. If the group divides into ARMs, call MANEUVER SPREAD, RANGE or AZIMUTH (no direction).'
     };
 
     function initCategoryPicker() {
@@ -210,7 +210,7 @@
         if (maneuvers.phase === 'picture') {
             commitPicture(answer);
         } else {
-            // Show the call: after a SPLIT the new group names are needed for what comes next.
+            // Show the call: after a group divides into ARMs, their names are needed for what comes next.
             els.revealPanel.innerHTML = `<p class="call-text">${escapeHtml(answer.text)}</p>`;
             maneuverCalled();
         }

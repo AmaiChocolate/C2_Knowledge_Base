@@ -4,7 +4,7 @@
  * options, and scenario runs on the course's single threat axis.
  */
 const {
-    SNAPSHOT, T, R, grader, fly, snapshotTracks, startRun, pictureMeasurements
+    SNAPSHOT, T, R, grader, fly, snapshotTracks, startRun, pictureMeasurements, ARM_RELATIONS, calledAs
 } = require('./harness');
 
 const CARDINALS = ['NORTH', 'NORTHEAST', 'EAST', 'SOUTHEAST', 'SOUTH', 'SOUTHWEST', 'WEST', 'NORTHWEST'];
@@ -24,6 +24,10 @@ const LABEL_SWAP = { AZIMUTH: 'RANGE', RANGE: 'AZIMUTH', WALL: 'LADDER', LADDER:
 // The note gives a ladder's inner groups as "MIDDLE / SECOND": never offer one as wrong when the other is right.
 const LADDER_ALIASES = { 'MIDDLE GROUP': ['SECOND GROUP'], 'SECOND GROUP': ['MIDDLE GROUP'] };
 const COUNT_WORDS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN'];
+// Track field for a labeled picture: blank in the key when every group is HOT (track assumed).
+const TRACK_ASSUMED = '(none: all HOT, track assumed)';
+const TRACK_OPTIONS = [TRACK_ASSUMED].concat(CARDINALS.map(c => `TRACK ${c}`), ['CAP']);
+const trackValue = f => (f.track == null ? TRACK_ASSUMED : f.track === 'CAP' ? 'CAP' : `TRACK ${f.track}`);
 
 // ------------------------------------------------------------------ helpers
 
@@ -132,8 +136,8 @@ function breakers(ctx) {
         text => (/TWO CONTACTS/.test(text) ? {
             text: text.replace('TWO CONTACTS', 'HEAVY'), why: 'HEAVY is three or more contacts; this group has two: TWO CONTACTS.'
         } : null),
-        text => (/GROUP BRAA /.test(text) ? {
-            text: text.replace('GROUP BRAA ', 'GROUP BULLSEYE '), why: 'BOGEY DOPE is answered in BRAA from the fighter, not BULLSEYE.'
+        text => (ctx.bogey && / BRAA /.test(text) ? {
+            text: text.replace(' BRAA ', ' BULLSEYE '), why: 'BOGEY DOPE is answered in BRAA from the fighter, not BULLSEYE.'
         } : null),
         text => {
             const m = text.match(/, (HOT|FLANK [A-Z]+|BEAM [A-Z]+|DRAG [A-Z]+), HOSTILE/);
@@ -141,27 +145,67 @@ function breakers(ctx) {
             const swap = m[1] === 'HOT' ? `DRAG ${ctx.trackCardinal || 'WEST'}` : 'HOT';
             return { text: text.replace(m[0], `, ${swap}, HOSTILE`), why: `The group's aspect to the fighter is ${m[1]}.` };
         },
-        // Maneuver calls: "WARRIOR, NORTH GROUP, BEAM NORTH" / "WARRIOR, NORTH GROUP, HOT".
+        // Labeled picture with every group HOT along the threat axis: track is assumed.
         text => {
-            const m = text.match(/, (FLANK|BEAM|DRAG) ([A-Z]+)$/);
+            if (f.track !== null || !f.label || !ctx.hotCardinal || /\bTRACK\b/.test(text)) return null;
+            const cut = text.indexOf('. ');
+            return cut > 0 ? {
+                text: `${text.slice(0, cut)}, TRACK ${ctx.hotCardinal}${text.slice(cut)}`,
+                why: 'Every group is HOT along the threat axis, so track is assumed: leave TRACK out (ALSSA ACC IV.14.f).'
+            } : null;
+        },
+        text => {
+            const m = text.match(/SECOND WAVE ([A-Z-]+), /);
+            return m ? {
+                text: text.replace(m[0], `SECOND WAVE SEPARATION ${m[1]}, `),
+                why: `Follow-on waves are voiced "SECOND WAVE ${m[1]}", then the label: no word SEPARATION.`
+            } : null;
+        },
+        text => {
+            const m = text.match(/ GROUP SEPARATION ([A-Z-]+), /);
+            return m ? {
+                text: text.replace(m[0], ' GROUP, '),
+                why: `A LADDER gives the separation from the LEAD GROUP to the next group: SEPARATION ${m[1]}.`
+            } : null;
+        },
+        text => (/, HIGH\b/.test(text) ? {
+            text: text.replace(/, HIGH\b/, ''), why: 'A group above 40,000 ft gets the HIGH fill-in after its declaration.'
+        } : null),
+        // Maneuver calls: "WARRIOR, NORTH GROUP BEAM NORTH" / "WARRIOR, NORTH GROUP HOT".
+        text => {
+            const m = text.match(/ (FLANK|BEAM|DRAG) ([A-Z]+)$/);
             if (!m) return null;
             const other = { FLANK: 'BEAM', BEAM: 'DRAG', DRAG: 'FLANK' }[m[1]];
             return {
-                text: text.replace(m[0], `, ${other} ${m[2]}`),
+                text: text.replace(m[0], ` ${other} ${m[2]}`),
                 why: ctx.offDeg != null ? `The group is ${ctx.offDeg}° off the fighters: ${m[1]}.` : `Its aspect off the fighters is ${m[1]}.`
             };
         },
         text => {
-            const m = text.match(/, (FLANK|BEAM|DRAG) ([A-Z]+)$/);
-            return m ? { text: text.replace(m[0], `, ${m[1]} ${reciprocal(m[2])}`), why: `The group now tracks ${m[2]}.` } : null;
+            const m = text.match(/ (FLANK|BEAM|DRAG) ([A-Z]+)$/);
+            return m ? { text: text.replace(m[0], ` ${m[1]} ${reciprocal(m[2])}`), why: `The group now tracks ${m[2]}.` } : null;
         },
-        text => (/, HOT$/.test(text) && ctx.trackCardinal ? {
-            text: text.replace(/, HOT$/, `, HOT ${ctx.trackCardinal}`), why: 'HOT stands alone: no direction after it.'
+        text => (/ HOT$/.test(text) && ctx.trackCardinal ? {
+            text: text.replace(/ HOT$/, ` HOT ${ctx.trackCardinal}`), why: 'HOT stands alone: no direction after it.'
         } : null),
-        text => (ctx.groupName && ctx.otherName && text.includes(`, ${ctx.groupName}, `) ? {
-            text: text.replace(`, ${ctx.groupName}, `, `, ${ctx.otherName}, `),
+        text => (ctx.groupName && ctx.otherName && text.includes(`, ${ctx.groupName} `) ? {
+            text: text.replace(`, ${ctx.groupName} `, `, ${ctx.otherName} `),
             why: `${ctx.groupName} is the group that changed track. Keep the names from the picture.`
         } : null),
+        // A group dividing into ARMs: "LEAD GROUP MANEUVER RANGE. NORTH ARM BEAM NORTH. SOUTH ARM HOT."
+        text => {
+            const m = text.match(/MANEUVER (SPREAD|RANGE|AZIMUTH)/);
+            if (!m) return null;
+            const other = { SPREAD: 'AZIMUTH', RANGE: 'SPREAD', AZIMUTH: 'RANGE' }[m[1]];
+            return { text: text.replace(m[0], `MANEUVER ${other}`), why: ctx.relationWhy || `The group divided as MANEUVER ${m[1]}.` };
+        },
+        text => {
+            const m = text.match(/ MANEUVER (SPREAD|RANGE|AZIMUTH)/);
+            return m ? {
+                text: text.replace(m[0], ' SPLIT'),
+                why: 'There is no SPLIT call: say MANEUVER and how the group divided, then each ARM (ALSSA ACC V.10).'
+            } : null;
+        },
         text => {
             const dim = f.width != null ? ['WIDE', f.width] : null;
             if (f.label === 'AZIMUTH' || f.label === 'RANGE') {
@@ -259,7 +303,7 @@ function pictureRun(module, cats, variations, keep, extra, fieldsFor) {
         const ms = pictureMeasurements(pic, { mode: null }, run.orient, tracks);
         const sc = addScene(`${module}-${id}`, run.orient, tracks, run.recorder, ms, false);
         const f = key.fields;
-        const ctx = { fields: f, trackCardinal: f.track };
+        const ctx = { fields: f, trackCardinal: f.track, hotCardinal: cardinalOf(run.orient.threatHeading) };
         // Zoomed on the raid, where the WIDE / DEEP brackets are readable; tags still give BULLSEYE.
         const base = (s, n) => ({ id: `${module}-${id}-${n}`, m: module, s, sc, call: text, view: 'raid' });
         const named = pic.named;
@@ -268,7 +312,6 @@ function pictureRun(module, cats, variations, keep, extra, fieldsFor) {
         errorSpot(rng, base('guided', 'err'), text, ctx);
         extra({ rng, base, key, f, text, named, groups, o, run });
 
-        const track = f.track === 'CAP' ? 'CAP' : `TRACK ${f.track}`;
         const fields = fieldsFor ? fieldsFor(f, key) : module === 'm3'
             ? [
                 { k: 'label', kind: 'select', label: 'Label', options: ['AZIMUTH', 'RANGE'], v: f.label },
@@ -281,7 +324,7 @@ function pictureRun(module, cats, variations, keep, extra, fieldsFor) {
                 { k: 'deep', kind: 'num', label: 'DEEP (nm, blank if not voiced)', v: f.depth != null ? f.depth : null, tol: TOL.dimensionNm }
             ];
         if (!fieldsFor) fields.push(anchorField(key, 'BULLSEYE of any group'));
-        if (!fieldsFor) fields.push({ k: 'track', kind: 'select', label: 'Track', options: CARDINALS.map(c => `TRACK ${c}`).concat(['CAP']), v: track });
+        if (!fieldsFor) fields.push({ k: 'track', kind: 'select', label: 'Track', options: TRACK_OPTIONS, v: trackValue(f) });
         add(Object.assign(base('build', 'fields'), {
             t: 'fields', prompt: 'Build the picture.', fields,
             why: `Any group's BULLSEYE is accepted as the anchor (±${TOL.bearingDeg}° / ±${TOL.rangeNm} nm / ±${TOL.altitudeK}k), as in the Picture Trainer. Dimensions are ±${TOL.dimensionNm} nm.`
@@ -296,6 +339,7 @@ function namesOf(named) {
 
 module.exports = {
     CARDINALS, ASPECTS, TOL, LABEL_RULES, LADDER_ALIASES, COUNT_WORDS, PICTURE_CATS, COURSE_AXIS,
+    TRACK_ASSUMED, TRACK_OPTIONS, trackValue, ARM_RELATIONS, calledAs,
     rngFor, shuffle, pick, strip, words, cardinalOf, reciprocal, splitCall,
     scenes, questions, addScene, addSceneData, add, choice, breakers, brokenCalls, fullCallChoice, errorSpot,
     orderQuestion, soloCall, anchorField, eachRun, pictureRun, namesOf

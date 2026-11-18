@@ -136,10 +136,10 @@
         const due = dueItems().length;
         const html = [];
         html.push(`<section class="panel review-banner">
-            <strong>Instructor review needed.</strong> Lessons and module 1 are paraphrased from
-            <code>${esc(COURSE.reviewSource)}</code>, which is marked "needs your re-review". Scope questions come from the
-            Picture Trainer's answer engine. Module 8 grades commit, targeting and THREAT timing with the BC3 Scope Trainer's
-            training defaults, not your unit's criteria. Check the content against the ALSSA publication before relying on it.
+            <strong>Source.</strong> Lessons, module 1 and the call formats are checked against
+            <code>${esc(COURSE.reviewSource)}</code>. Scope questions come from the Picture Trainer's answer engine.
+            Commit window and targeting range in module 8 are training defaults; COMMIT and THREAT criteria are set in
+            mission planning, so use your unit's.
         </section>`);
         if (!storageOk) {
             html.push('<section class="panel warn">This browser is not saving progress. Use <b>Export progress</b> before you close the page.</section>');

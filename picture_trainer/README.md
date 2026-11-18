@@ -33,11 +33,11 @@ Random Picture, Azimuth, Range, Wall, Ladder, Champagne, Vic, Box, Cap, Leading 
 
 Truth moves, so the answer is computed **from the scope as it is at the moment you reveal or submit**: pause first if you are still measuring.
 
-`PictureGenerator` works in the threat-axis frame (WIDE = across the axis, DEEP = along it) and applies the rules in [`Picture_Call_Logic.md`](../kb/03_Notes_And_Insights/Picture_Call_Logic.md): 3 nm groups, the 5 nm depth rule (WALL vs CHAMPAGNE / VIC), 10 nm azimuth anchoring, LEADING EDGE + waves, packages. Every threshold lives in `PICTURE_RULES` at the top of `src/picture_logic.js`; the wave (25 nm) and package (40 nm) breaks are trainer assumptions because the real values are mission-planned.
+`PictureGenerator` works in the threat-axis frame (WIDE = across the axis, DEEP = along it) and applies the rules in [`Picture_Call_Logic.md`](../kb/03_Notes_And_Insights/Picture_Call_Logic.md), checked against ALSSA ACC, ATP 3-52.4 (Oct 2024): 3 nm groups, the 5 nm depth rule (WALL vs CHAMPAGNE / VIC), 10 nm azimuth anchoring, LADDER separation, LEADING EDGE + waves (`SECOND WAVE FIFTEEN, THREE GROUP WALL`), packages, `HEAVY, THREE CONTACTS` and the HIGH fill-in above 40,000 ft. Track is assumed (not said) when every group is HOT along the threat axis, said once after the label when the groups share another track, and given per group otherwise. Aspect bands are HOT 0–30°, FLANK 31–70°, BEAM 71–120°, DRAG 121–180°. Every threshold lives in `PICTURE_RULES` at the top of `src/picture_logic.js`; the wave (25 nm) and package (40 nm) breaks are trainer assumptions because the real values are mission-planned.
 
 ## Maneuvers
 
-With **Maneuvers after the picture** checked (default), submitting or revealing the picture locks its group names. A few seconds later a named group either turns to a HOT, FLANK, BEAM or DRAG heading relative to the friendly fighters, or **splits**: one contact of a group of two or more breaks off on its own heading. The form switches to a maneuver call: the group's name, the maneuver, the direction (blank for HOT and SPLIT), and for a SPLIT the BULLSEYE of either new group. The pieces of a split take new names (`NORTH LEAD GROUP` / `SOUTH LEAD GROUP`), which the revealed or graded call shows, and later maneuvers use them. Do not re-label the picture: a wall that starts flanking is still NORTH / MIDDLE / SOUTH GROUP. Each run has one or two maneuvers. A group that has turned away often comes back HOT. Groups with no unique name (follow-on waves, core-information `GROUP`s) do not maneuver. The BRAA and EA drills have no maneuvers.
+With **Maneuvers after the picture** checked (default), submitting or revealing the picture locks its group names. A few seconds later a named group either turns to a HOT, FLANK, BEAM or DRAG heading relative to the friendly fighters (`WARRIOR, NORTH GROUP FLANK NORTH`), or **divides into ARMs**: one contact of a group of two or more breaks off on its own heading. ALSSA has no SPLIT call: that is `MANEUVER SPREAD` (every contact still FLANK or HOT), `MANEUVER RANGE` (one FLANK / HOT, one BEAM / DRAG) or `MANEUVER AZIMUTH` (all BEAM / DRAG), then each ARM by side with its aspect: `WARRIOR, LEAD GROUP MANEUVER RANGE. NORTH ARM BEAM NORTH. SOUTH ARM HOT.` The form switches to a maneuver call: the group's name, the maneuver (aspect, or MANEUVER and its relationship) and the direction (blank for HOT and for ARMs). Later maneuvers use the ARM names. Do not re-label the picture: a wall that starts flanking is still NORTH / MIDDLE / SOUTH GROUP. Each run has one or two maneuvers. A group that has turned away often comes back HOT. Groups with no unique name (follow-on waves, core-information `GROUP`s) do not maneuver. The BRAA and EA drills have no maneuvers.
 
 Once the picture is called, the stop line moves 35 nm closer (to 20 nm) so the maneuvers have room. Calling the picture after the run has frozen resumes it. The run freezes again when a group reaches the new line. The director lives in `src/maneuvers.js` (`MANEUVER_RULES` for timings and target aspects). It only turns a group when a straight-line look-ahead keeps it clear of the other groups and the stop line.
 
@@ -52,14 +52,13 @@ Field compare against the live answer key:
 | Wide / deep | ±3 nm |
 | Bullseye or BRAA bearing / range | ±5° / ±3 nm (±5 nm for a CAP): any group in the called picture is accepted as the anchor |
 | Altitude | ±1 thousand ft of the anchored group: digits or words |
-| Track / aspect | word match (`EAST`, `CAP`, `HOT`, `FLANK …`) |
-| Maneuver group / aspect | the name from your picture; HOT / FLANK / BEAM / DRAG |
-| Maneuver direction | any cardinal within 30° of the new heading (`N` / `NORTH`); blank for HOT and SPLIT |
-| SPLIT BULLSEYE | either new group, ±5° / ±3 nm; blank for track maneuvers |
+| Track / aspect | word match (`EAST`, `CAP`, `HOT`, `FLANK …`); blank when every group is HOT (track assumed) |
+| Maneuver group / aspect | the name from your picture; HOT / FLANK / BEAM / DRAG, or SPREAD / RANGE / AZIMUTH (with or without MANEUVER) for ARMs |
+| Maneuver direction | any cardinal within 30° of the new heading (`N` / `NORTH`); blank for HOT and for ARMs |
 
-Special drills show the fighter's request above the form: **Threat** and **Bogey Dope** are answered in BRAA from the named fighter; **EA** drills the controller response to `MUSIC` (anchor the group) and `STROBE` (range to the closest group along the bearing).
+Special drills show the fighter's request above the form: **Threat** (`THREAT GROUP BRAA …` to the closest fighter) and **Bogey Dope** (by the group's name: `NORTH GROUP BRAA …`) are answered in BRAA from the named fighter; **EA** drills the controller response to `MUSIC` (anchor the group) and `STROBE` (range, altitude, aspect when not HOT, to the closest group along the bearing).
 
-Not modelled yet: OPENING / CLOSING, ECHELON, altitude STACKs, altitude maneuvers, weighted-wall separation calls, mixed declarations (everything is HOSTILE), voice input.
+Not modelled yet: OPENING / CLOSING, ECHELON, altitude STACKs, altitude maneuvers, weighted-wall separation calls, ADDITIONAL / POP-UP groups, UNTARGETED, FAST / VERY FAST, mixed declarations (everything is HOSTILE), voice input. Every picture is labeled; in the real flow, pre-COMMIT pictures are core information.
 
 ## Tests
 

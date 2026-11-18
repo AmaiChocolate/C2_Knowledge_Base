@@ -11,7 +11,7 @@ Nothing animates, and nothing loads from the internet. The page draws one small 
 | Cards | What you call |
 |-------|---------------|
 | **Picture** (450) | The full ALSSA picture: label, dimensions, anchors, altitudes, track. Threat, BOGEY DOPE, MUSIC and STROBE cards show the fighter's request and want the BRAA / anchor answer instead |
-| **Maneuver** (580) | The same raid later on, after the picture has been called. The earlier calls are listed on the card, so you name the group as it was called: HOT / FLANK / BEAM / DRAG + direction, or a SPLIT with BULLSEYE for each new group |
+| **Maneuver** (580) | The same raid later on, after the picture has been called. The earlier calls are listed on the card, so you name the group as it was called: HOT / FLANK / BEAM / DRAG + direction, or a group dividing into ARMs: `MANEUVER SPREAD / RANGE / AZIMUTH` and each ARM's aspect |
 
 The back of each card gives the correct call one sentence per line, the key values (groups, label, wide / deep, anchors…) and the rule that applies.
 
@@ -52,14 +52,14 @@ Every course scenario uses the E/W threat axis (west threat, raids tracking east
 | 3 Two groups | AZIMUTH vs RANGE, names, dimension, which groups are anchored |
 | 4 Three or more | WALL, LADDER, CHAMPAGNE, VIC: the 5 nm rule, voiced dimensions, group names |
 | 5 BOX, LEADING EDGE, WAVES, PACKAGES | BOX names and dimensions; total groups, wave count, leading-edge label, SEPARATION; package count, separation and names |
-| 6 Aspect and maneuvers | After the picture is called: which group turned, HOT / FLANK / BEAM / DRAG from its angle off the fighters, direction, SPLIT and the new names; earlier calls shown on the card |
+| 6 Aspect and maneuvers | After the picture is called: which group turned, HOT / FLANK / BEAM / DRAG from its angle off the fighters, direction, a group dividing into ARMs (MANEUVER SPREAD / RANGE / AZIMUTH) and the ARM names; earlier calls shown on the card |
 | 7 Fighter requests | THREAT (which fighter, BRAA, aspect); BOGEY DOPE, MUSIC and STROBE asked by any fighter on ordinary pictures |
-| 8 DCA flow | Stills from the BC3 Scope Trainer (`sc-01`, `sc-02`) flown with the WD seat on: hold or COMMIT, which group to target first, whether a THREAT call is due and to whom, and "what do you call now?" Graded with the trainer's `WD_STANDARDS` (commit 95 to 50 nm, target before 45 nm, THREAT inside 15 nm), which are training defaults |
+| 8 DCA flow | Stills from the BC3 Scope Trainer (`sc-01`, `sc-02`) flown with the WD seat on: hold or COMMIT, which group to target first, whether a THREAT call is due and to whom, and "what do you call now?" Graded with the trainer's `WD_STANDARDS` (commit 95 to 50 nm, target before 45 nm, THREAT inside 35 nm), which are training defaults |
 | 9 Checkride | 20 build and solo questions drawn from modules 2 to 8, measurements off; pass at 17 |
 
-Wrong options and "spot the error" calls are the correct call with one rule broken (BULLS for BULLSEYE, HIGH for an altitude, the wrong label, count, track, aspect, strength or dimension), so each explanation names the rule.
+Wrong options and "spot the error" calls are the correct call with one rule broken (BULLS for BULLSEYE, HIGH for an altitude, the wrong label, count, track, aspect, strength or dimension, a TRACK on an all-HOT picture, SEPARATION in a wave, a missing LADDER separation or HIGH fill-in, SPLIT instead of MANEUVER), so each explanation names the rule.
 
-**Content review.** Lessons and module 1 are paraphrased from `kb/03_Notes_And_Insights/Picture_Call_Logic.md`, which is marked "needs your re-review"; the course shows a banner saying so and each written question cites its source. The "Research Document" notes (`Tactical_Range_Calls.md`, `ROE_Declarations.md`) disagree with the ALSSA note and are not used.
+**Content source.** The engine, lessons, module 1 and every call format are checked against ALSSA ACC, ATP 3-52.4 (09 OCT 2024); see `kb/05_Tools_And_CrossReferences/ALSSA_ACC_2024_Review.md`. Each written question cites the publication. Commit window and targeting range in module 8 are training defaults (COMMIT and THREAT criteria are mission-planned); the THREAT range is the ALSSA 35 nm default.
 
 ## Rebuilding
 

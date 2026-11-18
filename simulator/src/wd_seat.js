@@ -21,11 +21,16 @@ const WD_STANDARDS = {
     commitEarlyNm: 95,      // committing with the nearest hostile beyond this is early
     selfCommitNm: 40,       // fighters commit themselves inside this
     targetingRangeNm: 45,   // every group should be targeted before it is this close to a fighter
-    threatNm: 15,           // an untargeted hostile this close to a fighter needs a THREAT call
+    threatNm: 35,           // an untargeted hostile this close to a fighter needs a THREAT call (ALSSA ACC V.17.c(1) default)
     threatDueSec: 20,
     snapshotSec: 2,         // replay resolution
     weights: { picture: 30, commit: 20, targeting: 30, threat: 10, outcome: 10 }
 };
+
+/** The flight's mission call sign for a COMMIT: RAPTOR11 -> RAPTOR ("RAPTOR COMMIT", ALSSA ACC V.3.b). */
+function flightCallsign(lead) {
+    return String(lead.callsign).replace(/\s*\d+$/, '');
+}
 
 class WdSeat {
     constructor(scope, deps) {
@@ -130,7 +135,7 @@ class WdSeat {
         const r = this.nearestHostileNm(lead);
         if (r <= this.standards.selfCommitNm) {
             this.commits[id] = { simT: this.now(), rangeNm: r, verdict: 'fighter-initiated', callsign: lead.callsign };
-            this.say(lead.callsign, `${lead.callsign} COMMITTING: hostile inside ${this.standards.selfCommitNm}, no commit from control`);
+            this.say(lead.callsign, `${flightCallsign(lead)} COMMIT (hostile inside ${this.standards.selfCommitNm}, no commit from control)`);
             return true;
         }
         return false;
@@ -205,7 +210,7 @@ class WdSeat {
         if (!lead) return null;
         const id = String(lead.id);
         if (this.commits[id]) {
-            this.say('WD', `${lead.callsign}, COMMIT (already committed)`);
+            this.say('WD', `${flightCallsign(lead)} COMMIT (already committed)`);
             return this.commits[id];
         }
         const r = this.nearestHostileNm(lead);
@@ -215,10 +220,9 @@ class WdSeat {
         else if (r > this.standards.commitEarlyNm) verdict = 'early';
         else if (r < commitNm) verdict = 'late';
         this.commits[id] = { simT: this.now(), rangeNm: r, verdict, callsign: lead.callsign };
-        this.say('WD', `${lead.callsign}, COMMIT`);
-        this.say(lead.callsign, (this.targeting[id] || []).length
-            ? `${lead.callsign} COMMIT`
-            : `${lead.callsign} COMMIT, REQUEST TARGETING`);
+        // Controller-directed COMMIT ends the picture or core-information call; the fighter acknowledges.
+        this.say('WD', `${flightCallsign(lead)} COMMIT`);
+        this.say(lead.callsign, lead.callsign);
         return this.commits[id];
     }
 

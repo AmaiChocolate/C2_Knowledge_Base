@@ -19,7 +19,8 @@ const PICTURE_RULES = {
     strobeCorrelationDeg: 30,
     waveGapNm: 25,
     packageGapNm: 40,
-    aspectDeg: { hot: 30, flank: 60, beam: 110 },
+    aspectDeg: { hot: 30, flank: 70, beam: 120 },      // target aspect bands, ALSSA ACC IV.6.c figure 1
+    highFtMsl: 40000,                                  // HIGH fill-in above this (ALSSA ACC IV.8.b(3))
     tolerances: { bearingDeg: 5, rangeNm: 3, capRangeNm: 5, dimensionNm: 3, altitudeK: 1, directionDeg: 30 }
 };
 
@@ -86,7 +87,10 @@ class PictureGenerator {
         };
     }
 
-    /** Leading edge + follow-on waves: total count, LEADING EDGE label, then each wave's separation and label. */
+    /**
+     * Leading edge + follow-on waves: total count, LEADING EDGE label, then each wave by its
+     * separation and label (ALSSA ACC IV.17, figures 26-27: "SECOND WAVE FIFTEEN, THREE GROUP WALL").
+     */
     generateWavePicture(waves, groups, orient) {
         const formations = waves.map(w => this.analyzeFormation(w, orient));
         const parts = [
@@ -94,7 +98,7 @@ class PictureGenerator {
         ];
         for (let i = 1; i < waves.length; i++) {
             const gap = Math.round(this.waveSeparation(waves[i - 1], waves[i]));
-            parts.push(`${alssaWaveLabel(i)} SEPARATION ${alssaNumberToWords(gap)}, ${this.formationHeader(formations[i], false)}.`);
+            parts.push(`${alssaWaveLabel(i)} ${alssaNumberToWords(gap)}, ${alssaLabelPhrase(formations[i].count, formations[i].type)}.`);
         }
         return {
             text: `"${parts.join(' ')}"`,
@@ -152,7 +156,7 @@ class PictureGenerator {
         const word = this.aspectWord(group.centroid, maneuver.heading, fighterRef);
         const direction = word === 'HOT' ? null : Geo.cardinal8(maneuver.heading);
         return {
-            text: `"${this.callsign}, ${name}, ${direction ? `${word} ${direction}` : word}"`,
+            text: `"${this.callsign}, ${name} ${direction ? `${word} ${direction}` : word}"`,
             prompt: null,
             groups: [group],
             formation: null,
@@ -166,24 +170,31 @@ class PictureGenerator {
     }
 
     /**
-     * A named group has split: name it, then give each resulting group by its new name
-     * with BULLSEYE, altitude, track and declaration. Either piece is a valid anchor.
-     * @param pieces [{ group, name }]: the two groups the split left
+     * A named group has divided into ARMs more than 3 nm apart (ALSSA ACC V.10.c-d).
+     * The call names the group as called, says MANEUVER with how it divided, then gives
+     * each ARM's aspect off the fighters:
+     *   SPREAD   every contact still FLANK or HOT
+     *   RANGE    at least one FLANK / HOT and at least one BEAM / DRAG
+     *   AZIMUTH  every contact BEAM or DRAG
+     * "WARRIOR, LEAD GROUP MANEUVER RANGE. NORTH ARM BEAM NORTH. SOUTH ARM HOT."
+     * @param pieces [{ group, name }]: the ARMs the group became
      */
-    generateSplitCall(parentName, pieces) {
-        const parts = pieces.map(({ group: g, name }) => [
-            `${name} ${alssaBullseye(g.centroid)}`, alssaFormatAltitude(g.centroid.altitude),
-            `TRACK ${Geo.cardinal8(g.heading)}`, 'HOSTILE', alssaContacts(g.count)
-        ].filter(Boolean).join(', '));
+    generateSplitCall(parentName, pieces, fighterRef) {
+        const arms = pieces.map(({ group: g, name }) => {
+            const word = this.aspectWord(g.centroid, g.heading, fighterRef);
+            return { group: g, name, word, aspect: word === 'HOT' ? 'HOT' : `${word} ${Geo.cardinal8(g.heading)}` };
+        });
+        const pressing = arms.filter(a => a.word === 'HOT' || a.word === 'FLANK').length;
+        const relation = pressing === arms.length ? 'SPREAD' : pressing ? 'RANGE' : 'AZIMUTH';
         return {
-            text: `"${this.callsign}, ${parentName} SPLIT. ${parts.join('. ')}."`,
+            text: `"${this.callsign}, ${parentName} MANEUVER ${relation}. ${arms.map(a => `${a.name} ${a.aspect}`).join('. ')}."`,
             prompt: null,
             groups: pieces.map(p => p.group),
             formation: null,
             answerKey: {
                 family: 'maneuver',
-                fields: { groupName: parentName, maneuver: 'SPLIT', direction: null },
-                anchors: pieces.map(p => this.anchorOf(p.group, p.name)),
+                fields: { groupName: parentName, maneuver: relation, direction: null },
+                arms: arms.map(a => ({ name: a.name, aspect: a.aspect })),
                 tolerances: this.rules.tolerances
             }
         };
@@ -192,6 +203,9 @@ class PictureGenerator {
     buildPictureKey(groups, formation, waves) {
         const called = formation.named.map(n => n.group);
         const tracks = [...new Set(called.map(g => g.track))];
+        // All HOT along the fight axis: track is assumed and left out, so the answer is blank.
+        const track = this.trackMode(formation) === 'assumed' ? null
+            : tracks.length === 1 ? tracks[0] : formation.named[0].group.track;
         return {
             family: 'picture',
             fields: {
@@ -202,7 +216,7 @@ class PictureGenerator {
                 width: formation.width,
                 depth: formation.depth,
                 weight: formation.weight,
-                track: tracks.length === 1 ? tracks[0] : formation.named[0].group.track
+                track
             },
             // First entry is the priority anchor; any group in the called picture is an acceptable anchor.
             anchors: formation.named.map(n => this.anchorOf(n.group, n.name)),
@@ -245,8 +259,12 @@ class PictureGenerator {
         ));
         const braa = Geo.bearingRange(blue, target.centroid);
         const aspect = this.aspect(target, blue);
+        // Answered by the group's name when the picture gives it one (ALSSA ACC V.11).
+        const formation = this.analyzeFormation(this.detectWaves(groups)[0], orient);
+        const named = this.callNames(formation.named).find(n => n.group === target);
+        const name = named ? named.name : 'GROUP';
         return {
-            text: `"${blue.callsign}, GROUP ${alssaBraa(braa)}, ${alssaFormatAltitude(target.centroid.altitude)}, ${aspect}, HOSTILE"`,
+            text: `"${blue.callsign}, ${name} ${alssaBraa(braa)}, ${alssaFormatAltitude(target.centroid.altitude)}, ${aspect}, HOSTILE"`,
             prompt: `"${this.callsign}, ${blue.callsign}, BOGEY DOPE"`,
             groups,
             formation: null,
@@ -277,7 +295,7 @@ class PictureGenerator {
         const track = g.track === 'CAP' ? 'CAP' : `TRACK ${g.track}`;
         const parts = [
             `${named.name} ${alssaBullseye(g.centroid)}`,
-            alssaFormatAltitude(g.centroid.altitude), track, 'HOSTILE', alssaContacts(g.count)
+            alssaFormatAltitude(g.centroid.altitude), track, 'HOSTILE', this.fillIns(g)
         ].filter(Boolean);
         return {
             text: `"${this.callsign}, ${parts.join(', ')}"`,
@@ -293,7 +311,7 @@ class PictureGenerator {
         };
     }
 
-    /** STROBE: range, altitude, declaration and name of the closest group along the strobe bearing. */
+    /** STROBE: range, altitude, aspect (HOT assumed), declaration and name of the closest group along the strobe bearing. */
     generateStrobeResponse(groups, meta, orient) {
         const blue = this.requester(meta);
         if (!blue) return this.generateSinglePicture(groups, orient);
@@ -305,9 +323,11 @@ class PictureGenerator {
             .reduce((a, b) => (Geo.distance(blue, b.centroid) < Geo.distance(blue, a.centroid) ? b : a));
         const range = Math.round(Geo.distance(blue, target.centroid));
         const named = formation.named.find(n => n.group === target);
+        // Aspect is HOT unless said otherwise (ALSSA ACC V.12.a).
+        const aspect = this.aspect(target, blue);
         const parts = [
             `STROBE RANGE ${alssaNumberToWords(range)}`,
-            alssaFormatAltitude(target.centroid.altitude), 'HOSTILE', named ? named.name : ''
+            alssaFormatAltitude(target.centroid.altitude), aspect === 'HOT' ? '' : aspect, 'HOSTILE', named ? named.name : ''
         ].filter(Boolean);
         return {
             text: `"${blue.callsign}, ${parts.join(', ')}"`,
@@ -353,27 +373,49 @@ class PictureGenerator {
 
     // ------------------------------------------------------------- formation text
 
+    /**
+     * How a labeled picture voices track (ALSSA ACC IV.14.f): 'assumed' when every group
+     * is HOT along the fight axis (no track at all), 'common' when they share another
+     * track (once, after the label), else 'each' (on every group). A single group or a
+     * core-information picture always gives each group's track.
+     */
+    trackMode(formation) {
+        const groups = formation.named.map(n => n.group);
+        if (formation.type === this.formationTypes.NONE) return 'each';
+        const orient = formation.orient;
+        const hot = g => !g.isCap && g.heading != null && orient
+            && Geo.angleDiff(g.heading, orient.threatHeading) <= this.rules.aspectDeg.hot;
+        if (groups.every(hot)) return 'assumed';
+        const tracks = [...new Set(groups.map(g => g.track))];
+        return tracks.length === 1 && tracks[0] !== 'CAP' ? 'common' : 'each';
+    }
+
+    /** Fill-ins in priority order: HEAVY and contacts, then HIGH above 40,000 ft (ALSSA ACC IV.8.b). */
+    fillIns(group) {
+        return [alssaContacts(group.count), group.centroid.altitude > this.rules.highFtMsl ? 'HIGH' : '']
+            .filter(Boolean).join(', ');
+    }
+
     /** Full block: header sentence plus each named group. */
     describeFormation(formation) {
         const named = formation.named;
-        const tracks = [...new Set(named.map(n => n.group.track))];
-        const commonTrack = tracks.length === 1 && tracks[0] !== 'CAP';
+        const mode = this.trackMode(formation);
 
-        const groupText = (n, forceAnchor) => {
+        const groupText = (n, forceAnchor, i) => {
             const g = n.group;
-            const parts = [
-                (n.anchored || forceAnchor) ? `${n.name} ${alssaBullseye(g.centroid)}` : n.name,
-                alssaFormatAltitude(g.centroid.altitude)
-            ];
-            if (!commonTrack || named.length === 1) parts.push(g.track === 'CAP' ? 'CAP' : `TRACK ${g.track}`);
+            let head = (n.anchored || forceAnchor) ? `${n.name} ${alssaBullseye(g.centroid)}` : n.name;
+            // LADDER: the separation from the LEAD GROUP to the next group (ALSSA ACC IV.16.f(3)).
+            if (i === 1 && formation.separation != null) head += ` SEPARATION ${alssaNumberToWords(formation.separation)}`;
+            const parts = [head, alssaFormatAltitude(g.centroid.altitude)];
+            if (mode === 'each') parts.push(g.track === 'CAP' ? 'CAP' : `TRACK ${g.track}`);
             parts.push('HOSTILE');
-            const contacts = alssaContacts(g.count);
-            if (contacts) parts.push(contacts);
+            const fills = this.fillIns(g);
+            if (fills) parts.push(fills);
             return parts.join(', ');
         };
 
-        if (named.length === 1 && formation.count === 1) return `${groupText(named[0], true)}.`;
-        return `${this.formationHeader(formation, commonTrack)}. ${named.map(n => groupText(n)).join('. ')}.`;
+        if (named.length === 1 && formation.count === 1) return `${groupText(named[0], true, 0)}.`;
+        return `${this.formationHeader(formation, mode === 'common')}. ${named.map((n, i) => groupText(n, false, i)).join('. ')}.`;
     }
 
     /** "THREE GROUP WALL, THIRTY WIDE, WEIGHTED NORTH, TRACK EAST" */
@@ -410,7 +452,7 @@ class PictureGenerator {
         const byCross = [...groups].sort((a, b) => a.axis.cross - b.axis.cross);
         const depthOf = set => Math.max(...set.map(g => g.axis.along)) - Math.min(...set.map(g => g.axis.along));
         const widthOf = set => Math.max(...set.map(g => g.axis.cross)) - Math.min(...set.map(g => g.axis.cross));
-        const result = (type, extra) => Object.assign({ type, count: n, width: null, depth: null, weight: null }, extra);
+        const result = (type, extra) => Object.assign({ type, count: n, width: null, depth: null, weight: null, separation: null, orient }, extra);
         const name = (group, label, anchored = false) => ({ group, name: label, anchored });
         /** Two groups abreast: anchor both only when they are outside 10 nm in azimuth. */
         const pair = (set, suffix) => {
@@ -461,6 +503,7 @@ class PictureGenerator {
             const names = this.ladderNames(n);
             return result(T.LADDER, {
                 depth: Math.round(depth),
+                separation: Math.round(byAlong[0].axis.along - byAlong[1].axis.along),
                 named: byAlong.map((g, i) => name(g, names[i], i === 0))
             });
         }

@@ -45,7 +45,7 @@ Tick **You are the WD** in the sidebar. The live picture answer is hidden and bl
 | **PICTURE…** | Fill the form (same fields as the Picture Trainer) and Transmit | - | Accuracy against scope truth (best of when you opened the form and when you sent it), and how long after a new group appeared (standard 45 s) |
 | **COMMIT** | Pick the flight, press COMMIT | The flight leaves CAP once a hostile is inside meld. Uncommitted flights hold CAP and commit themselves at 40 nm | On time (95–50 nm to the nearest hostile), early, late, or fighter-initiated |
 | **TARGET group** | Click a hostile track, pick the flight, press TARGET | That flight engages only what it is targeted on. An untargeted flight sorts itself at 45 nm | Each hostile targeted before it is within 45 nm of a fighter |
-| **THREAT…** | Click the hostile, choose the fighter, fill the BRAA form | - | BRAA accuracy; required within 20 s when an untargeted hostile is inside 15 nm of a fighter |
+| **THREAT…** | Click the hostile, choose the fighter, fill the BRAA form | - | BRAA accuracy; required within 20 s when an untargeted hostile is inside 35 nm of a fighter (the ALSSA ACC default THREAT range) |
 
 **Auto commit / Auto targeting** hand that task back to the fighters (and drop it from the score) so a new WD can take on one job at a time.
 
