@@ -303,6 +303,16 @@ function startRun(categoryId, variation, orientation) {
     return { scenario, scope, anim, director, recorder, orient: T.getOrientation(orientation) };
 }
 
+/**
+ * Does an answer key call maneuver `m` as scripted? The director scripts a SPLIT, which is
+ * called as MANEUVER SPREAD / RANGE / AZIMUTH into ARMs (ALSSA ACC V.10.c-d).
+ */
+const ARM_RELATIONS = ['SPREAD', 'RANGE', 'AZIMUTH'];
+function calledAs(key, m) {
+    if (!key) return false;
+    return m.type === 'SPLIT' ? ARM_RELATIONS.includes(key.fields.maneuver) : key.fields.maneuver === m.type;
+}
+
 /** Write a generated file, or with --check fail when the committed copy differs. */
 function writeOrCheck(out, text, summary, buildCmd) {
     const rel = path.relative(ROOT, out);
@@ -321,6 +331,6 @@ function writeOrCheck(out, text, summary, buildCmd) {
 
 module.exports = {
     ROOT, SNAPSHOT, T, R, grader, gen, round1, pad3, enOf,
-    PlotRecorder, fly, snapshotTracks, startRun, writeOrCheck,
+    PlotRecorder, fly, snapshotTracks, startRun, writeOrCheck, ARM_RELATIONS, calledAs,
     pictureMeasurements, maneuverMeasurements
 };

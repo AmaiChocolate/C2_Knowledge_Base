@@ -80,7 +80,7 @@ function buildM0() {
 // ------------------------------------------------------------------ module 1
 
 function buildM1() {
-    const src = C.PCL;
+    const src = C.SRC;
     C.M1_CHOICE.forEach((q, i) => {
         const rng = rngFor(`m1-c-${i}`);
         const right = q.choices[q.a];
@@ -163,7 +163,7 @@ function buildM2() {
         const ms = pictureMeasurements(braa, braaMeta, run.orient, set);
         const bsc = addScene(`m2-${id}-r`, run.orient, set, run.recorder, ms, true);
         const req = strip(braa.prompt);
-        const bctx = { fields: bkey.fields, trackCardinal: g2.isCap ? 'WEST' : cardinalOf(g2.heading) };
+        const bctx = { fields: bkey.fields, trackCardinal: g2.isCap ? 'WEST' : cardinalOf(g2.heading), bogey: true };
         const bbase = (s, n) => ({ id: `m2-${id}-r-${n}`, m: 'm2', s, sc: bsc, req, call: btext });
         const other = fighters.find(f => f !== asker && !f.formationAnchor) || fighters.find(f => f !== asker);
 

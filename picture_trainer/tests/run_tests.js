@@ -71,10 +71,7 @@ const EXPECTED_LABEL = {
 /** A submission built straight from the key: must always score 100%. */
 function perfectStudent(key) {
     const s = Object.assign({}, key.fields);
-    if (key.anchors && key.family === 'maneuver') {
-        s.splitBearing = key.anchors[0].bearing;
-        s.splitRange = key.anchors[0].range;
-    } else if (key.anchors) {
+    if (key.anchors) {
         s.bullsBearing = key.anchors[0].bearing;
         s.bullsRange = key.anchors[0].range;
         s.altitude = key.anchors[0].altitudeK;
@@ -105,6 +102,15 @@ function simulate(scenario, seconds) {
     check(isNaN(T.alssaParseNumber('')) && isNaN(T.alssaParseNumber('wall')), 'format', 'non-numbers are NaN');
     [['32', 32], ['32k', 32], ['32000', 32], ['32,000', 32], ['thirty-two thousand', 32], ['8', 8]]
         .forEach(([text, k]) => check(T.alssaParseAltitudeK(text) === k, 'format', `altitude "${text}"`));
+})();
+
+(function aspectBands() {
+    // ALSSA ACC figure 1: HOT 0-30, FLANK 31-70, BEAM 71-120, DRAG 121-180 degrees target aspect.
+    const fighter = { bearing: 90, range: 0 };
+    const from = { bearing: 270, range: 50 };
+    [[0, 'HOT'], [30, 'HOT'], [50, 'FLANK'], [70, 'FLANK'], [95, 'BEAM'], [120, 'BEAM'], [150, 'DRAG']].forEach(([ta, word]) => {
+        check(gen.aspectWord(from, 90 + ta, fighter) === word, 'aspect', `${ta} deg target aspect should be ${word}, got ${gen.aspectWord(from, 90 + ta, fighter)}`);
+    });
 })();
 
 (function geometry() {
@@ -164,6 +170,17 @@ function simulate(scenario, seconds) {
                 check(key.fields.waveCount >= 2, where, `expected waves: ${answer.text}`);
                 check(/LEADING EDGE/.test(answer.text), where, 'wave picture lacks LEADING EDGE');
             }
+            // ALSSA ACC IV.14.f / IV.16.f(3) / IV.17.e: track assumed when every group is HOT,
+            // LADDER separation from the lead group, waves voiced "SECOND WAVE FIFTEEN, <label>".
+            if (key.family === 'picture' && key.fields.track == null) {
+                check(!/\bTRACK\b/.test(answer.text), where, `track should be assumed (all HOT): ${answer.text}`);
+            }
+            if (key.fields.label === 'LADDER') {
+                check(/ GROUP SEPARATION [A-Z-]+, /.test(answer.text), where, `LADDER without separation: ${answer.text}`);
+            }
+            if (key.fields.waveCount >= 2) {
+                check(/SECOND WAVE [A-Z-]+, /.test(answer.text) && !/WAVE SEPARATION/.test(answer.text), where, `wave wording: ${answer.text}`);
+            }
             if (cat.id === 'cap') {
                 check(key.fields.track === 'CAP' && /CAP, HOSTILE/.test(answer.text), where, `cap: ${answer.text}`);
             }
@@ -222,8 +239,12 @@ const PICTURE_LABELS = /\b(AZIMUTH|RANGE|WALL|LADDER|CHAMPAGNE|VIC|BOX|LEADING E
  * Call the picture, then let the director maneuver groups: every maneuver must be
  * called by the name from that picture (or from an earlier split), never with a new
  * label, match the scripted maneuver, grade 100% when answered perfectly, and never
- * merge two groups. A SPLIT must add exactly one group.
+ * merge two groups. A SPLIT is called as a MANEUVER into ARMs (ALSSA ACC V.10.c-d) and
+ * must add exactly one group.
  */
+const ARM_RELATIONS = ['SPREAD', 'RANGE', 'AZIMUTH'];
+const calledAs = (key, m) => (m.type === 'SPLIT' ? ARM_RELATIONS.includes(key.fields.maneuver) : key.fields.maneuver === m.type);
+
 function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
     const scope = new T.ScopeRenderer('tacScope');
     const anim = new T.AnimationEngine(scope);
@@ -255,8 +276,9 @@ function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
         const key = answer.answerKey;
         check(key && key.family === 'maneuver', where, 'no maneuver answer key');
         check(names.has(key.fields.groupName), where, `maneuver names ${key.fields.groupName}, not a group from the picture`);
-        check(!PICTURE_LABELS.test(answer.text.replace(key.fields.groupName, '')), where, `maneuver re-labels the picture: ${answer.text}`);
-        check(key.fields.maneuver === m.type, where, `scripted ${m.type}, called ${key.fields.maneuver}: ${answer.text}`);
+        const withoutRelation = answer.text.replace(key.fields.groupName, '').replace(/MANEUVER (SPREAD|RANGE|AZIMUTH)/, '');
+        check(!PICTURE_LABELS.test(withoutRelation), where, `maneuver re-labels the picture: ${answer.text}`);
+        check(calledAs(key, m), where, `scripted ${m.type}, called ${key.fields.maneuver}: ${answer.text}`);
         check(grader.gradeStudent(perfectStudent(key), key).score === 100, where, `perfect maneuver call not 100%: ${answer.text}`);
         if (key.fields.direction) {
             const wrong = Object.assign(perfectStudent(key), { direction: T.Geo.cardinal8(key.heading + 180) });
@@ -264,15 +286,13 @@ function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
         }
         if (m.type === 'SPLIT') {
             groupCount += 1;
-            check(key.anchors.length === 2 && key.anchors[0].name !== key.anchors[1].name, where, `split pieces ${answer.text}`);
-            check(key.anchors.every(a => !names.has(a.name)), where, `split piece reuses a called name: ${answer.text}`);
-            const second = Object.assign(perfectStudent(key), { splitBearing: String(key.anchors[1].bearing), splitRange: String(key.anchors[1].range) });
-            check(grader.gradeStudent(second, key).score === 100, where, 'either split piece should be a valid anchor');
-            const off = Object.assign(perfectStudent(key), { splitRange: String(key.anchors[0].range + 20) });
-            check(grader.gradeStudent(off, key).score < 100, where, 'split BULLSEYE 20 nm off graded correct');
-        } else {
-            const stray = Object.assign(perfectStudent(key), { splitBearing: '270', splitRange: '80' });
-            check(grader.gradeStudent(stray, key).score < 100, where, 'BULLSEYE on a track maneuver graded correct');
+            check(key.arms.length === 2 && key.arms[0].name !== key.arms[1].name, where, `ARMs ${answer.text}`);
+            check(key.arms.every(a => / ARM\b/.test(a.name) && !names.has(a.name)), where, `ARM reuses a called name: ${answer.text}`);
+            check(!/BULLSEYE|SPLIT/.test(answer.text), where, `ARM call carries BULLSEYE or SPLIT: ${answer.text}`);
+            const wrongRelation = Object.assign(perfectStudent(key), { maneuver: key.fields.maneuver === 'SPREAD' ? 'AZIMUTH' : 'SPREAD' });
+            check(grader.gradeStudent(wrongRelation, key).score < 100, where, 'wrong MANEUVER relationship graded correct');
+            check(grader.gradeStudent(Object.assign(perfectStudent(key), { maneuver: `MANEUVER ${key.fields.maneuver}` }), key).score === 100,
+                where, '"MANEUVER RANGE" typed in full should grade correct');
         }
         stats.maneuvers += 1;
         stats.types[m.type] = (stats.types[m.type] || 0) + 1;
@@ -284,8 +304,8 @@ function runManeuvers(where, scenario, orientation, callAfterSec, stats) {
                 `3 nm rule sees ${clusterer.cluster(hostiles()).length} groups, expected ${groupCount}, ${s * 10 + 10} s into a ${m.type}`);
         }
         const settled = grader.buildManeuverAnswer(scope.tracks, director).answerKey;
-        check(settled && settled.fields.maneuver === m.type, where, `${m.type} read as ${settled && settled.fields.maneuver} once settled`);
-        if (m.type === 'SPLIT') settled.anchors.forEach(a => names.add(a.name));
+        check(settled && calledAs(settled, m), where, `${m.type} read as ${settled && settled.fields.maneuver} once settled`);
+        if (m.type === 'SPLIT') settled.arms.forEach(a => names.add(a.name));
         director.markCalled(anim.simTime, scope.tracks);
     }
     if (director.called) stats.scenarios += 1;

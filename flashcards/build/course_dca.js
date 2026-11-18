@@ -4,11 +4,12 @@
  * Each scenario is flown headlessly with the WD seat on and no WD calls, so the flights
  * hold CAP until the trainee would commit them (or until they commit themselves inside
  * the self-commit range). Stills every FRAME_SEC become questions graded by the seat's
- * own standards (WD_STANDARDS in simulator/src/wd_seat.js):
- *   COMMIT     on time with the nearest hostile 95 to 50 nm from the flight lead
+ * own standards (WD_STANDARDS in simulator/src/wd_seat.js), with ALSSA ACC call formats:
+ *   COMMIT     on time with the nearest hostile 95 to 50 nm from the flight lead: "RAPTOR COMMIT"
  *   TARGETING  every group before it is within 45 nm of a fighter, closest first
- *   THREAT     an untargeted hostile within 15 nm of a fighter, in BRAA to that fighter
- * Those numbers are mission-planned in the real world; the course says so.
+ *   THREAT     an untargeted hostile within 35 nm of a fighter (the ALSSA default), in BRAA
+ *              to that fighter, by the group's name: "RAPTOR12, NORTH GROUP THREAT, BRAA ..."
+ * COMMIT criteria and targeting range are mission-planned in the real world; the course says so.
  *
  * Seeds only change missile outcomes, so runs are identical until the first shots:
  * seed 1 gives the whole run, the other seeds only the fight after MERGE_SEC.
@@ -108,7 +109,7 @@ function flyScenario(scenarioId, seed) {
                 t: 'choice', choices: commitChoices, a: ans,
                 prompt: `Should you commit ${x.lead.callsign}?`,
                 why: `${x.lead.callsign}'s nearest hostile is ${Math.round(x.r)} nm (readout). The trainer's commit window is ${S.commitEarlyNm} to ${commitNm} nm: `
-                    + ['beyond it, hold at CAP.', `inside it: "${x.lead.callsign}, COMMIT".`, `inside ${commitNm} nm is late; commit now. Inside ${S.selfCommitNm} nm the fighters commit themselves.`][ans]
+                    + ['beyond it, hold at CAP.', `inside it: end the picture with "${flightCallsign(x.lead)} COMMIT".`, `inside ${commitNm} nm is late; commit now. Inside ${S.selfCommitNm} nm the fighters commit themselves.`][ans]
             }));
         }
 
@@ -138,7 +139,9 @@ function flyScenario(scenarioId, seed) {
             if (group) {
                 const key = seat.threatKey(b, group);
                 const aspect = seat.pictureGen.aspect(group, b);
-                const call = `${b.callsign}, THREAT GROUP BRAA ${pad3(key.fields.braaBearing)}/${key.fields.braaRange}, ${G.alssaFormatAltitude(group.centroid.altitude)}, ${aspect}, HOSTILE`;
+                // A group already in the picture keeps its name (ALSSA ACC IV.4.b(4), V.17.c).
+                const named = group.name && !/^GROUP /.test(group.name) && group.name !== 'SINGLE GROUP' ? group.name : 'GROUP';
+                const call = `${b.callsign}, ${named} THREAT, BRAA ${pad3(key.fields.braaBearing)}/${key.fields.braaRange}, ${G.alssaFormatAltitude(group.centroid.altitude)}, ${aspect}, HOSTILE`;
                 threatCall = call;
                 const tb = Object.assign(base('guided', 'threat'), { call });
                 choice(rng, Object.assign(tb, {
@@ -166,7 +169,7 @@ function flyScenario(scenarioId, seed) {
         // SOLO: everything due right now.
         const due = [];
         near.filter(x => !x.committed && x.r <= S.commitEarlyNm).forEach(x => {
-            due.push(`${x.lead.callsign}, COMMIT.${x.r < commitNm ? ' (late: inside 50 nm)' : ''}`);
+            due.push(`${flightCallsign(x.lead)} COMMIT.${x.r < commitNm ? ` (late: inside ${commitNm} nm)` : ''}`);
         });
         byGroup.filter(x => x.r <= S.targetingRangeNm + 15).slice(0, 2).forEach(x => {
             due.push(x.r > S.targetingRangeNm
@@ -177,6 +180,11 @@ function flyScenario(scenarioId, seed) {
         if (!due.length) due.push(`Nothing due: hold at CAP. Nearest hostile ${Math.round(Math.min(...near.map(x => x.r)))} nm, outside the ${S.commitEarlyNm} nm commit window.`);
         soloCall(base('solo', 'solo'), due.join(' '), 'What do you call now? Commit, targeting, THREAT, or nothing yet.');
     }
+}
+
+/** The flight's mission call sign for a COMMIT: RAPTOR11 -> RAPTOR (ALSSA ACC V.3.b). */
+function flightCallsign(lead) {
+    return String(lead.callsign).replace(/\s*\d+$/, '');
 }
 
 function visible(scope) {

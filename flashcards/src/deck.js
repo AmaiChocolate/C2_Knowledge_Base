@@ -253,9 +253,12 @@
         if (f.braaBearing != null) add(FIELD_LABELS.braa, `${String(f.braaBearing).padStart(3, '0')}/${f.braaRange}`);
         if (f.strobeRange != null) add(FIELD_LABELS.strobeRange, f.strobeRange);
         if (f.altitude != null) add(FIELD_LABELS.altitude, `${f.altitude}k`);
-        ['track', 'aspect', 'groupName', 'maneuver', 'direction'].forEach(k => {
+        if (f.track == null && card.key.family === 'picture' && f.label) add(FIELD_LABELS.track, 'assumed (all HOT)');
+        ['track', 'aspect', 'groupName', 'direction'].forEach(k => {
             if (f[k] != null) add(FIELD_LABELS[k], f[k]);
         });
+        if (f.maneuver != null) add(FIELD_LABELS.maneuver, card.key.arms ? `MANEUVER ${f.maneuver}` : f.maneuver);
+        (card.key.arms || []).forEach(a => add('ARM', `${a.name} ${a.aspect}`));
         // The key accepts any group as the anchor; list only the ones the call actually anchors.
         (card.key.anchors || []).filter(a => card.answer.includes(`${a.name} BULLSEYE`)).forEach(a => {
             add(card.key.family === 'maneuver' ? 'New group' : 'Anchor',

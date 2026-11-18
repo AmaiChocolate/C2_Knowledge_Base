@@ -6,7 +6,7 @@
  * maneuver ("NORTH GROUP, FLANK NORTH") instead of building a new picture.
  *
  * The director picks a named group, turns it to a HOT / FLANK / BEAM / DRAG heading
- * relative to the friendly fighters, or splits a contact off it, waits for the
+ * relative to the friendly fighters, or splits a contact off it into ARMs, waits for the
  * student to call it, then may schedule another. Everything runs on sim time from a
  * per-scenario seed.
  */
@@ -19,8 +19,9 @@ const MANEUVER_RULES = {
     lookAheadSec: 150,
     stopLineShiftNm: 35,           // once the picture is called the raid may press this much closer
     stayOutsideStopSec: 60,        // a maneuvering group must not reach the stop line this soon
-    // Target aspect for each maneuver, centred in its PICTURE_RULES.aspectDeg band.
-    targetAspectDeg: { HOT: 0, FLANK: 45, BEAM: 90, DRAG: 165 },
+    // Target aspect for each maneuver, inside its PICTURE_RULES.aspectDeg band (HOT 0-30, FLANK 31-70,
+    // BEAM 71-120, DRAG 121-180).
+    targetAspectDeg: { HOT: 0, FLANK: 50, BEAM: 95, DRAG: 155 },
     splitChance: 0.35,             // how often a group that can split is made to
     splitTurnDeg: [50, 70],        // the departing contact's turn off the group's track
     splitVisibleNm: 4.5            // contacts this far apart read as two groups (3 nm rule + margin)
@@ -120,9 +121,9 @@ class ManeuverDirector {
     }
 
     /**
-     * The two groups a split leaves, named by their side across the threat axis in
-     * front of the parent's name: LEAD GROUP -> NORTH LEAD GROUP / SOUTH LEAD GROUP.
-     * In a packages picture the side goes after the package name.
+     * The two ARMs a group divides into, named by their side across the threat axis
+     * (ALSSA ACC V.10.d(4)): NORTH ARM / SOUTH ARM, or NORTH ARM LEAD GROUP once
+     * another group has also divided into ARMs.
      */
     splitPieces(tracks) {
         const m = this.active;
@@ -138,9 +139,8 @@ class ManeuverDirector {
     }
 
     pieceName(parent, side) {
-        const pkg = parent.match(/^(\w+ PACKAGE)(?: (.*))?$/);
-        if (pkg) return `${pkg[1]} ${side} ${pkg[2] || 'GROUP'}`;
-        return `${side} ${parent}`;
+        const armsAlready = [...this.names.values()].some(n => / ARM\b/.test(n));
+        return armsAlready || / PACKAGE/.test(parent) ? `${side} ARM ${parent}` : `${side} ARM`;
     }
 
     /** Point the aspect is measured against: the middle of the friendly CAP stations. */
@@ -200,8 +200,9 @@ class ManeuverDirector {
     }
 
     /**
-     * SPLIT: one contact of a named, still-ingressing group of two or more turns off
-     * its track and becomes a group of its own. The rest carry on as they were.
+     * SPLIT (called as a MANEUVER into ARMs): one contact of a named, still-ingressing
+     * group of two or more turns off its track and becomes an ARM of its own. The rest
+     * carry on as they were.
      */
     planSplits(groups) {
         const R = this.rules;
@@ -212,7 +213,7 @@ class ManeuverDirector {
         groups.forEach(g => {
             if (!this.names.has(g.id) || this.maneuvered.has(g.id) || g.tracks.length < 2) return;
             if (!g.lead.ingress || g.lead.orbitAnchor) return;
-            // A five-group wall already has a NORTH MIDDLE GROUP: its MIDDLE GROUP cannot split.
+            // Never reuse a name already on the scope.
             if (sides.some(side => taken.has(this.pieceName(this.names.get(g.id), side)))) return;
             const leaver = g.tracks[g.tracks.length - 1];
             const turn = R.splitTurnDeg[0] + this.rng() * (R.splitTurnDeg[1] - R.splitTurnDeg[0]);

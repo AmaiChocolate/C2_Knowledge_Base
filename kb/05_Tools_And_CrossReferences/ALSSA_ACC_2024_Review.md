@@ -7,6 +7,27 @@
 
 Each item is **Matches**, **Conflicts** (ours is wrong against the publication) or **Not covered** (the publication leaves it to mission planning or does not address it).
 
+## Status: all 16 conflicts fixed (2026-11-18)
+
+| # | Fix |
+|---|-----|
+| 1 | `picture_logic.js` `trackMode()`: no TRACK when every group is HOT along the threat axis, once after the label for a common non-HOT track, per group otherwise; the answer key's track is blank when assumed |
+| 2 | `PICTURE_RULES.aspectDeg` = 30 / 70 / 120; maneuver target aspects moved inside the new bands |
+| 3 | SPLIT replaced: `[GROUP] MANEUVER SPREAD / RANGE / AZIMUTH. NORTH ARM [aspect]. SOUTH ARM [aspect].`; pieces are ARMs; grading, trainer form, cards and course module 6 follow |
+| 4 | Waves voiced `SECOND WAVE FIFTEEN, THREE GROUP WALL` |
+| 5 | LADDER: `[second group] SEPARATION [nm]` |
+| 6 | WD seat THREAT range 35 nm; module 8 THREAT calls use the group's name (`… NORTH GROUP THREAT, BRAA …`) |
+| 7 | WD seat and module 8: `RAPTOR COMMIT`, fighter acknowledges with call sign |
+| 8 | Lessons, trainer README and cards say labels are post-COMMIT; scenarios stay labeled for drill purposes |
+| 9–10 | `Communication_Flow.md` rewritten from ACC chapters II–III (check-in, WORDS, LOWDOWN, roll call) |
+| 11–12 | `Tactical_Range_Calls.md`, `ROE_Declarations.md`, `DCA_Mission_Timeline.md`, `Scope_Simulator_Architecture.md`: conflicting calls corrected; unverified material labeled |
+| 13 | HIGH fill-in above 40,000 ft (`PICTURE_RULES.highFtMsl`) |
+| 14 | BOGEY DOPE answered by the group's name |
+| 15 | STROBE voices the aspect when the group is not HOT |
+| 16 | Lessons and module 1 state that bearings are magnetic |
+
+Tests: `picture_trainer/tests/run_tests.js` now also checks track-assumed, LADDER separation, wave wording and the aspect bands.
+
 ## Conflicts, in priority order
 
 | # | Topic | Ours | ALSSA ACC 2024 | Where ours lives |
@@ -17,7 +38,7 @@ Each item is **Matches**, **Conflicts** (ours is wrong against the publication) 
 | 4 | **Follow-on wave wording** | `SECOND WAVE SEPARATION THIRTY, FIVE GROUP WALL, FORTY WIDE` | `SECOND WAVE FIFTEEN, THREE GROUP WALL` (IV.17.e, figures 26–27, p. 55): the separation number follows the wave name directly, without the word SEPARATION; the examples give the follow-on wave's label without dimensions | `picture_logic.js` (`generateWavePicture`); course module 5 (its "How is the second wave introduced?" question teaches the wrong form) |
 | 5 | **LADDER separation** | `THREE GROUP LADDER, THIRTY DEEP … MIDDLE GROUP, …` | "A separation distance will be communicated from the LEAD GROUP to the next GROUP" (IV.16.f(3), p. 53): `MIDDLE GROUP SEPARATION FIFTEEN, TWENTY THOUSAND, HOSTILE` (figure 25) | `picture_logic.js` (LADDER) |
 | 6 | **THREAT criteria and format (DCA module)** | WD seat: THREAT due when an untargeted hostile is inside **15 nm**; module 8 builds `RAPTOR11, THREAT GROUP BRAA …` for groups already in the picture | Default THREAT criteria **35 nm, independent of aspect** (V.17.c(1), p. 74), mission-planned otherwise. A named group keeps its name: `HEAT 31, ADDITIONAL GROUP THREAT, BRAA 1-2-5/35 …` (V.17.c(1)), `EAGLE 11, LEAD GROUP, THREAT BRAA …` (IV.4.b(4), p. 27). `THREAT GROUP` is for an **undetected or unreported** group (IV.20.c, p. 58) | `wd_seat.js` (`threatNm`); course module 8 |
-| 7 | **COMMIT call** | `RAPTOR11, COMMIT` | With controller commit authority the COMMIT is directed at the end of the picture or core-information call: `TANGO, TEN GROUPS, GROUP ROCK 2-5-0/45, …, HOSTILE, RAPTOR COMMIT.` Fighter acknowledges `RAPTOR 1`. Without authority the controller recommends: `…, RECOMMEND RAPTOR COMMIT.` Two-way communication is required (V.3.b, pp. 60–61) | `wd_seat.js` (`commit`); course module 8 lesson |
+| 7 | **COMMIT call** | `RAPTOR11, COMMIT` | With controller commit authority the COMMIT is directed at the end of the picture or core-information call: `WARRIOR, TEN GROUPS, GROUP ROCK 2-5-0/45, …, HOSTILE, RAPTOR COMMIT.` Fighter acknowledges `RAPTOR 1`. Without authority the controller recommends: `…, RECOMMEND RAPTOR COMMIT.` Two-way communication is required (V.3.b, pp. 60–61) | `wd_seat.js` (`commit`); course module 8 lesson |
 | 8 | **Labels before COMMIT** | The trainer labels every picture | Traditional labels are used once COMMIT criteria are met and the formation is discernible (IV.13.a, p. 37); pre-COMMIT pictures are core information (IV.10.a(1), figure 5). After a fighter-directed COMMIT the controller moves to labels or LEADING EDGE (V.3.b(5)) | Trainer and course: add the context ("post-COMMIT") rather than change every scenario |
 | 9 | **LOWDOWN** | `Communication_Flow.md`: a general tactical summary (picture, emitters, weather, tanker, bingo field) after authentication | LOWDOWN is a request for the **tactical electromagnetic support picture or ground/surface picture**, correlated in BULLSEYE format; passed at a briefed time and immediately followed by a roll call, or at check-in as part of WORDS for late aircraft; may be digital (Link 16, chat) or voice (III.2, pp. 20–21). Example: `GOLIATH, LOWDOWN. SA TWENTY AWAKE BULLSEYE 0-9-0/10, HQ-9 ACTIVE BULLSEYE 0-8-5/13, …` Order for tactical SAMs and MOVERS: closest MEZ to friendly forces, closest MEZ to friendly axis of attack or ingress routes, most lethal | `kb/03_Notes_And_Insights/Communication_Flow.md` |
 | 10 | **Check-in** | `Communication_Flow.md`: `WARRIOR, RAPTOR 11, flight of 2, Checking in` / authenticate / "standby for Lowdown" | Check-in tasks are in table 2 (II.4, pp. 6–7): positive friendly ID, ALPHA CHECK from BULLSEYE (correlated within 3 nm), safety-of-flight information, WORDS, weather, post-mission inflight report; terminal-control check-in follows the MNPOPCA order (table 3) | `Communication_Flow.md` |

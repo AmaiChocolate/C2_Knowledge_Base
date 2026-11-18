@@ -4,13 +4,11 @@
  */
 const { SNAPSHOT, T, R, grader, pad3, fly, pictureMeasurements, maneuverMeasurements } = require('./harness');
 const {
-    CARDINALS, ASPECTS, TOL, LABEL_RULES,
+    CARDINALS, ASPECTS, TOL, LABEL_RULES, TRACK_OPTIONS, trackValue, ARM_RELATIONS, calledAs,
     rngFor, shuffle, pick, strip, words, cardinalOf, reciprocal,
     questions, addScene, add, choice, fullCallChoice, errorSpot, soloCall, anchorField, eachRun, pictureRun
 } = require('./course_lib');
 
-const TRACK_OPTIONS = CARDINALS.map(c => `TRACK ${c}`).concat(['CAP']);
-const trackValue = f => (f.track === 'CAP' ? 'CAP' : `TRACK ${f.track}`);
 const fighterCallsigns = tracks => tracks.filter(t => !t.hostile && t.type === 'fighter').map(t => t.callsign);
 const leadOfGroup = g => g.lead || g.tracks.find(t => !t.formationAnchor) || g.tracks[0];
 
@@ -62,12 +60,12 @@ function buildM5() {
                     why: `LEADING EDGE ${f.leadingEdgeCount === 1 ? 'SINGLE GROUP' : `${words(f.leadingEdgeCount)} GROUP${f.leadingEdgeCount > 1 ? 'S' : ''} ${le}`}: ${LABEL_RULES[le]}.`
                 }), le, ['AZIMUTH', 'RANGE', 'WALL', 'LADDER', 'CHAMPAGNE', 'VIC', 'BOX'].filter(x => x !== le).slice(0, 6), { max: 3 });
             }
-            const sep = (text.match(/SECOND WAVE SEPARATION ([A-Z-]+)/) || [])[1];
+            const sep = (text.match(/SECOND WAVE ([A-Z-]+), /) || [])[1];
             if (sep) {
                 choice(rng, Object.assign(base('guided', 'sep'), {
                     prompt: 'How is the second wave introduced?',
-                    why: 'Give its SEPARATION: the shortest distance along the threat axis back from the leading edge (the SEP bracket), then the wave\'s own label.'
-                }), `SECOND WAVE SEPARATION ${sep}`, [`SECOND WAVE, ${sep} DEEP`, `SECOND WAVE, ${sep} WIDE`, 'SECOND WAVE, TRAIL GROUP']);
+                    why: `"SECOND WAVE ${sep}": the shortest distance along the threat axis back from the leading edge (the SEP bracket), with no word SEPARATION, then the wave's own label (ALSSA ACC IV.17.e).`
+                }), `SECOND WAVE ${sep}`, [`SECOND WAVE SEPARATION ${sep}`, `SECOND WAVE, ${sep} DEEP`, `SECOND WAVE, ${sep} WIDE`]);
             }
         },
         (f, key) => [
@@ -126,13 +124,13 @@ function buildM6() {
             for (let waited = 0; waited < SNAPSHOT.settleMaxSec; waited += 5) {
                 if (waited >= SNAPSHOT.settleSec) {
                     answer = grader.buildManeuverAnswer(scope.tracks, director);
-                    if (answer.answerKey && answer.answerKey.fields.maneuver === m.type) break;
+                    if (calledAs(answer.answerKey, m)) break;
                     answer = null;
                 }
                 if (anim.paused) break;
                 fly(anim, recorder, 5);
             }
-            if (!answer || !answer.answerKey || answer.answerKey.fields.maneuver !== m.type) break;
+            if (!answer || !calledAs(answer.answerKey, m)) break;
             const n = director.called + 1;
             const text = strip(answer.text);
             const key = answer.answerKey;
@@ -143,9 +141,16 @@ function buildM6() {
             const ref = director.fighterReference(scope.tracks);
             const offDeg = lead ? Math.round(T.Geo.angleDiff(lead.heading, T.Geo.bearingRange(lead, ref).bearing)) : null;
             const others = names.filter(x => x !== f.groupName);
-            const ctx = { fields: f, offDeg, trackCardinal: lead ? cardinalOf(lead.heading) : 'EAST', groupName: f.groupName, otherName: others[0] };
+            const arms = key.arms || null;
+            const relationWhy = arms ? `${arms.map(a => `${a.name} is ${a.aspect}`).join(', ')}: ${{
+                SPREAD: 'every ARM still FLANK or HOT, MANEUVER SPREAD',
+                RANGE: 'one still FLANK or HOT and one BEAM or DRAG, MANEUVER RANGE',
+                AZIMUTH: 'every ARM BEAM or DRAG, MANEUVER AZIMUTH'
+            }[f.maneuver]}.` : null;
+            const ctx = { fields: f, offDeg, trackCardinal: lead ? cardinalOf(lead.heading) : 'EAST', groupName: f.groupName, otherName: others[0], relationWhy };
             const base = (s, k) => ({ id: `m6-${id}-m${n}-${k}`, m: 'm6', s, sc, call: text, ctx: history.slice() });
             const callsign = lead ? lead.callsign : '';
+            const MANEUVER_CALLS = ARM_RELATIONS.map(r => `MANEUVER ${r}`);
 
             if (others.length) {
                 choice(rng, Object.assign(base('guided', 'which'), {
@@ -153,16 +158,16 @@ function buildM6() {
                     why: `${f.groupName} (${callsign}): its radar plots bend away and the readout puts it furthest off the fighters. Keep the name it was given in the picture.`
                 }), f.groupName, shuffle(rng, others));
             }
-            if (f.maneuver === 'SPLIT') {
+            if (arms) {
                 choice(rng, Object.assign(base('guided', 'what'), {
-                    prompt: `What has ${f.groupName} done?`,
-                    why: 'One contact has moved more than 3 nm from the rest: the group has split into two groups.'
-                }), 'SPLIT', ['FLANK', 'BEAM', 'DRAG'], { ordered: (a, b) => ['SPLIT', 'FLANK', 'BEAM', 'DRAG'].indexOf(a) - ['SPLIT', 'FLANK', 'BEAM', 'DRAG'].indexOf(b) });
-                const pieces = key.anchors.map(a => a.name);
+                    prompt: `${f.groupName} has divided into two pieces more than 3 nm apart. How is it called?`,
+                    why: `There is no SPLIT call. ${relationWhy}`
+                }), `MANEUVER ${f.maneuver}`, MANEUVER_CALLS.filter(x => x !== `MANEUVER ${f.maneuver}`).concat(['SPLIT']), { max: 3, ordered: (a, b) => a.localeCompare(b) });
+                const pieces = arms.map(a => a.name);
                 choice(rng, Object.assign(base('guided', 'pieces'), {
-                    prompt: `What are the two new groups called?`,
-                    why: `Put the side across the threat axis in front of the old name: ${pieces.join(' and ')}.`
-                }), pieces.join(' and '), [`${f.groupName} ONE and ${f.groupName} TWO`, 'LEAD GROUP and TRAIL GROUP', 'NORTH GROUP and SOUTH GROUP', 'EAST GROUP and WEST GROUP'].filter(x => x !== pieces.join(' and ')));
+                    prompt: 'What are the two pieces called now?',
+                    why: `The pieces are ARMs named by their side across the threat axis: ${pieces.join(' and ')}.`
+                }), pieces.join(' and '), [`NORTH ${f.groupName} and SOUTH ${f.groupName}`, `${f.groupName} ONE and ${f.groupName} TWO`, 'NORTH GROUP and SOUTH GROUP', 'LEAD GROUP and TRAIL GROUP'].filter(x => x !== pieces.join(' and ')));
             } else {
                 choice(rng, Object.assign(base('guided', 'aspect'), {
                     prompt: `${f.groupName} has turned. What is its aspect to the fighters?`,
@@ -180,22 +185,27 @@ function buildM6() {
 
             const fields = [
                 { k: 'group', kind: 'select', label: 'Group', options: names.filter((x, i, a) => a.indexOf(x) === i), v: f.groupName },
-                { k: 'maneuver', kind: 'select', label: 'Maneuver', options: ASPECTS.concat(['SPLIT']), v: f.maneuver },
+                { k: 'maneuver', kind: 'select', label: 'Maneuver', options: ASPECTS.concat(MANEUVER_CALLS), v: arms ? `MANEUVER ${f.maneuver}` : f.maneuver },
                 { k: 'dir', kind: 'select', label: 'Direction', options: ['(none)'].concat(CARDINALS), v: f.direction || '(none)' }
             ];
-            if (f.maneuver === 'SPLIT') fields.push(anchorField(key, 'BULLSEYE of either new group'));
+            if (arms) {
+                arms.forEach((a, i) => fields.push({
+                    k: `arm${i}`, kind: 'select', label: `${a.name} aspect`,
+                    options: ['HOT'].concat(...['FLANK', 'BEAM', 'DRAG'].map(w => CARDINALS.map(c => `${w} ${c}`))), v: a.aspect
+                }));
+            }
             if (fields[0].options.includes(f.groupName)) {
                 add(Object.assign(base('build', 'fields'), {
                     t: 'fields', prompt: 'Build the maneuver call.', fields,
-                    why: f.maneuver === 'SPLIT'
-                        ? 'A SPLIT gives no direction; each new group gets its own BULLSEYE.'
+                    why: arms
+                        ? `MANEUVER ${f.maneuver}, no direction; then each ARM's aspect. ${relationWhy}`
                         : `${f.maneuver}${f.direction ? ` ${f.direction}` : ''}: aspect off the fighters, then the cardinal it tracks (none after HOT).`
                 }));
             }
             soloCall(base('solo', 'solo'), text, 'A group has maneuvered since the picture above. Make the call.');
 
             history.push(text);
-            if (f.maneuver === 'SPLIT') key.anchors.forEach(a => names.push(a.name));
+            if (arms) arms.forEach(a => names.push(a.name));
             director.markCalled(anim.simTime, scope.tracks);
             if (anim.paused) break;
         }
@@ -264,7 +274,7 @@ function buildM7() {
             const ms = pictureMeasurements(ans, meta, run.orient, tracks);
             const sc = addScene(`m7-${id}-${mode}`, run.orient, tracks, run.recorder, ms, true);
             const base = (s, k) => ({ id: `m7-${id}-${mode}-${k}`, m: 'm7', s, sc, call: text, req });
-            const ctx = { fields: key.fields, trackCardinal: 'WEST' };
+            const ctx = { fields: key.fields, trackCardinal: 'WEST', bogey: mode === 'bogey_dope' };
             const byRange = groups.map(g => ({ g, r: T.Geo.distance(asker, g.centroid), b: T.Geo.bearingRange(asker, g.centroid).bearing }))
                 .sort((a, b) => a.r - b.r);
             const leadNames = byRange.map(x => leadOfGroup(x.g).callsign);
@@ -291,7 +301,7 @@ function buildM7() {
                 add(Object.assign(base('build', 'fields'), {
                     t: 'fields', prompt: 'Build the MUSIC answer.',
                     fields: [anchorField(key, 'BULLSEYE of the named group'),
-                        { k: 'track', kind: 'select', label: 'Track', options: TRACK_OPTIONS, v: key.fields.track === 'CAP' ? 'CAP' : `TRACK ${key.fields.track}` }],
+                        { k: 'track', kind: 'select', label: 'Track', options: TRACK_OPTIONS, v: trackValue(key.fields) }],
                     why: 'Anchor the group the fighter named, off BULLSEYE.'
                 }));
                 soloCall(base('solo', 'solo'), text, 'Answer the fighter.');

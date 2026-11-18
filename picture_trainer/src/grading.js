@@ -19,13 +19,11 @@ const FIELD_DEFS = {
     braaRange: { label: 'BRAA range (nm)', kind: 'range' },
     strobeRange: { label: 'STROBE range (nm)', kind: 'range' },
     altitude: { label: 'Altitude (thousands ft)', kind: 'altitude', placeholder: '32 or THIRTY-TWO THOUSAND' },
-    track: { label: 'Track direction', kind: 'word', placeholder: 'EAST, SOUTHWEST, CAP…' },
+    track: { label: 'Track direction (blank if all HOT)', kind: 'word', placeholder: 'EAST, SOUTHWEST, CAP…' },
     aspect: { label: 'Aspect', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG' },
     groupName: { label: 'Group (name from your picture)', kind: 'name', placeholder: 'NORTH GROUP, LEAD GROUP…' },
-    maneuver: { label: 'Maneuver', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG / SPLIT' },
-    direction: { label: 'Direction (blank if HOT or SPLIT)', kind: 'cardinal', placeholder: 'NORTH, SOUTHWEST…' },
-    splitBearing: { label: 'SPLIT: a new group\'s BULLSEYE bearing', kind: 'anchorBearing' },
-    splitRange: { label: 'SPLIT: a new group\'s BULLSEYE range (nm)', kind: 'anchorRange' }
+    maneuver: { label: 'Maneuver', kind: 'aspect', placeholder: 'HOT / FLANK / BEAM / DRAG, or MANEUVER SPREAD / RANGE / AZIMUTH' },
+    direction: { label: 'Direction (blank if HOT or a MANEUVER into ARMs)', kind: 'cardinal', placeholder: 'NORTH, SOUTHWEST…' }
 };
 
 const ANSWER_FAMILIES = {
@@ -35,7 +33,7 @@ const ANSWER_FAMILIES = {
     braa: ['braaBearing', 'braaRange', 'altitude', 'aspect'],
     music: ['bullsBearing', 'bullsRange', 'altitude', 'track'],
     strobe: ['strobeRange', 'altitude'],
-    maneuver: ['groupName', 'maneuver', 'direction', 'splitBearing', 'splitRange']
+    maneuver: ['groupName', 'maneuver', 'direction']
 };
 
 class PictureGrader {
@@ -74,7 +72,7 @@ class PictureGrader {
         const groupOf = id => this.clusterer.groupByTruth(tracks.filter(t => t.hostile && !t.isDormant && t.groupId === id))[0];
         if (m.type === 'SPLIT') {
             const pieces = director.splitPieces(tracks).map(p => ({ group: groupOf(p.groupId), name: p.name }));
-            return this.pictureGen.generateSplitCall(m.name, pieces);
+            return this.pictureGen.generateSplitCall(m.name, pieces, director.fighterReference(tracks));
         }
         return this.pictureGen.generateManeuverCall(groupOf(m.groupId), m, m.name, director.fighterReference(tracks));
     }
@@ -157,8 +155,8 @@ class PictureGrader {
         const anchors = answerKey.anchors;
         if (!anchors || !anchors.length) return null;
         const tol = answerKey.tolerances;
-        const bearing = student.bullsBearing != null ? student.bullsBearing : student.splitBearing;
-        const range = student.bullsRange != null ? student.bullsRange : student.splitRange;
+        const bearing = student.bullsBearing;
+        const range = student.bullsRange;
         return anchors.find(a => (
             this.bearingMatches(bearing, a.bearing, tol.bearingDeg)
             && this.numberMatches(range, a.range, a.isCap ? tol.capRangeNm : tol.rangeNm, false)
@@ -192,7 +190,7 @@ class PictureGrader {
     }
 
     normalizeWord(val) {
-        return String(val || '').toUpperCase().replace(/\b(TRACK|GROUPS?)\b/g, '').replace(/[^A-Z]/g, '');
+        return String(val || '').toUpperCase().replace(/\b(TRACK|GROUPS?|MANEUVER)\b/g, '').replace(/[^A-Z]/g, '');
     }
 
     normalizeLabel(val) {

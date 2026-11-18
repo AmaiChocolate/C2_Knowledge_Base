@@ -1,6 +1,6 @@
 # DCA Mission Timeline for Weapons Directors
 
-**Last Reviewed:** 2026-08-14  
+**Last Reviewed:** 2026-11-18: COMMIT, maneuver, new-group and THREAT call formats checked against ALSSA ACC, ATP 3-52.4 (09 OCT 2024). The rest is a training timeline, not covered by ACC; the "standard sim overlay" below describes an older north-threat setup (the simulator now runs E–W, see `simulator/README.md`).  
 **Tags:** `#wd` `#dca` `#timeline`  
 **Related:** [[../02_Training_And_Checklists/WD_Positional_Checklist|WD checklist]] · sim `sc-01-single-commit`
 
@@ -112,7 +112,7 @@ Case studies: [[../04_Scenarios_And_CaseStudies/sc-01-single-commit|sc-01]] · [
 
 16. **Provide Control Updates**
     - **Maneuver instructions** (if requested): `"TURN LEFT/RIGHT HEADING XXX"`
-    - **Aspect updates**: `"TRACK COLD"` (moving away) or `"TRACK HOT"` (inbound)
+    - **Maneuver updates** (ALSSA ACC V.10): group name and maneuver, `"LEAD GROUP BEAM NORTH"`, or `"LEAD GROUP TRACK NORTH"` when an aspect does not apply to all fighters. Aspect words (HOT / FLANK / BEAM / DRAG) never follow TRACK.
     - **Range/Altitude changes**: `"GROUP NOW 280/40, DESCENDING"`
 
 17. **Monitor Kill Chain**
@@ -127,7 +127,7 @@ Case studies: [[../04_Scenarios_And_CaseStudies/sc-01-single-commit|sc-01]] · [
 
 19. **Threat Response**
     - If new threats appear during engagement: **Prioritize** (closer/higher threat first)
-    - Call **"NEW GROUP"** with updated BRAA
+    - Call it as an **ADDITIONAL** or **POP-UP GROUP** (ALSSA ACC IV.20), anchored by BULLSEYE
     - Manage multi-group scenarios (avoid commit delay – see WD Techniques)
 
 ### Tanker Coordination (As Needed)
@@ -149,8 +149,8 @@ Case studies: [[../04_Scenarios_And_CaseStudies/sc-01-single-commit|sc-01]] · [
 ### Defensive Actions (If Friendly Aircraft Under Threat)
 
 23. **Declare THREAT** (Immediate Call)
-    - Format: `"THREAT, [CALLSIGN], [BRAA TO THREAT]"`
-    - Example: `"THREAT, RAPTOR, BULLS 180/20, HIGH, TRACK HOT"`
+    - Format (ALSSA ACC V.17): fighter call sign, group name, THREAT, BRAA, altitude, aspect, declaration. Default THREAT criteria 35 nm, independent of aspect.
+    - Example: `"HEAT 31, ADDITIONAL GROUP THREAT, BRAA 1-2-5/35, THIRTY-FIVE THOUSAND, HOT, HOSTILE"`; an unreported group: `"RAMBO 2, THREAT GROUP BRAA 2-7-0/13, ONE THOUSAND, HOT, HOSTILE"`
 
 24. **Provide Defensive Maneuver** (if ROE permits)
     - `"BREAK RIGHT/LEFT"` (immediate hard turn)
