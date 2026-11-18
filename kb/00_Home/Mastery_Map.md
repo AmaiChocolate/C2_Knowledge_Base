@@ -51,4 +51,4 @@ Scenario IDs are shared: `sc-01-single-commit`, `sc-02-wall-ladder`, `sc-03-degr
 
 - [[Systems_Index]]
 - [[Doctrine_Home]]
-- External MQF app: `D:\MQF_dev`, [[MQF_Study_Link]]
+- External MQF app: the MQF_dev study app, [[MQF_Study_Link]]

@@ -10,7 +10,7 @@ Ordered study sequences. Complete systems before heavy scenario work.
 2. [[../07_Systems/BC3_Scope_Workflows|BC3 scope workflows]]
 3. [[../02_Training_And_Checklists/MSO_Positional_Checklist|MSO checklist]]
 4. [[../06_Summaries_And_Learning/MSO_Systems_Flashcards|MSO systems flashcards]]
-5. Self-eval in `D:\MQF_dev` (MSO + All Crew, then Local)
+5. Self-eval in the MQF_dev study app (MSO + All Crew, then Local)
 6. Observe sim `sc-03-degraded-radar`: what disappears on scope when radar degrades
 
 ## WD path

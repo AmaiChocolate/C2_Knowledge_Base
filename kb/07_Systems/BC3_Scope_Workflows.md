@@ -29,6 +29,6 @@ The crew tactical display/session environment. In the browser trainer, the **sco
 | EPT | EP on TPS-75 (not WD): MQF MSO #39 |
 
 ## Sim mapping
-`D:\C2_Knowledge_Base\simulator\`: load scenarios sharing IDs with `04_Scenarios_And_CaseStudies`.
+`simulator/` (repo root): load scenarios sharing IDs with `04_Scenarios_And_CaseStudies`.
 
 → [[../00_Home/Systems_Index|Systems_Index]]

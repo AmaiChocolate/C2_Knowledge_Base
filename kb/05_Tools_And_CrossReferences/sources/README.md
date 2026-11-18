@@ -4,11 +4,11 @@ Plain-text extracts from unclassified ACC / crew-aid PDFs for search and note dr
 
 | File | Source |
 |------|--------|
-| `alssa_utf8.txt` | ALSSA ACC Multi-Domain Ops (`D:\ACC Refs\alssa_acc_2024.pdf`) |
-| `counterair_utf8.txt` | AFDP Counterair (`D:\ACC Refs\3-01-AFDP-COUNTERAIR.pdf`) |
+| `alssa_utf8.txt` | ALSSA ACC Multi-Domain Ops (`alssa_acc_2024.pdf`) |
+| `counterair_utf8.txt` | AFDP Counterair (`3-01-AFDP-COUNTERAIR.pdf`) |
 | `crew_aid_utf8.txt` | CRC Crew Aid 01 Mar 24 (PDF in `02_Training_And_Checklists`) |
 
-Prefer `*_utf8.txt` over `*_text.txt`. Full PDFs: **`D:\ACC Refs`** (not committed).
+Prefer `*_utf8.txt` over `*_text.txt`. Full PDFs: keep in a local references folder (not committed).
 
 `extract_pdf.py`: local helper to re-extract if sources update.
 
